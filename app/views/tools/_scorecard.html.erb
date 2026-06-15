@@ -2,11 +2,11 @@
 <% variants = tool.model_variants.ordered %>
 <% sub = [["Text", :score_text_generation], ["Email", :score_email_writing], ["Logic", :score_logic], ["Coding", :score_coding], ["Image", :score_image_generation]] %>
 
-<section class="specs-block scorecard">
+<section class="specs-block scorecard<%= " scorecard-prominent" if detailed %>">
   <div class="scorecard-head">
     <h2 class="specs-title">Our verdict</h2>
     <% if (v = tool.overall_verdict) %>
-      <span class="verdict-headline"><span class="verdict-num"><%= score_number(v) %></span>/10</span>
+      <span class="verdict-headline"><span class="verdict-num" style="color: <%= score_color(v) %>"><%= score_number(v) %></span>/10</span>
     <% else %>
       <span class="verdict-headline verdict-none">Not yet rated</span>
     <% end %>
