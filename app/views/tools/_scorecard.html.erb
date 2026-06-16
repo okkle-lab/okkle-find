@@ -13,11 +13,9 @@
   </div>
 
   <dl class="criteria-grid">
-    <% unless variants.any? %>
-      <% if detailed %>
-        <% Scoreable::OUTPUT_FIELDS.each do |label, field| %>
-          <div class="criterion criterion-sub"><dt><%= label %></dt><dd><%= score_or_dash(tool.public_send(field)) %></dd></div>
-        <% end %>
+    <% if detailed && !variants.any? %>
+      <% Scoreable::OUTPUT_FIELDS.each do |label, field| %>
+        <div class="criterion criterion-sub"><dt><%= label %></dt><dd><%= score_or_dash(tool.public_send(field)) %></dd></div>
       <% end %>
       <div class="criterion"><dt>Output quality</dt><dd><%= score_or_dash(tool.output_quality) %></dd></div>
       <div class="criterion"><dt>Accuracy &amp; trustworthiness</dt><dd><%= score_or_dash(tool.score_accuracy) %></dd></div>
@@ -28,24 +26,30 @@
 
   <% if variants.any? %>
     <h3 class="scorecard-sub">
-      <%= detailed ? "Scores by model" : "Output quality &amp; accuracy, by model".html_safe %>
+      <%= detailed ? "Scores by model" : "Score by model" %>
     </h3>
     <div class="scores-scroll">
       <table class="models-table scores-table">
         <thead>
           <tr>
             <th>Model</th>
-            <% if detailed %><% sub.each { |label, _| %><th><%= label %></th><% } %><% end %>
-            <th>Output quality</th><th>Accuracy</th><th>Overall</th>
+            <% if detailed %>
+              <% sub.each { |label, _| %><th><%= label %></th><% } %>
+              <th>Output quality</th><th>Accuracy</th><th>Overall</th>
+            <% else %>
+              <th>Score</th>
+            <% end %>
           </tr>
         </thead>
         <tbody>
           <% variants.each do |variant| %>
             <tr>
               <td class="models-name"><%= variant.name %></td>
-              <% if detailed %><% sub.each { |_, field| %><td><%= score_or_dash(variant.public_send(field)) %></td><% } %><% end %>
-              <td><%= score_or_dash(variant.output_quality) %></td>
-              <td><%= score_or_dash(variant.score_accuracy) %></td>
+              <% if detailed %>
+                <% sub.each { |_, field| %><td><%= score_or_dash(variant.public_send(field)) %></td><% } %>
+                <td><%= score_or_dash(variant.output_quality) %></td>
+                <td><%= score_or_dash(variant.score_accuracy) %></td>
+              <% end %>
               <td><strong><%= score_or_dash(variant.verdict) %></strong></td>
             </tr>
           <% end %>
@@ -54,10 +58,14 @@
     </div>
   <% end %>
 
-  <p class="scorecard-note">
-    Scores are out of 10. <strong>Output quality</strong> averages text generation, email writing, logic, coding and image generation.
-    <strong>Accuracy &amp; trustworthiness</strong> caps each model's overall score — a low accuracy score limits it no matter how strong everything else is. Our verdict is the best model's overall.
-  </p>
+  <% if detailed %>
+    <p class="scorecard-note">
+      Scores are out of 10. <strong>Output quality</strong> averages text generation, email writing, logic, coding and image generation.
+      <strong>Accuracy &amp; trustworthiness</strong> caps each model's overall score — a low accuracy score limits it no matter how strong everything else is. Our verdict is the best model's overall.
+    </p>
+  <% else %>
+    <p class="scorecard-note">Scores are out of 10. Our verdict is the best model's overall.</p>
+  <% end %>
 
   <% unless detailed %>
     <p class="scorecard-review-link"><%= link_to "See review for complete score overview →", review_tool_path(tool) %></p>
