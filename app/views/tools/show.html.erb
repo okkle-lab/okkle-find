@@ -59,7 +59,7 @@
 
   <% variants = @tool.model_variants.ordered %>
 
-  <%= render "scorecard", tool: @tool %>
+  <%= render "scorecard", tool: @tool, priority_dimension: @priority_dimension %>
 
   <% if variants.any? %>
     <section class="specs-block models-block">

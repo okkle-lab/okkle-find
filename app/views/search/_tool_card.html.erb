@@ -1,6 +1,6 @@
 <article class="card">
   <header class="card-head">
-    <h3 class="card-name"><%= link_to tool.name, tool_path(tool, from: local_assigns[:from]) %></h3>
+    <h3 class="card-name"><%= link_to tool.name, tool_path(tool, from: local_assigns[:from], dim: local_assigns[:dim]) %></h3>
     <% if tool.provider.present? %><span class="card-provider">by <%= tool.provider %></span><% end %>
     <% if (v = tool.overall_verdict) %>
       <span class="verdict-badge" title="Our overall verdict, out of 10"><%= score_number(v) %><span class="verdict-badge-max">/10</span></span>
@@ -31,7 +31,7 @@
 
 
   <footer class="card-foot">
-    <%= link_to "See the full specs →", tool_path(tool, from: local_assigns[:from]), class: "card-link" %>
+    <%= link_to "See the full specs →", tool_path(tool, from: local_assigns[:from], dim: local_assigns[:dim]), class: "card-link" %>
     <% if tool.website_url.present? %>
       <%= link_to "Visit site", tool.website_url, target: "_blank", rel: "noopener", class: "card-visit",
             data: { controller: "event-logger", action: "click->event-logger#log",
