@@ -84,6 +84,7 @@ class NeedParser
       budget_ceiling_usd_month: positive_number(data[:budget_ceiling_usd_month]),
       categories:               Array(data[:categories]) & valid_slugs,
       keywords:                 ParsedNeed.tokenize(@query),
+      priority_dimension:       data[:priority_dimension].presence,
       source:                   "llm"
     )
   end
@@ -108,6 +109,18 @@ class NeedParser
       fit, return an empty array. Never invent a category.
 
       Allowed categories: #{valid_slugs.join(", ")}.
+
+      Also pick the SINGLE quality that matters most for this request, as
+      priority_dimension — this decides which score we rank results by:
+        - writing prose, articles, blog posts, stories -> text_generation
+        - writing or replying to emails -> email_writing
+        - reasoning, maths, analysis, problem-solving -> logic
+        - writing, reviewing or debugging code -> coding
+        - creating images or art -> image_generation
+        - factual accuracy, citations, research, trustworthiness -> accuracy
+        - being beginner-friendly / simple to use -> ease_of_use
+        - privacy or data safety being the main concern -> privacy
+      Omit priority_dimension if nothing clearly dominates.
     PROMPT
   end
 
@@ -133,6 +146,11 @@ class NeedParser
             type: "array",
             description: "Zero or more matching categories from the allowed list.",
             items: { type: "string", enum: valid_slugs }
+          },
+          priority_dimension: {
+            type: "string",
+            description: "The single most important quality to rank results by. Omit if none clearly dominates.",
+            enum: Tool::PRIORITY_DIMENSIONS.keys
           }
         },
         required: %w[must_be_free must_be_private must_run_locally categories]

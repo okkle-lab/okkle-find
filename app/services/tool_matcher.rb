@@ -1,8 +1,8 @@
-# Stage 2 (hard filter) + Stage 3 (weighted-random pick) of the pipeline.
+# Stage 2 (hard filter) + Stage 3 (intent-based ranking) of the pipeline.
 #
 # The hard filter is strict and deterministic — it NEVER pads with tools that
-# fail a stated must-have. Only the final pick from the surviving pool is
-# randomised.
+# fail a stated must-have. The surviving pool is then ranked by a 50/50 blend
+# of the need's priority dimension and each tool's overall verdict.
 class ToolMatcher
   DEFAULT_COUNT = 5
   MIN_HEALTHY_POOL = 4
@@ -33,7 +33,7 @@ class ToolMatcher
     end
 
     Result.new(
-      tools: weighted_sample(pool, n: @count),
+      tools: ranked(pool).first(@count),
       pool_size: pool.size,
       need: @need,
       used_keyword_fallback: used_fallback
@@ -74,25 +74,12 @@ class ToolMatcher
     Tool.visible.includes(:reviews, :model_variants).left_joins(:categories).where(conditions, binds).distinct
   end
 
-  # Weighted-random sample WITHOUT replacement (spec section 3).
-  # The ~80% probability cap from the spec is intentionally deferred for v1:
-  # over a small pool, sampling-without-replacement already gives good variety,
-  # and a correct cap is fiddly. Revisit if lineups feel stale.
-  def weighted_sample(tools, n:)
-    picked = []
-    pool = tools.dup
-    n.times do
-      break if pool.empty?
-
-      total = pool.sum(&:rank_weight)
-      break if total <= 0
-
-      r = rand * total
-      cum = 0
-      chosen = pool.find { |t| cum += t.rank_weight; cum >= r } || pool.last
-      picked << chosen
-      pool.delete(chosen)
-    end
-    picked
+  # Rank by a 50/50 blend of the need's priority dimension and each tool's
+  # overall verdict (see Tool#rank_score). Ties are broken randomly so equally
+  # scored tools — e.g. the many un-rated ones at the baseline — still rotate
+  # between searches rather than always appearing in the same order.
+  def ranked(tools)
+    dimension = @need.priority_dimension
+    tools.sort_by { |t| [-t.rank_score(dimension), rand] }
   end
 end

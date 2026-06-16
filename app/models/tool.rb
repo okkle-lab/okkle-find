@@ -24,9 +24,22 @@ class Tool < ApplicationRecord
   scope :local,      -> { where(runs_locally: true) }
   scope :private_ok, -> { where(data_retention: %w[none optional]) }
 
-  # Neutral baseline so un-scored tools don't sink in the weighted pick.
-  # (Ranking is effectively flat until the team fills in scores.)
+  # Neutral baseline so un-scored tools don't sink in ranking.
   RANK_BASELINE = 5.0
+
+  # Intent dimension (chosen by the parser from the user's request) => the
+  # score column it ranks on. The output sub-scores and accuracy live on both
+  # the tool and its variants; ease & privacy are tool-only.
+  PRIORITY_DIMENSIONS = {
+    "text_generation"  => :score_text_generation,
+    "email_writing"    => :score_email_writing,
+    "logic"            => :score_logic,
+    "coding"           => :score_coding,
+    "image_generation" => :score_image_generation,
+    "accuracy"         => :score_accuracy,
+    "ease_of_use"      => :ease_score,
+    "privacy"          => :privacy_score
+  }.freeze
 
   # Headline verdict (1-10) for the scorecard + ranking: the best of this
   # tool's per-model verdicts. For a tool with no model lineup, score the
@@ -44,9 +57,25 @@ class Tool < ApplicationRecord
     verdict_with(ease: ease_score, privacy: privacy_score)
   end
 
-  # Weight for the weighted-random pick.
-  def rank_weight
-    overall_verdict || RANK_BASELINE
+  # Best value for a score column across this tool's variants, falling back to
+  # the tool's own column. nil when nothing is scored on that dimension.
+  def best_score(field)
+    vals = model_variants.filter_map { |v| v.public_send(field) if v.respond_to?(field) }
+    vals << public_send(field) if respond_to?(field)
+    vals.compact.max
+  end
+
+  # Rank score (1-10): a 50/50 blend of the intent's priority dimension and the
+  # overall verdict. With no priority dimension it's just the overall verdict.
+  # Missing pieces fall back to the neutral baseline so unscored tools sit in
+  # the middle rather than at the bottom.
+  def rank_score(priority_dimension = nil)
+    overall = overall_verdict || RANK_BASELINE
+    field = PRIORITY_DIMENSIONS[priority_dimension]
+    return overall unless field
+
+    specific = best_score(field) || RANK_BASELINE
+    (specific + overall) / 2.0
   end
 
   # --- display helpers (graceful fallback for un-curated labels) ---

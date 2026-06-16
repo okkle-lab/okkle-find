@@ -23,12 +23,21 @@ class ParsedNeed
 
   STOPWORDS = %w[the a an and or to of for my me i want need without with that this it is are be can my your our without app tool tools ai help].freeze
 
+  # Fallback mapping for the keyword path: category slug => priority dimension.
+  # The LLM picks the dimension directly; this just keeps degraded parses useful.
+  CATEGORY_DIMENSION = {
+    "code"         => "coding",
+    "write-things" => "text_generation",
+    "research"     => "accuracy",
+    "summarize"    => "logic"
+  }.freeze
+
   attr_reader :raw_query, :task, :must_be_free, :must_be_private, :must_run_locally,
-              :budget_ceiling_usd_month, :categories, :keywords, :source
+              :budget_ceiling_usd_month, :categories, :keywords, :priority_dimension, :source
 
   def initialize(raw_query: nil, task: nil, must_be_free: false, must_be_private: false,
                  must_run_locally: false, budget_ceiling_usd_month: nil,
-                 categories: [], keywords: [], source: "keyword")
+                 categories: [], keywords: [], priority_dimension: nil, source: "keyword")
     @raw_query                = raw_query
     @task                     = task
     @must_be_free             = !!must_be_free
@@ -37,12 +46,15 @@ class ParsedNeed
     @budget_ceiling_usd_month = budget_ceiling_usd_month
     @categories               = Array(categories).compact_blank.uniq
     @keywords                 = Array(keywords).compact_blank.uniq
+    @priority_dimension       = Tool::PRIORITY_DIMENSIONS.key?(priority_dimension.to_s) ? priority_dimension.to_s : nil
     @source                   = source
   end
 
-  # A browse tile is already structured — no parsing needed.
+  # A browse tile is already structured — no parsing needed. The tile's category
+  # also implies the dimension to rank by (e.g. the "code" tile ranks on coding).
   def self.from_category(slug, raw_query: nil)
-    new(raw_query: raw_query, categories: [slug], source: "category")
+    new(raw_query: raw_query, categories: [slug],
+        priority_dimension: CATEGORY_DIMENSION[slug], source: "category")
   end
 
   # Naive keyword parse. Doubles as the LLM fallback (spec section 1).
@@ -57,13 +69,14 @@ class ParsedNeed
     end.keys
 
     new(
-      raw_query:        text,
-      must_be_free:     FREE_PHRASES.any?    { |p| q.include?(p) },
-      must_be_private:  PRIVATE_PHRASES.any? { |p| q.include?(p) },
-      must_run_locally: LOCAL_PHRASES.any?   { |p| q.include?(p) },
-      categories:       cats,
-      keywords:         tokenize(text),
-      source:           "keyword"
+      raw_query:          text,
+      must_be_free:       FREE_PHRASES.any?    { |p| q.include?(p) },
+      must_be_private:    PRIVATE_PHRASES.any? { |p| q.include?(p) },
+      must_run_locally:   LOCAL_PHRASES.any?   { |p| q.include?(p) },
+      categories:         cats,
+      keywords:           tokenize(text),
+      priority_dimension: cats.filter_map { |slug| CATEGORY_DIMENSION[slug] }.first,
+      source:             "keyword"
     )
   end
 
@@ -87,6 +100,7 @@ class ParsedNeed
       budget_ceiling_usd_month: budget_ceiling_usd_month,
       categories: categories,
       keywords: keywords,
+      priority_dimension: priority_dimension,
       source: source
     }
   end
