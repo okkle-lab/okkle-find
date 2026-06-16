@@ -39,18 +39,28 @@ VARIANT_HEADERS = %w[
   pricing_unit context_window best_for last_verified position
   score_text_generation score_email_writing score_logic score_coding
   score_image_generation score_accuracy
+  score_write_edit score_summarization score_research_fact_check
+  score_source_quality score_hallucination_resistance score_meetings_transcription
+  score_coding_speed score_coding_efficiency
+  score_translation_speed score_translation_accuracy score_consistency
+  free_to_try
 ].freeze
 
-# Per-variant output-quality sub-scores + accuracy (all 1-10, nullable).
+# Per-variant legacy scores plus rubric sub-scores (all 1-10, nullable).
 VARIANT_SCORES = %w[
   score_text_generation score_email_writing score_logic score_coding
   score_image_generation score_accuracy
+  score_write_edit score_summarization score_research_fact_check
+  score_source_quality score_hallucination_resistance score_meetings_transcription
+  score_coding_speed score_coding_efficiency
+  score_translation_speed score_translation_accuracy score_consistency
 ].freeze
 
 STATUSES    = %w[live dead review].freeze
 RETENTIONS  = %w[none optional yes unclear].freeze
 CONFIDENCES = %w[low medium high].freeze
 YES_NO      = %w[yes no].freeze
+BOOLEAN     = %w[true false yes no].freeze
 
 @errors = []
 
@@ -167,6 +177,7 @@ variants.each.with_index(2) do |row, line|
   VARIANT_SCORES.each do |field|
     check_number(file, label, field, row[field], range: 1..10, integer: true)
   end
+  check_enum(file, label, "free_to_try", row["free_to_try"], BOOLEAN, allow_blank: true)
   check_date(file, label, "last_verified", row["last_verified"])
 end
 
