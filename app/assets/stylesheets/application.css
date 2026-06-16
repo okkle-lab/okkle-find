@@ -59,7 +59,7 @@ a:hover { text-decoration: underline; }
 .search-form { position: relative; display: flex; gap: 0.5rem; max-width: 38rem; margin: 0 auto; }
 .search-form::before {
   content: ""; position: absolute; inset: -0.45rem -0.45rem;
-  background-image: var(--session-gradient); opacity: 0.16;
+  background-image: var(--glow-gradient); opacity: 0.16;
   border-radius: 18px; filter: blur(16px); z-index: -1;
 }
 .search-input {

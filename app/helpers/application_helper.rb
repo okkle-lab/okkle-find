@@ -1,9 +1,13 @@
 module ApplicationHelper
-  # Single brand gradient: warm orange -> pink. Used everywhere a gradient
-  # appears (brand wordmark, buttons, search glow) — no longer randomised.
+  # Single brand gradient: warm orange -> pink. Used for the brand wordmark
+  # and buttons — no longer randomised.
   SESSION_GRADIENTS = [
     %w[#f5a623 #ec4565]
   ].freeze
+
+  # Cool gradient (pink -> purple -> blue) used for the soft glow and hover
+  # shadows, distinct from the warm brand gradient.
+  GLOW_GRADIENT = %w[#ec4565 #8d6fd1 #53aaf6].freeze
 
   def session_gradient_palettes
     SESSION_GRADIENTS
@@ -38,16 +42,17 @@ module ApplicationHelper
     "hsl(#{hue}, 72%, 42%)"
   end
 
-  # Session gradient custom properties for the header brand, buttons and
-  # search glow. The page background itself stays plain white.
+  # Gradient custom properties: the warm brand gradient for the wordmark and
+  # buttons, plus the cool glow gradient for the search glow and hover shadows.
+  # The page background itself stays plain white.
   def page_gradient_style(gradient = nil)
     [
       "--session-gradient: #{gradient_value(gradient, alpha: 1.0)}",
       "--button-gradient: #{button_gradient_value(gradient)}",
-      "--session-shadow: #{gradient_shadow_color(gradient, alpha: 0.2)}",
-      "--hover-shadow-a: #{hover_shadow_stop(gradient, index: 0, alpha: 0.04)}",
-      "--hover-shadow-b: #{hover_shadow_stop(gradient, index: 1, alpha: 0.036)}",
-      "--hover-shadow-c: #{hover_shadow_stop(gradient, index: 2, alpha: 0.032)}"
+      "--glow-gradient: #{glow_gradient_value}",
+      "--hover-shadow-a: #{glow_shadow_stop(0, alpha: 0.04)}",
+      "--hover-shadow-b: #{glow_shadow_stop(1, alpha: 0.036)}",
+      "--hover-shadow-c: #{glow_shadow_stop(2, alpha: 0.032)}"
     ].join("; ") + ";"
   end
 
@@ -71,26 +76,16 @@ module ApplicationHelper
     "linear-gradient(#{angle}deg, #{stops.join(", ")})"
   end
 
-  def gradient_shadow_color(gradient = nil, alpha:)
-    gradient ||= {}
-    colors = Array(gradient["colors"]).presence || SESSION_GRADIENTS.first
-    rgba(colors[colors.length / 2], alpha)
+  # The cool glow gradient as a CSS linear-gradient (full alpha; the glow
+  # element softens it via opacity/blur).
+  def glow_gradient_value
+    stops = GLOW_GRADIENT.map { |hex| rgba(hex, 1.0) }
+    "linear-gradient(135deg, #{stops.join(", ")})"
   end
 
-  def gradient_shadow_stop(gradient = nil, index:, alpha:)
-    gradient ||= {}
-    colors = Array(gradient["colors"]).presence || SESSION_GRADIENTS.first
-    rgba(colors.fetch(index, colors.last), alpha)
-  end
-
-  def hover_shadow_stop(gradient = nil, index:, alpha:)
-    colors = unused_gradient_colors(gradient)
-    rgba(colors.fetch(index, colors.last), alpha)
-  end
-
-  def unused_gradient_colors(gradient = nil)
-    active = Array(gradient&.dig("colors"))
-    SESSION_GRADIENTS.find { |palette| palette != active } || SESSION_GRADIENTS.last
+  # One stop of the glow gradient at a low alpha, for the hover shadow.
+  def glow_shadow_stop(index, alpha:)
+    rgba(GLOW_GRADIENT.fetch(index, GLOW_GRADIENT.last), alpha)
   end
 
   def rgba(hex, alpha)
