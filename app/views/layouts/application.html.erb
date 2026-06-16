@@ -10,7 +10,7 @@
     <%= javascript_importmap_tags %>
   </head>
 
-  <body>
+  <body style="<%= page_gradient_style(session[:header_gradient]) %>">
     <header class="site-header">
       <a href="/" class="brand">AI&nbsp;Finder</a>
       <span class="brand-tag">tell us what you need, in plain English</span>
