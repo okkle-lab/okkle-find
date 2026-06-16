@@ -87,6 +87,6 @@ User accounts · a real ranking algorithm (weighted-random stands in) · admin U
 
 ## Versioning & changelog
 
-Current version: **v0.3.0** (surfaced in the site footer via `AiFinder::VERSION`).
+Current version: **v0.4.0** (surfaced in the site footer via `AiFinder::VERSION`).
 
 This project follows [Semantic Versioning](https://semver.org/) (pre-1.0). All notable changes are recorded in [`CHANGELOG.md`](CHANGELOG.md), and each release is tagged in git (`vMAJOR.MINOR.PATCH`). To cut a release: bump `AiFinder::VERSION` in `config/application.rb`, move the `Unreleased` notes into a dated version section in the changelog, then tag and push.
