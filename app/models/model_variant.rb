@@ -11,9 +11,9 @@ class ModelVariant < ApplicationRecord
 
   scope :ordered, -> { order(:position, :id) }
 
-  # This model's gated verdict, using the parent tool's ease & privacy.
+  # This model's verdict, using parent tool scores for tool-level categories.
   def verdict
-    verdict_with(product_scores: tool.product_overall_scores)
+    verdict_with(extra_scores: tool.rubric_field_values)
   end
 
   # "$3 in / $15 out per 1M tokens" — mirrors Tool#price_summary.

@@ -13,6 +13,8 @@
   <%# The complete score overview — every criterion and the scores assigned %>
   <%= render "scorecard", tool: @tool, detailed: true %>
 
+  <%= render "facts", tool: @tool %>
+
   <%# Written review, only if we've uploaded one for this tool %>
   <% if @review %>
     <section class="review-prose">

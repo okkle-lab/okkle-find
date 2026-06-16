@@ -5,27 +5,36 @@ module Scoreable
 
   # Average of whichever output sub-scores are filled (nil if none yet).
   def output_quality
-    vals = Rubric::OUTPUT_FIELDS.values.filter_map { |field| public_send(field) }
+    score_average(Rubric::OUTPUT_FIELDS)
+  end
+
+  def score_average(fields)
+    vals = Array(fields).filter_map { |field| public_send(field) if respond_to?(field) }
     vals.any? ? vals.sum.to_f / vals.size : nil
   end
 
-  # Gated verdict (1-10): average of output quality + the given ease & privacy,
-  # capped by accuracy (a low accuracy score caps everything). Requires this
-  # record's own output quality or accuracy — ease/privacy alone don't make a
-  # verdict. nil = not yet rated.
-  def verdict_with(product_scores: nil, ease: nil, privacy: nil)
-    gate_scores = Rubric::GATE_FIELDS.filter_map { |field| public_send(field) if respond_to?(field) }
-    return nil if output_quality.nil? && gate_scores.empty?
-
-    product_scores ||= [ease, privacy]
-    parts = [output_quality, *product_scores].compact
-    base = parts.empty? ? nil : parts.sum.to_f / parts.size
-
-    if gate_scores.any?
-      gate = gate_scores.min.to_f
-      base ? [base, gate].min : gate
-    else
-      base
+  def category_score(fields, extra_scores: {})
+    vals = Array(fields).filter_map do |field|
+      if respond_to?(field)
+        public_send(field)
+      else
+        extra_scores[field]
+      end
     end
+    vals.any? ? vals.sum.to_f / vals.size : nil
+  end
+
+  def category_scores(extra_scores: {})
+    Rubric::OVERALL_CATEGORIES.filter_map do |label, fields|
+      score = category_score(fields, extra_scores:)
+      [label, score] if score
+    end.to_h
+  end
+
+  # Overall verdict: average subcategory scores within each rubric category,
+  # then average those category scores. nil = not yet rated.
+  def verdict_with(extra_scores: {})
+    scores = category_scores(extra_scores:).values
+    scores.any? ? scores.sum.to_f / scores.size : nil
   end
 end

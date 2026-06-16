@@ -66,7 +66,7 @@
       <h2 class="specs-title">Models &amp; pricing</h2>
       <table class="models-table">
         <thead>
-          <tr><th>Model</th><th>Best for</th><th>API price</th><th>Context window</th></tr>
+          <tr><th>Model</th><th>Best for</th><th>API price</th><th>Context window</th><th>Free to try</th></tr>
         </thead>
         <tbody>
           <% variants.each do |variant| %>
@@ -75,6 +75,7 @@
               <td><%= variant.best_for %></td>
               <td><%= variant.price_summary || "—" %></td>
               <td><%= variant.context_window.present? ? "#{number_with_delimiter(variant.context_window)} tokens" : "—" %></td>
+              <td><%= yes_no_or_unknown(variant.free_to_try) %></td>
             </tr>
           <% end %>
         </tbody>
@@ -84,6 +85,8 @@
       <% end %>
     </section>
   <% end %>
+
+  <%= render "facts", tool: @tool, include_model_facts: false %>
 
   <section class="specs-block">
     <h2 class="specs-title">The full specs</h2>

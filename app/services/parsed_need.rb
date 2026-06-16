@@ -27,9 +27,11 @@ class ParsedNeed
   # The LLM picks the dimension directly; this just keeps degraded parses useful.
   CATEGORY_DIMENSION = {
     "code"         => "coding",
-    "write-things" => "text_generation",
-    "research"     => "accuracy",
-    "summarize"    => "logic"
+    "write-things" => "write_edit",
+    "research"     => "research",
+    "summarize"    => "summarization",
+    "translate"    => "translation",
+    "audio-to-text" => "meetings_transcription"
   }.freeze
 
   attr_reader :raw_query, :task, :must_be_free, :must_be_private, :must_run_locally,

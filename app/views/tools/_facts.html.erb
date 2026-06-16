@@ -1,0 +1,30 @@
+<section class="specs-block facts-block">
+  <% include_model_facts = local_assigns.fetch(:include_model_facts, true) %>
+  <h2 class="specs-title">Availability &amp; data</h2>
+  <dl class="specs facts-grid">
+    <dt>Web app</dt><dd><%= yes_no_or_unknown(tool.web_available) %></dd>
+    <dt>Mobile app</dt><dd><%= yes_no_or_unknown(tool.mobile_available) %></dd>
+    <dt>Desktop app</dt><dd><%= yes_no_or_unknown(tool.desktop_available) %></dd>
+    <dt>Data location</dt><dd><%= fact_or_unknown(tool.data_location) %></dd>
+    <dt>Trains on your data</dt><dd><%= fact_or_unknown(tool.trains_on_user_data) %></dd>
+    <dt>Retains your data</dt><dd><%= fact_or_unknown(tool.retains_user_data) %></dd>
+  </dl>
+
+  <% variants = tool.model_variants.ordered %>
+  <% if include_model_facts && variants.any? %>
+    <h3 class="scorecard-sub">Model facts</h3>
+    <table class="models-table facts-table">
+      <thead>
+        <tr><th>Model</th><th>Free to try</th></tr>
+      </thead>
+      <tbody>
+        <% variants.each do |variant| %>
+          <tr>
+            <td class="models-name"><%= variant.name %></td>
+            <td><%= yes_no_or_unknown(variant.free_to_try) %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% end %>
+</section>

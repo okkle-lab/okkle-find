@@ -4,11 +4,11 @@ require "test_helper"
 # Records are built in memory — no DB or fixtures needed — so the focus stays
 # on the scoring maths.
 class ToolRankingTest < ActiveSupport::TestCase
-  # A tool whose single variant scores 8 on coding and nothing else.
-  # Its overall verdict therefore works out to 8.0.
+  # A tool whose single variant scores 8 on coding and nothing else. Coding is
+  # the only rated category, so its overall verdict works out to 8.0.
   def coding_tool
     tool = Tool.new(name: "Coder")
-    tool.model_variants.build(name: "v1", score_coding: 8)
+    tool.model_variants.build(name: "v1", score_coding_speed: 8, score_coding_efficiency: 8)
     tool
   end
 
@@ -26,8 +26,8 @@ class ToolRankingTest < ActiveSupport::TestCase
   end
 
   test "rank_score uses the overall verdict (no baseline blend) for an unscored dimension" do
-    # image is unscored -> rank on overall only, NOT a faked (5 + 8)/2 = 6.5
-    assert_equal 8.0, coding_tool.rank_score("image_generation")
+    # translation is unscored -> rank on overall only, NOT a faked baseline blend.
+    assert_equal 8.0, coding_tool.rank_score("translation")
   end
 
   test "rank_score ignores an unknown dimension" do
@@ -36,7 +36,7 @@ class ToolRankingTest < ActiveSupport::TestCase
 
   test "scored_on? reflects whether the dimension has a score" do
     assert coding_tool.scored_on?("coding")
-    refute coding_tool.scored_on?("image_generation")
+    refute coding_tool.scored_on?("translation")
     refute coding_tool.scored_on?(nil)
   end
 
@@ -45,41 +45,83 @@ class ToolRankingTest < ActiveSupport::TestCase
   end
 
   test "product overall scores are derived from product rubric fields" do
-    tool = Tool.new(name: "Product Scores", ease_score: 7, privacy_score: 9)
+    tool = Tool.new(name: "Product Scores", score_prompt_effort: 7, score_interface: 8,
+      score_security_certifications: 9)
 
-    assert_equal [7, 9], tool.product_overall_scores
+    assert_equal [7, 8, 9], tool.product_overall_scores
   end
 
-  test "best_score reads tool-only columns like ease_of_use" do
-    tool = Tool.new(name: "Easy", ease_score: 7)
-    assert_equal 7, tool.best_score(:ease_score)
+  test "overall verdict averages category scores rather than all raw scores" do
+    tool = Tool.new(name: "Category Average",
+      score_prompt_effort: 10,
+      score_interface: 10,
+      score_security_certifications: 4)
+    tool.model_variants.build(name: "v1",
+      score_write_edit: 8,
+      score_summarization: 6,
+      score_coding_speed: 10,
+      score_coding_efficiency: 6,
+      score_hallucination_resistance: 5,
+      score_source_quality: 7,
+      score_consistency: 6,
+      score_translation_speed: 9,
+      score_translation_accuracy: 7)
+
+    # Category scores:
+    # output quality: (8 + 6) / 2 = 7
+    # coding: (10 + 6) / 2 = 8
+    # accuracy: (5 + 7 + 6) / 3 = 6
+    # ease: (10 + 10) / 2 = 10
+    # privacy: 4
+    # translations: (9 + 7) / 2 = 8
+    assert_equal 7.2, tool.overall_verdict
+  end
+
+  test "best_score reads tool-only rubric columns" do
+    tool = Tool.new(name: "Easy", score_prompt_effort: 7)
+    assert_equal 7, tool.best_score(:score_prompt_effort)
   end
 
   test "best_score takes the best across variants" do
     tool = Tool.new(name: "Multi")
-    tool.model_variants.build(name: "a", score_coding: 6)
-    tool.model_variants.build(name: "b", score_coding: 9)
-    assert_equal 9, tool.best_score(:score_coding)
+    tool.model_variants.build(name: "a", score_coding_speed: 6)
+    tool.model_variants.build(name: "b", score_coding_speed: 9)
+    assert_equal 9, tool.best_score(:score_coding_speed)
+  end
+
+  test "dimension_score averages composite rubric fields" do
+    tool = Tool.new(name: "Composite")
+    tool.model_variants.build(name: "a", score_coding_speed: 6, score_coding_efficiency: 8)
+
+    assert_equal 7.0, tool.dimension_score("coding")
+  end
+
+  test "dimension_score uses the best model composite instead of mixing fields across models" do
+    tool = Tool.new(name: "Composite Best")
+    tool.model_variants.build(name: "fast", score_coding_speed: 10, score_coding_efficiency: 2)
+    tool.model_variants.build(name: "efficient", score_coding_speed: 2, score_coding_efficiency: 10)
+
+    assert_equal 6.0, tool.dimension_score("coding")
   end
 
   test "a tool scored on the dimension outranks a higher-overall tool that isn't" do
-    generalist = Tool.new(name: "Generalist") # overall 9, but NO image score
-    generalist.model_variants.build(name: "g", score_text_generation: 9,
-      score_logic: 9, score_coding: 9, score_accuracy: 9)
+    generalist = Tool.new(name: "Generalist") # overall 9, but NO translation score
+    generalist.model_variants.build(name: "g", score_write_edit: 9,
+      score_coding_speed: 9, score_coding_efficiency: 9, score_hallucination_resistance: 9)
 
-    specialist = Tool.new(name: "Specialist") # lower overall, but scored on image
-    specialist.model_variants.build(name: "s", score_text_generation: 4,
-      score_image_generation: 9)
+    specialist = Tool.new(name: "Specialist") # lower overall, but scored on translation
+    specialist.model_variants.build(name: "s", score_write_edit: 4,
+      score_translation_speed: 9, score_translation_accuracy: 9)
 
     # Sanity: the generalist still wins on a plain overall ranking.
     assert_operator generalist.rank_score(nil), :>, specialist.rank_score(nil)
 
-    # On an image search the matcher tiers tools scored on image first, so the
+    # On a translation search the matcher tiers tools scored on translation first, so the
     # specialist outranks the generalist despite the generalist's higher overall.
-    assert specialist.scored_on?("image_generation")
-    refute generalist.scored_on?("image_generation")
+    assert specialist.scored_on?("translation")
+    refute generalist.scored_on?("translation")
 
-    key = ->(t) { [t.scored_on?("image_generation") ? 0 : 1, -t.rank_score("image_generation")] }
+    key = ->(t) { [t.scored_on?("translation") ? 0 : 1, -t.rank_score("translation")] }
     assert_equal [specialist, generalist], [generalist, specialist].sort_by(&key)
   end
 end

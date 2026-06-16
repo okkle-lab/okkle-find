@@ -33,6 +33,16 @@ module ApplicationHelper
     content_tag(:span, score_number(value), class: css_class, style: "color: #{score_color(value)}")
   end
 
+  def yes_no_or_unknown(value)
+    return "Unknown" if value.nil?
+
+    value ? "Yes" : "No"
+  end
+
+  def fact_or_unknown(value)
+    value.present? ? value.to_s.humanize : "Unknown"
+  end
+
   # Colour a 1-10 score on a red→green scale: 1 is red, 10 is green.
   def score_color(value)
     return nil if value.nil?

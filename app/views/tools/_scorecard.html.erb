@@ -1,17 +1,16 @@
 <% detailed = local_assigns.fetch(:detailed, false) %>
 <% priority_dimension = local_assigns.fetch(:priority_dimension, nil) %>
 <% pd_config = Rubric::DIMENSIONS[priority_dimension] %>
-<% pd_field = Tool::PRIORITY_DIMENSIONS[priority_dimension] %>
+<% pd_fields = Rubric.fields_for(priority_dimension) %>
 <%# Only explain the match when we actually have a score on that dimension —
     otherwise this tool is ranked on its overall, so show overall only. %>
-<% pd_score = pd_field ? tool.best_score(pd_field) : nil %>
-<% pd_label = pd_config ? pd_config[:label].downcase : priority_dimension&.tr("_", " ") %>
+<% pd_score = tool.dimension_score(priority_dimension) %>
+<% pd_label = pd_config ? pd_config[:label].downcase : Rubric.label_for(priority_dimension) %>
 <%# ease/privacy live only on the tool, so a per-model column only applies to
     dimensions the variants actually carry. %>
-<% pd_variant_field = (pd_field if pd_score && ModelVariant.column_names.include?(pd_field.to_s)) %>
+<% pd_variant_fields = pd_fields.select { |field| ModelVariant.column_names.include?(field.to_s) } %>
 <% variants = tool.model_variants.ordered %>
 <% product_matched_score = !detailed && !variants.any? && pd_score && pd_config && pd_config[:level] == :model %>
-<% sub = Rubric::OUTPUT_DIMENSIONS.values.map { |config| [config[:short_label] || config[:label], config[:field]] } %>
 
 <section class="specs-block scorecard<%= " scorecard-prominent" if detailed %>">
   <div class="scorecard-head">
@@ -42,65 +41,74 @@
     </div>
   <% end %>
 
-  <% if detailed || product_matched_score %>
+  <% if product_matched_score %>
     <dl class="criteria-grid">
-      <% if detailed && !variants.any? %>
-        <% Rubric::OUTPUT_FIELDS.each do |label, field| %>
-          <div class="criterion criterion-sub"><dt><%= label %></dt><dd><%= colored_score(tool.public_send(field)) %></dd></div>
-        <% end %>
-      <% elsif product_matched_score %>
-        <%# Product page from an intent search: surface just the matched score. %>
-        <div class="criterion"><dt class="criterion-cap"><%= pd_label %></dt><dd><%= colored_score(pd_score) %></dd></div>
-      <% end %>
-      <% if detailed %>
-        <% Rubric::DIMENSIONS.each_value.select { |config| config[:group] == :product }.each do |config| %>
-          <div class="criterion"><dt><%= config[:label] %></dt><dd><%= colored_score(tool.public_send(config[:field])) %></dd></div>
-        <% end %>
-      <% end %>
+      <%# Product page from an intent search: surface just the matched score. %>
+      <div class="criterion"><dt class="criterion-cap"><%= pd_label %></dt><dd><%= colored_score(pd_score) %></dd></div>
     </dl>
   <% end %>
 
   <% if variants.any? %>
     <h3 class="scorecard-sub">
-      <% if detailed %>Scores by model<% elsif pd_variant_field %><%= pd_label.capitalize %> &amp; score, by model<% else %>Score by model<% end %>
+      <% if detailed %>Scores by model<% elsif pd_variant_fields.any? %><%= pd_label.capitalize %> &amp; score, by model<% else %>Score by model<% end %>
     </h3>
     <div class="scores-scroll">
       <table class="models-table scores-table">
-        <thead>
-          <tr>
-            <th>Model</th>
-            <% if detailed %>
-              <% sub.each { |label, _| %><th><%= label %></th><% } %>
-              <th>Output quality</th><th>Accuracy</th><th>Overall</th>
-            <% else %>
-              <% if pd_variant_field %><th><%= pd_config[:short_label] || pd_config[:label] %></th><% end %>
-              <th>Score</th>
-            <% end %>
-          </tr>
-        </thead>
-        <tbody>
-          <% variants.each do |variant| %>
+        <% if detailed %>
+          <% rows = Rubric::SUBCATEGORY_FIELDS.map { |label, field| [label, [field]] } + Rubric::OVERALL_CATEGORIES.map { |label, fields| [label, fields] } + [["Overall", nil]] %>
+          <thead>
             <tr>
-              <td class="models-name"><%= variant.name %></td>
-              <% if detailed %>
-                <% sub.each { |_, field| %><td><%= colored_score(variant.public_send(field)) %></td><% } %>
-                <td><%= colored_score(variant.output_quality) %></td>
-                <td><%= colored_score(variant.score_accuracy) %></td>
-              <% elsif pd_variant_field %>
-                <td><%= colored_score(variant.public_send(pd_variant_field)) %></td>
+              <th>Criterion</th>
+              <% variants.each do |variant| %>
+                <th><%= variant.name %></th>
               <% end %>
-              <td><strong><%= colored_score(variant.verdict) %></strong></td>
             </tr>
-          <% end %>
-        </tbody>
+          </thead>
+          <tbody>
+            <% rows.each do |label, fields| %>
+              <tr>
+                <th class="models-name" scope="row"><%= label %></th>
+                <% variants.each do |variant| %>
+                  <td>
+                    <% value = fields ? variant.category_score(fields, extra_scores: tool.rubric_field_values) : variant.verdict %>
+                    <% if fields %>
+                      <%= colored_score(value) %>
+                    <% else %>
+                      <strong><%= colored_score(value) %></strong>
+                    <% end %>
+                  </td>
+                <% end %>
+              </tr>
+            <% end %>
+          </tbody>
+        <% else %>
+          <thead>
+            <tr>
+              <th>Model</th>
+              <% if pd_variant_fields.any? %><th><%= pd_config[:short_label] || pd_config[:label] %></th><% end %>
+              <th>Score</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% variants.each do |variant| %>
+              <tr>
+                <td class="models-name"><%= variant.name %></td>
+                <% if pd_variant_fields.any? %>
+                  <td><%= colored_score(variant.score_average(pd_variant_fields)) %></td>
+                <% end %>
+                <td><strong><%= colored_score(variant.verdict) %></strong></td>
+              </tr>
+            <% end %>
+          </tbody>
+        <% end %>
       </table>
     </div>
   <% end %>
 
   <% if detailed %>
     <p class="scorecard-note">
-      Scores are out of 10. <strong>Output quality</strong> averages <%= Rubric::OUTPUT_FIELDS.keys.to_sentence.downcase %>.
-      <strong>Accuracy &amp; trustworthiness</strong> caps each model's overall score — a low accuracy score limits it no matter how strong everything else is. Our verdict is the best model's overall.
+      Scores are out of 10. Each category score averages its subcategory scores. Overall averages the category scores.
+      Our verdict is the best model's overall.
     </p>
   <% else %>
     <p class="scorecard-note">Scores are out of 10. Our verdict is the best model's overall.</p>

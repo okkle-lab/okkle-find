@@ -1,4 +1,5 @@
 require "csv"
+require "digest"
 
 # ---------------------------------------------------------------------------
 # Categories (browse grid). Seeded first so the CSV can reference them by slug
@@ -31,8 +32,52 @@ def score_attributes_from(row, fields, model_class)
   columns = model_class.column_names
   fields.each_with_object({}) do |field, attrs|
     key = field.to_s
-    attrs[field] = row[key].presence if row.headers.include?(key) && columns.include?(key)
+    next unless columns.include?(key)
+
+    attrs[field] =
+      if row.headers.include?(key) && row[key].present?
+        row[key]
+      else
+        placeholder_score(row, key)
+      end
   end
+end
+
+def fact_attributes_from(row, fields, model_class)
+  columns = model_class.column_names
+  fields.each_with_object({}) do |(field, config), attrs|
+    key = field.to_s
+    next unless columns.include?(key)
+
+    attrs[field] =
+      if row.headers.include?(key) && row[key].present?
+        row[key]
+      else
+        placeholder_fact(row, key, config)
+      end
+  end
+end
+
+def placeholder_score(row, field)
+  4 + stable_number(row, field, 7) # 4..10 while we wait for real scoring
+end
+
+def placeholder_fact(row, field, config)
+  case config[:format]
+  when :boolean
+    stable_number(row, field, 2).zero?
+  when :string
+    case field.to_s
+    when "data_location" then %w[US EU Global Unknown][stable_number(row, field, 4)]
+    when "trains_on_user_data", "retains_user_data" then %w[yes no unknown][stable_number(row, field, 3)]
+    else "unknown"
+    end
+  end
+end
+
+def stable_number(row, field, modulo)
+  seed = [row["tool_name"], row["name"], row["provider"], field].compact.join(":")
+  Digest::SHA1.hexdigest(seed).to_i(16) % modulo
 end
 
 VALID_RETENTION = Tool.data_retentions.keys.freeze # %w[none optional yes unclear]
@@ -67,7 +112,8 @@ CSV.foreach(csv_path, headers: true) do |row|
     price_label:              row["price_label"].presence,
     ease_label:               row["ease_label"].presence,
     why_this_one:             row["why_this_one"].presence,
-    **score_attributes_from(row, Rubric::SCORE_FIELDS, Tool)
+    **score_attributes_from(row, Rubric::SCORE_FIELDS, Tool),
+    **fact_attributes_from(row, Rubric::FACT_FIELDS, Tool)
   )
   tool.save!
 
@@ -109,7 +155,8 @@ if File.exist?(variants_path)
       best_for:         row["best_for"].presence,
       last_verified:    row["last_verified"].presence,
       position:         row["position"].presence || 0,
-      **score_attributes_from(row, Rubric::SCORE_FIELDS, ModelVariant)
+      **score_attributes_from(row, Rubric::SCORE_FIELDS, ModelVariant),
+      **fact_attributes_from(row, Rubric::FACT_FIELDS, ModelVariant)
     )
     variant_count += 1
   end

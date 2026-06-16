@@ -45,11 +45,26 @@ class Tool < ApplicationRecord
   # Verdict from the tool's own scores — used when there are no scored
   # variants (single-model products). Same gated formula as a model verdict.
   def self_verdict
-    verdict_with(product_scores: product_overall_scores)
+    verdict_with
   end
 
   def product_overall_scores
     Rubric::PRODUCT_FIELDS.filter_map { |field| public_send(field) if respond_to?(field) }
+  end
+
+  def rubric_field_values
+    Rubric::SCORE_FIELDS.each_with_object({}) do |field, values|
+      values[field] = public_send(field) if respond_to?(field) && public_send(field).present?
+    end
+  end
+
+  def dimension_score(priority_dimension)
+    fields = Rubric.fields_for(priority_dimension)
+    return nil if fields.empty?
+
+    vals = model_variants.filter_map { |variant| variant.score_average(fields) }
+    vals << score_average(fields)
+    vals.compact.max
   end
 
   # Best value for a score column across this tool's variants, falling back to
@@ -64,8 +79,7 @@ class Tool < ApplicationRecord
   # matcher uses this to rank tools we've actually evaluated for the need above
   # tools we haven't, so a missing score never masquerades as an average one.
   def scored_on?(priority_dimension)
-    field = PRIORITY_DIMENSIONS[priority_dimension]
-    field ? !best_score(field).nil? : false
+    !dimension_score(priority_dimension).nil?
   end
 
   # Rank score (1-10). With a priority dimension AND a score on it, this is a
@@ -75,8 +89,7 @@ class Tool < ApplicationRecord
   # baseline that would inflate it past tools with a real, lower score.
   def rank_score(priority_dimension = nil)
     overall = overall_verdict || RANK_BASELINE
-    field = PRIORITY_DIMENSIONS[priority_dimension]
-    specific = field && best_score(field)
+    specific = dimension_score(priority_dimension)
     return overall unless specific
 
     (specific + overall) / 2.0

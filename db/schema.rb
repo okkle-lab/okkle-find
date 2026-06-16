@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_06_12_120002) do
+ActiveRecord::Schema[7.1].define(version: 2026_06_16_133000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -57,6 +57,18 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_12_120002) do
     t.integer "score_coding"
     t.integer "score_image_generation"
     t.integer "score_accuracy"
+    t.integer "score_write_edit"
+    t.integer "score_summarization"
+    t.integer "score_research_fact_check"
+    t.integer "score_meetings_transcription"
+    t.integer "score_coding_speed"
+    t.integer "score_coding_efficiency"
+    t.integer "score_hallucination_resistance"
+    t.integer "score_source_quality"
+    t.integer "score_consistency"
+    t.integer "score_translation_speed"
+    t.integer "score_translation_accuracy"
+    t.boolean "free_to_try"
     t.index ["tool_id", "name"], name: "index_model_variants_on_tool_id_and_name", unique: true
     t.index ["tool_id"], name: "index_model_variants_on_tool_id"
   end
@@ -130,6 +142,15 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_12_120002) do
     t.integer "score_coding"
     t.integer "score_image_generation"
     t.integer "score_accuracy"
+    t.integer "score_prompt_effort"
+    t.integer "score_interface"
+    t.integer "score_security_certifications"
+    t.boolean "web_available"
+    t.boolean "mobile_available"
+    t.boolean "desktop_available"
+    t.string "data_location"
+    t.string "trains_on_user_data"
+    t.string "retains_user_data"
     t.index ["consumer_free_app"], name: "index_tools_on_consumer_free_app"
     t.index ["data_retention"], name: "index_tools_on_data_retention"
     t.index ["name"], name: "index_tools_on_name", unique: true
