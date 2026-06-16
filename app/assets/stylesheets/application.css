@@ -271,6 +271,23 @@ a:hover { text-decoration: underline; }
 .scorecard-prominent .specs-title { font-size: 1.4rem; }
 .scorecard-prominent .verdict-headline { font-size: 1.6rem; }
 .scorecard-prominent .verdict-num { font-size: 4rem; line-height: 1; }
+
+/* "Why you're seeing this" — explains the intent the search ranked on */
+.why-shown {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 0.6rem 1.2rem;
+  margin: 0.9rem 0 0; padding: 0.7rem 0.9rem;
+  background: #f6f8ff; border: 1px solid #e2e8ff; border-radius: 10px;
+}
+.why-shown-tag {
+  font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+  color: var(--accent); background: #fff; border: 1px solid #e2e8ff;
+  border-radius: 999px; padding: 0.15rem 0.55rem;
+}
+.why-shown-text { font-size: 0.95rem; }
+.why-shown-stats { display: flex; gap: 1.4rem; margin-left: auto; }
+.why-shown-stat { display: flex; flex-direction: column; align-items: center; line-height: 1.1; }
+.why-shown-num { font-size: 1.5rem; font-weight: 800; }
+.why-shown-cap { font-size: 0.72rem; color: var(--muted); text-transform: capitalize; }
 .criteria-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem 1.5rem; margin: 0.8rem 0 0; }
 .criterion { display: flex; justify-content: space-between; gap: 0.5rem; border-bottom: 1px solid var(--line); padding: 0.35rem 0; }
 .criterion dt { color: var(--muted); margin: 0; }

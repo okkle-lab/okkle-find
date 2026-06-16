@@ -14,6 +14,12 @@ class ToolsController < ApplicationController
     @tool = Tool.find(params[:id])
     Event.record(event_type: "specs_expand", clicked_tool_id: @tool.id)
 
+    # `dim` carries the intent dimension this tool was ranked on, so the
+    # scorecard can explain *why* the search surfaced it. Validated against the
+    # known set; ignored if absent or unrecognised (e.g. a direct visit).
+    @priority_dimension = params[:dim].to_s.presence
+    @priority_dimension = nil unless Tool::PRIORITY_DIMENSIONS.key?(@priority_dimension)
+
     # `from` carries the IDs of the search results the user just saw, so the
     # "Compare with…" picker can be scoped to those recommendations.
     @from     = params[:from].to_s

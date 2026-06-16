@@ -1,4 +1,13 @@
 <% detailed = local_assigns.fetch(:detailed, false) %>
+<% priority_dimension = local_assigns.fetch(:priority_dimension, nil) %>
+<% pd_field = Tool::PRIORITY_DIMENSIONS[priority_dimension] %>
+<%# Only explain the match when we actually have a score on that dimension —
+    otherwise this tool is ranked on its overall, so show overall only. %>
+<% pd_score = pd_field ? tool.best_score(pd_field) : nil %>
+<% pd_label = priority_dimension&.tr("_", " ") %>
+<%# ease/privacy live only on the tool, so a per-model column only applies to
+    dimensions the variants actually carry. %>
+<% pd_variant_field = (pd_field if pd_score && ModelVariant.column_names.include?(pd_field.to_s)) %>
 <% variants = tool.model_variants.ordered %>
 <% sub = [["Text", :score_text_generation], ["Email", :score_email_writing], ["Logic", :score_logic], ["Coding", :score_coding], ["Image", :score_image_generation]] %>
 
@@ -12,13 +21,33 @@
     <% end %>
   </div>
 
+  <%# Explains why the search surfaced this tool: the score it was ranked on
+      (the user's intent) shown next to its overall verdict. %>
+  <% if pd_score %>
+    <div class="why-shown">
+      <span class="why-shown-tag">Why you're seeing this</span>
+      <span class="why-shown-text">Matched on <strong><%= pd_label %></strong></span>
+      <span class="why-shown-stats">
+        <span class="why-shown-stat">
+          <span class="why-shown-num" style="color: <%= score_color(pd_score) %>"><%= score_number(pd_score) %></span>
+          <span class="why-shown-cap"><%= pd_label %></span>
+        </span>
+        <span class="why-shown-stat">
+          <span class="why-shown-num" style="color: <%= score_color(tool.overall_verdict) %>"><%= score_or_dash(tool.overall_verdict) %></span>
+          <span class="why-shown-cap">overall</span>
+        </span>
+      </span>
+    </div>
+  <% end %>
+
   <dl class="criteria-grid">
     <% if detailed && !variants.any? %>
       <% Scoreable::OUTPUT_FIELDS.each do |label, field| %>
         <div class="criterion criterion-sub"><dt><%= label %></dt><dd><%= score_or_dash(tool.public_send(field)) %></dd></div>
       <% end %>
-      <div class="criterion"><dt>Output quality</dt><dd><%= score_or_dash(tool.output_quality) %></dd></div>
-      <div class="criterion"><dt>Accuracy &amp; trustworthiness</dt><dd><%= score_or_dash(tool.score_accuracy) %></dd></div>
+    <% elsif !variants.any? && pd_score && !%i[ease_score privacy_score].include?(pd_field) %>
+      <%# Product page from an intent search: surface just the matched score. %>
+      <div class="criterion"><dt class="criterion-cap"><%= pd_label %></dt><dd><%= score_number(pd_score) %></dd></div>
     <% end %>
     <div class="criterion"><dt>Ease of use</dt><dd><%= score_or_dash(tool.ease_score) %></dd></div>
     <div class="criterion"><dt>Privacy &amp; data safety</dt><dd><%= score_or_dash(tool.privacy_score) %></dd></div>
@@ -26,7 +55,7 @@
 
   <% if variants.any? %>
     <h3 class="scorecard-sub">
-      <%= detailed ? "Scores by model" : "Score by model" %>
+      <% if detailed %>Scores by model<% elsif pd_variant_field %><%= pd_label.capitalize %> &amp; score, by model<% else %>Score by model<% end %>
     </h3>
     <div class="scores-scroll">
       <table class="models-table scores-table">
@@ -37,6 +66,7 @@
               <% sub.each { |label, _| %><th><%= label %></th><% } %>
               <th>Output quality</th><th>Accuracy</th><th>Overall</th>
             <% else %>
+              <% if pd_variant_field %><th><%= pd_label.capitalize %></th><% end %>
               <th>Score</th>
             <% end %>
           </tr>
@@ -49,6 +79,8 @@
                 <% sub.each { |_, field| %><td><%= score_or_dash(variant.public_send(field)) %></td><% } %>
                 <td><%= score_or_dash(variant.output_quality) %></td>
                 <td><%= score_or_dash(variant.score_accuracy) %></td>
+              <% elsif pd_variant_field %>
+                <td><%= score_or_dash(variant.public_send(pd_variant_field)) %></td>
               <% end %>
               <td><strong><%= score_or_dash(variant.verdict) %></strong></td>
             </tr>

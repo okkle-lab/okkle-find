@@ -74,12 +74,14 @@ class ToolMatcher
     Tool.visible.includes(:reviews, :model_variants).left_joins(:categories).where(conditions, binds).distinct
   end
 
-  # Rank by a 50/50 blend of the need's priority dimension and each tool's
-  # overall verdict (see Tool#rank_score). Ties are broken randomly so equally
-  # scored tools — e.g. the many un-rated ones at the baseline — still rotate
-  # between searches rather than always appearing in the same order.
+  # Rank the pool for the need's intent. Tools we've actually scored on the
+  # priority dimension come first (so a tool with no score on it never outranks
+  # one that does), then by the 50/50 dimension+overall blend (see
+  # Tool#rank_score). Ties break randomly so equally scored tools still rotate
+  # between searches. With no priority dimension every tool is "unscored" and
+  # this is simply an overall-verdict ranking.
   def ranked(tools)
     dimension = @need.priority_dimension
-    tools.sort_by { |t| [-t.rank_score(dimension), rand] }
+    tools.sort_by { |t| [t.scored_on?(dimension) ? 0 : 1, -t.rank_score(dimension), rand] }
   end
 end

@@ -65,16 +65,25 @@ class Tool < ApplicationRecord
     vals.compact.max
   end
 
-  # Rank score (1-10): a 50/50 blend of the intent's priority dimension and the
-  # overall verdict. With no priority dimension it's just the overall verdict.
-  # Missing pieces fall back to the neutral baseline so unscored tools sit in
-  # the middle rather than at the bottom.
+  # True when this tool has been scored on the given priority dimension. The
+  # matcher uses this to rank tools we've actually evaluated for the need above
+  # tools we haven't, so a missing score never masquerades as an average one.
+  def scored_on?(priority_dimension)
+    field = PRIORITY_DIMENSIONS[priority_dimension]
+    field ? !best_score(field).nil? : false
+  end
+
+  # Rank score (1-10). With a priority dimension AND a score on it, this is a
+  # 50/50 blend of that dimension and the overall verdict. Otherwise it's just
+  # the overall verdict — a tool with no score on the dimension is ranked on its
+  # overall (and tiered below scored tools by the matcher), never given a
+  # baseline that would inflate it past tools with a real, lower score.
   def rank_score(priority_dimension = nil)
     overall = overall_verdict || RANK_BASELINE
     field = PRIORITY_DIMENSIONS[priority_dimension]
-    return overall unless field
+    specific = field && best_score(field)
+    return overall unless specific
 
-    specific = best_score(field) || RANK_BASELINE
     (specific + overall) / 2.0
   end
 

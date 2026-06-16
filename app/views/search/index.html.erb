@@ -33,6 +33,6 @@
 
   <div class="card-grid">
     <%= render partial: "search/tool_card", collection: @tools, as: :tool,
-          locals: { from: @tools.map(&:id).join(",") } %>
+          locals: { from: @tools.map(&:id).join(","), dim: @need.priority_dimension } %>
   </div>
 <% end %>
