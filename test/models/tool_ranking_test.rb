@@ -124,4 +124,47 @@ class ToolRankingTest < ActiveSupport::TestCase
     key = ->(t) { [t.scored_on?("translation") ? 0 : 1, -t.rank_score("translation")] }
     assert_equal [specialist, generalist], [generalist, specialist].sort_by(&key)
   end
+
+  test "tool matcher normalizes invalid sorts to relevance" do
+    assert_equal "relevance", ToolMatcher.normalize_sort(nil)
+    assert_equal "relevance", ToolMatcher.normalize_sort("not-real")
+    assert_equal "score", ToolMatcher.normalize_sort("score")
+  end
+
+  test "score sort ranks by overall verdict" do
+    low = Tool.new(name: "Low")
+    low.model_variants.build(name: "v1", score_coding_speed: 5, score_coding_efficiency: 5)
+    high = Tool.new(name: "High")
+    high.model_variants.build(name: "v1", score_coding_speed: 8, score_coding_efficiency: 8)
+
+    matcher = ToolMatcher.new(ParsedNeed.new(priority_dimension: "coding"), sort: "score")
+
+    assert_equal [high, low], matcher.send(:ranked, [low, high])
+  end
+
+  test "price sort ranks free tools first and unknown prices last" do
+    unknown = Tool.new(name: "Unknown")
+    paid = Tool.new(name: "Paid", price_low_usd: 20)
+    free = Tool.new(name: "Free", consumer_free_app: true)
+
+    matcher = ToolMatcher.new(ParsedNeed.new(priority_dimension: "coding"), sort: "price")
+
+    assert_equal [free, paid, unknown], matcher.send(:ranked, [unknown, paid, free])
+  end
+
+  test "non relevance sorts only reorder the relevance selected result set" do
+    relevant_expensive = Tool.new(name: "Relevant Expensive", price_low_usd: 30)
+    relevant_expensive.model_variants.build(name: "v1", score_coding_speed: 9, score_coding_efficiency: 9)
+    relevant_cheap = Tool.new(name: "Relevant Cheap", price_low_usd: 5)
+    relevant_cheap.model_variants.build(name: "v1", score_coding_speed: 8, score_coding_efficiency: 8)
+    irrelevant_high_score = Tool.new(name: "Irrelevant High Score", price_low_usd: 1)
+    irrelevant_high_score.model_variants.build(name: "v1", score_write_edit: 10)
+
+    matcher = ToolMatcher.new(ParsedNeed.new(priority_dimension: "coding"), count: 2, sort: "price")
+    matcher.define_singleton_method(:hard_filtered) do
+      [irrelevant_high_score, relevant_cheap, relevant_expensive]
+    end
+
+    assert_equal [relevant_cheap, relevant_expensive], matcher.call.tools
+  end
 end

@@ -5,18 +5,27 @@ class SearchContextTest < ActiveSupport::TestCase
     tools = [Tool.new(id: 3), Tool.new(id: 5)]
     need = ParsedNeed.new(priority_dimension: "coding")
 
-    context = SearchContext.from_results(tools, need)
+    context = SearchContext.from_results(tools, need, sort: "score")
 
     assert_equal [3, 5], context.result_ids
-    assert_equal({ from: "3,5", dim: "coding" }, context.query_params)
+    assert_equal "score", context.sort
+    assert_equal({ from: "3,5", dim: "coding", sort: "score" }, context.query_params)
   end
 
-  test "drops invalid dimensions" do
-    context = SearchContext.from_params(from: "1,2", dim: "not-real")
+  test "drops invalid dimensions and sorts" do
+    context = SearchContext.from_params(from: "1,2", dim: "not-real", sort: "not-real")
 
     assert_equal [1, 2], context.result_ids
     assert_nil context.priority_dimension
+    assert_equal "relevance", context.sort
     assert_equal({ from: "1,2" }, context.query_params)
+  end
+
+  test "omits default relevance sort from query params" do
+    context = SearchContext.from_results([Tool.new(id: 1)], ParsedNeed.new(priority_dimension: "coding"))
+
+    assert_equal "relevance", context.sort
+    assert_equal({ from: "1", dim: "coding" }, context.query_params)
   end
 
   test "normalizes ids and removes blanks duplicates and zeros" do

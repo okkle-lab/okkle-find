@@ -160,9 +160,27 @@ a:hover { text-decoration: underline; }
 /* ---- results ---- */
 .results-head { margin-bottom: 1.5rem; }
 .back-link { font-size: 0.9rem; }
+.results-toolbar {
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  margin-top: 0.5rem;
+}
 .results-title { font-size: 1.6rem; margin: 0.5rem 0 0.25rem; }
 .interpretation { color: var(--muted); margin: 0.25rem 0 0; }
 .interpretation strong { color: var(--ink); }
+.sort-form {
+  display: flex; align-items: center; gap: 0.5rem;
+  margin-left: auto; color: var(--muted); font-size: 0.9rem;
+  white-space: nowrap;
+}
+.sort-label { font-weight: 600; }
+.sort-select {
+  padding: 0.45rem 0.65rem; border: 1px solid var(--line); border-radius: 8px;
+  background: #fff; color: var(--ink); font: inherit;
+}
+@media (max-width: 640px) {
+  .results-toolbar { align-items: flex-start; flex-direction: column; }
+  .sort-form { margin-left: 0; }
+}
 .honesty-note {
   background: #fff7ed; border: 1px solid #fed7aa; color: #9a3412;
   padding: 0.6rem 0.9rem; border-radius: 8px; font-size: 0.9rem;

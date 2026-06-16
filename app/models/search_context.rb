@@ -1,23 +1,26 @@
 class SearchContext
-  attr_reader :result_ids, :priority_dimension
+  attr_reader :result_ids, :priority_dimension, :sort
 
-  def self.from_results(tools, need)
+  def self.from_results(tools, need, sort: ToolMatcher::DEFAULT_SORT)
     new(
       result_ids: Array(tools).map(&:id),
-      priority_dimension: need&.priority_dimension
+      priority_dimension: need&.priority_dimension,
+      sort: sort
     )
   end
 
   def self.from_params(params)
     new(
       result_ids: param_value(params, :from),
-      priority_dimension: param_value(params, :dim)
+      priority_dimension: param_value(params, :dim),
+      sort: param_value(params, :sort)
     )
   end
 
-  def initialize(result_ids: [], priority_dimension: nil)
+  def initialize(result_ids: [], priority_dimension: nil, sort: ToolMatcher::DEFAULT_SORT)
     @result_ids = normalize_ids(result_ids)
     @priority_dimension = valid_priority_dimension(priority_dimension)
+    @sort = ToolMatcher.normalize_sort(sort)
   end
 
   def ids_param
@@ -27,7 +30,8 @@ class SearchContext
   def query_params
     {
       from: ids_param.presence,
-      dim: priority_dimension
+      dim: priority_dimension,
+      sort: sort == ToolMatcher::DEFAULT_SORT ? nil : sort
     }.compact
   end
 

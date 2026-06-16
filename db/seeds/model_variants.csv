@@ -1,21 +1,21 @@
-tool_name,name,model_id_string,input_usd_per_m,output_usd_per_m,pricing_unit,context_window,best_for,last_verified,position,score_text_generation,score_email_writing,score_logic,score_coding,score_image_generation,score_accuracy
-ChatGPT,GPT-5.5,gpt-5.5,5,30,per 1M tokens,,flagship; most capable,2026-06-09,1,8,,7,6,8,7
-ChatGPT,GPT-5.4,gpt-5.4,2.5,15,per 1M tokens,,strong all-rounder at a lower price,2026-06-09,2,7,,7,5,7,7
-ChatGPT,GPT-5.4 Nano,gpt-5.4-nano,0.2,1.25,per 1M tokens,,fastest and cheapest,2026-06-09,3,5,,6,4,6,6
-Claude,Claude Fable 5,claude-fable-5,10,50,per 1M tokens,1000000,most capable; premium price,2026-05-26,1,9,,9,9,,9
-Claude,Claude Opus 4.8,claude-opus-4-8,5,25,per 1M tokens,1000000,"top tier for long, complex work",2026-05-26,2,8,,8,9,,8
-Claude,Claude Sonnet 4.6,claude-sonnet-4-6,3,15,per 1M tokens,1000000,best speed / cost balance,2026-05-26,3,6,,5,6,,5
-Claude,Claude Haiku 4.5,claude-haiku-4-5,1,5,per 1M tokens,200000,fastest and cheapest,2026-05-26,4,5,,4,5,,4
-DeepSeek,DeepSeek V4 Pro,deepseek-v4-pro,1.74,3.48,per 1M tokens,1000000,strongest reasoning,2026-06-09,1,8,,8,,,8
-DeepSeek,DeepSeek V4 Flash,deepseek-v4-flash,0.14,0.28,per 1M tokens,1000000,everyday tasks at minimal cost,2026-06-09,2,6,,6,,,6
-Google Gemini,Gemini 3.1 Pro (preview),gemini-3.1-pro-preview,2,12,per 1M tokens,,most capable; still in preview,2026-06-09,1,8,,8,,,8
-Google Gemini,Gemini 3.5 Flash,gemini-3.5-flash,1.5,9,per 1M tokens,,fast default for most tasks,2026-06-09,2,6,,7,,,7
-Google Gemini,Gemini 3.1 Flash-Lite,gemini-3.1-flash-lite,0.25,1.5,per 1M tokens,,cheapest for high volume,2026-06-09,3,4,,6,,,6
-Llama,Llama 4 Maverick,llama-4-maverick,,,,1000000,most capable open model,2026-06-09,1,7,,8,,,8
-Llama,Llama 4 Scout,llama-4-scout,,,,10000000,fits one GPU; huge context,2026-06-09,2,5,,5,,,5
-Mistral Le Chat,Mistral Large 3,mistral-large-3-25-12,0.5,1.5,per 1M tokens,,most capable,2026-06-09,1,7,,8,,,8
-Mistral Le Chat,Mistral Medium 3.5,,,,,,fast everyday workhorse,2026-06-09,2,4,,6,,,6
-Whisper,Whisper large-v3,large-v3,,,,,most accurate,2026-06-09,1,7,,8,,,8
-Whisper,Whisper large-v3-turbo,large-v3-turbo,,,,,"near-large accuracy, much faster",2026-06-09,2,6,,7,,,7
-Whisper,Whisper small,small,,,,,light and quick on modest hardware,2026-06-09,3,5,,6,,,6
-Whisper,Whisper tiny,tiny,,,,,fastest; lowest accuracy,2026-06-09,4,4,,4,,,4
+tool_name,name,model_id_string,input_usd_per_m,output_usd_per_m,pricing_unit,context_window,best_for,last_verified,position,score_text_generation,score_email_writing,score_logic,score_coding,score_image_generation,score_accuracy,score_write_edit,score_summarization,score_research_fact_check,score_source_quality,score_hallucination_resistance,score_meetings_transcription,score_coding_speed,score_coding_efficiency,score_translation_speed,score_translation_accuracy,score_consistency,free_to_try
+ChatGPT,GPT-5.5,gpt-5.5,5,30,per 1M tokens,,flagship; most capable,2026-06-09,1,8,,7,6,8,7,10,6,6,5,7,8,8,4,7,6,6,true
+ChatGPT,GPT-5.4,gpt-5.4,2.5,15,per 1M tokens,,strong all-rounder at a lower price,2026-06-09,2,7,,7,5,7,7,7,6,10,4,7,8,7,10,10,7,10,false
+ChatGPT,GPT-5.4 Nano,gpt-5.4-nano,0.2,1.25,per 1M tokens,,fastest and cheapest,2026-06-09,3,5,,6,4,6,6,8,10,10,5,10,8,5,9,5,7,7,true
+Claude,Claude Fable 5,claude-fable-5,10,50,per 1M tokens,1000000,most capable; premium price,2026-05-26,1,9,,9,9,,9,4,9,4,7,4,9,8,9,7,6,5,true
+Claude,Claude Opus 4.8,claude-opus-4-8,5,25,per 1M tokens,1000000,"top tier for long, complex work",2026-05-26,2,8,,8,9,,8,6,8,4,4,5,9,7,10,7,6,10,true
+Claude,Claude Sonnet 4.6,claude-sonnet-4-6,3,15,per 1M tokens,1000000,best speed / cost balance,2026-05-26,3,6,,5,6,,5,7,8,10,10,4,7,4,5,7,8,8,false
+Claude,Claude Haiku 4.5,claude-haiku-4-5,1,5,per 1M tokens,200000,fastest and cheapest,2026-05-26,4,5,,4,5,,4,10,5,6,5,6,10,10,4,10,7,7,false
+DeepSeek,DeepSeek V4 Pro,deepseek-v4-pro,1.74,3.48,per 1M tokens,1000000,strongest reasoning,2026-06-09,1,8,,8,,,8,10,6,7,10,10,9,4,9,8,8,6,false
+DeepSeek,DeepSeek V4 Flash,deepseek-v4-flash,0.14,0.28,per 1M tokens,1000000,everyday tasks at minimal cost,2026-06-09,2,6,,6,,,6,8,4,4,4,4,4,10,4,10,8,8,false
+Google Gemini,Gemini 3.1 Pro (preview),gemini-3.1-pro-preview,2,12,per 1M tokens,,most capable; still in preview,2026-06-09,1,8,,8,,,8,10,7,8,6,7,8,7,8,5,4,10,true
+Google Gemini,Gemini 3.5 Flash,gemini-3.5-flash,1.5,9,per 1M tokens,,fast default for most tasks,2026-06-09,2,6,,7,,,7,5,7,10,7,5,9,6,6,9,4,10,false
+Google Gemini,Gemini 3.1 Flash-Lite,gemini-3.1-flash-lite,0.25,1.5,per 1M tokens,,cheapest for high volume,2026-06-09,3,4,,6,,,6,10,9,10,8,6,5,6,9,5,9,7,false
+Llama,Llama 4 Maverick,llama-4-maverick,,,,1000000,most capable open model,2026-06-09,1,7,,8,,,8,8,10,5,6,5,4,10,10,9,9,10,false
+Llama,Llama 4 Scout,llama-4-scout,,,,10000000,fits one GPU; huge context,2026-06-09,2,5,,5,,,5,7,10,4,4,8,6,9,6,8,5,8,false
+Mistral Le Chat,Mistral Large 3,mistral-large-3-25-12,0.5,1.5,per 1M tokens,,most capable,2026-06-09,1,7,,8,,,8,5,6,9,4,10,10,9,4,4,6,7,false
+Mistral Le Chat,Mistral Medium 3.5,,,,,,fast everyday workhorse,2026-06-09,2,4,,6,,,6,4,10,9,5,7,4,6,8,4,5,8,true
+Whisper,Whisper large-v3,large-v3,,,,,most accurate,2026-06-09,1,7,,8,,,8,9,10,6,6,4,4,4,6,4,9,6,true
+Whisper,Whisper large-v3-turbo,large-v3-turbo,,,,,"near-large accuracy, much faster",2026-06-09,2,6,,7,,,7,7,9,4,6,6,7,6,4,6,9,8,false
+Whisper,Whisper small,small,,,,,light and quick on modest hardware,2026-06-09,3,5,,6,,,6,7,10,9,10,9,5,10,9,4,8,4,true
+Whisper,Whisper tiny,tiny,,,,,fastest; lowest accuracy,2026-06-09,4,4,,4,,,4,6,7,4,8,9,9,10,9,7,4,6,true

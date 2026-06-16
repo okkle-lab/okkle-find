@@ -95,6 +95,16 @@ class Tool < ApplicationRecord
     (specific + overall) / 2.0
   end
 
+  def sortable_price
+    return 0.0 if consumer_free_app?
+    return price_low_usd.to_f if price_low_usd.present?
+
+    token_prices = [input_usd_per_m, output_usd_per_m].compact
+    return token_prices.min.to_f if token_prices.any?
+
+    Float::INFINITY
+  end
+
   # --- display helpers (graceful fallback for un-curated labels) ---
   def display_privacy_label
     privacy_label.presence || retention_blurb

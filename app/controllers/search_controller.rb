@@ -1,6 +1,7 @@
 class SearchController < ApplicationController
   def index
     @query = params[:q].to_s.strip
+    @sort = ToolMatcher.normalize_sort(params[:sort])
 
     @need =
       if params[:category].present?
@@ -13,9 +14,9 @@ class SearchController < ApplicationController
 
     return redirect_to(root_path) if @need.nil?
 
-    @result = ToolMatcher.call(@need)
+    @result = ToolMatcher.call(@need, sort: @sort)
     @tools  = @result.tools
-    @search_context = SearchContext.from_results(@tools, @need)
+    @search_context = SearchContext.from_results(@tools, @need, sort: @sort)
 
     Event.record(
       event_type:     "search",
