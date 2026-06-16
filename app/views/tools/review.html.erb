@@ -1,7 +1,7 @@
 <% content_for :title, "#{@tool.name} review — AI Finder" %>
 
 <article class="detail">
-  <%= link_to "← back", :back, class: "back-link" %>
+  <%= link_to "← back to #{@tool.name}", tool_path(@tool), class: "back-link" %>
 
   <header class="detail-head">
     <h1 class="detail-name"><%= @tool.name %> — our review</h1>
