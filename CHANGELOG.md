@@ -44,7 +44,8 @@ breaking changes).
 - Back links now climb the product hierarchy predictably — review page to tool
   page, tool page to home — instead of relying on browser history.
 - Renamed the per-model scorecard column "Verdict" → "Overall" to avoid
-  clashing with the headline "Our verdict" (which is the best model's overall).
+  clashing with the headline "Our verdict" (which is the best model's overall
+  score).
 - Reframed reviews as a per-tool page (`/tools/:id/review`): the full score
   overview (scorecard, extracted to a shared partial) followed by our written
   review if one exists, else just the scores + a link to visit the product.
