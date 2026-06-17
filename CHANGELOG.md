@@ -7,6 +7,11 @@ breaking changes).
 
 ## [Unreleased]
 
+## [0.5.1] — 2026-06-17
+
+### Changed
+- Started a follow-up improvement release after the rubric v3 update.
+
 ## [0.5.0] — 2026-06-17
 
 ### Added
@@ -184,7 +189,8 @@ recommendations, built on Rails + PostgreSQL.
   keyword parser and still works.
 - Catalogue figures are reasonable approximations pending human curation.
 
-[Unreleased]: https://github.com/okkle-lab/AI-Finder/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/okkle-lab/AI-Finder/compare/v0.5.1...HEAD
+[0.5.1]: https://github.com/okkle-lab/AI-Finder/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/okkle-lab/AI-Finder/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/okkle-lab/AI-Finder/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/okkle-lab/AI-Finder/compare/v0.3.0...v0.4.0
