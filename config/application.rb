@@ -8,7 +8,7 @@ Bundler.require(*Rails.groups)
 
 module AiFinder
   # Bump on every release; keep in sync with CHANGELOG.md.
-  VERSION = "0.4.1"
+  VERSION = "0.5.0"
 
   class Application < Rails::Application
     # Initialize configuration defaults for originally generated Rails version.

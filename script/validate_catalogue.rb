@@ -32,6 +32,20 @@ CATALOGUE_HEADERS = %w[
   ease_score privacy_score
   score_text_generation score_email_writing score_logic score_coding
   score_image_generation score_accuracy categories
+  prompt_effort_score interface_score learning_curve_score integration_score
+  data_retention_score training_on_user_data_score security_certifications_score
+  privacy_controls_score enterprise_controls_score deployment_flexibility_score
+  support_sla_score
+  has_web_search shows_citations has_file_uploads has_image_uploads has_voice_mode
+  supports_model_selection has_image_generation has_image_editing has_video_generation
+  has_audio_generation has_presentation_generation has_coding_agent has_code_execution
+  has_repository_access has_deep_research has_live_data_access has_transcription
+  has_meeting_bot has_action_items has_api has_mobile_app has_desktop_app
+  has_browser_extension has_calendar_integration has_email_integration
+  has_workspace_integration has_free_plan has_paid_plan has_team_plan
+  has_enterprise_plan supports_sso supports_scim has_audit_logs has_admin_controls
+  has_soc2 has_iso27001 has_dpa gdpr_ready hipaa_eligible no_training_on_user_data
+  configurable_data_retention
 ].freeze
 
 VARIANT_HEADERS = %w[
@@ -44,6 +58,12 @@ VARIANT_HEADERS = %w[
   score_coding_speed score_coding_efficiency
   score_translation_speed score_translation_accuracy score_consistency
   free_to_try
+  write_edit_score summarisation_score research_fact_checking_score
+  source_quality_score hallucination_resistance_score deep_research_score
+  coding_speed_score coding_accuracy_score debugging_score agentic_coding_score
+  consistency_score reasoning_score image_quality_score prompt_adherence_score
+  text_rendering_score image_editing_score transcription_score meeting_summary_score
+  follow_up_score translation_accuracy_score translation_speed_score
 ].freeze
 
 # Per-variant legacy scores plus rubric sub-scores (all 1-10, nullable).
@@ -54,6 +74,35 @@ VARIANT_SCORES = %w[
   score_source_quality score_hallucination_resistance score_meetings_transcription
   score_coding_speed score_coding_efficiency
   score_translation_speed score_translation_accuracy score_consistency
+  write_edit_score summarisation_score research_fact_checking_score
+  source_quality_score hallucination_resistance_score deep_research_score
+  coding_speed_score coding_accuracy_score debugging_score agentic_coding_score
+  consistency_score reasoning_score image_quality_score prompt_adherence_score
+  text_rendering_score image_editing_score transcription_score meeting_summary_score
+  follow_up_score translation_accuracy_score translation_speed_score
+].freeze
+
+CATALOGUE_SCORES = %w[
+  ease_score privacy_score
+  score_text_generation score_email_writing score_logic score_coding
+  score_image_generation score_accuracy
+  prompt_effort_score interface_score learning_curve_score integration_score
+  data_retention_score training_on_user_data_score security_certifications_score
+  privacy_controls_score enterprise_controls_score deployment_flexibility_score
+  support_sla_score
+].freeze
+
+CATALOGUE_BOOLEANS = %w[
+  has_web_search shows_citations has_file_uploads has_image_uploads has_voice_mode
+  supports_model_selection has_image_generation has_image_editing has_video_generation
+  has_audio_generation has_presentation_generation has_coding_agent has_code_execution
+  has_repository_access has_deep_research has_live_data_access has_transcription
+  has_meeting_bot has_action_items has_api has_mobile_app has_desktop_app
+  has_browser_extension has_calendar_integration has_email_integration
+  has_workspace_integration has_free_plan has_paid_plan has_team_plan
+  has_enterprise_plan supports_sso supports_scim has_audit_logs has_admin_controls
+  has_soc2 has_iso27001 has_dpa gdpr_ready hipaa_eligible no_training_on_user_data
+  configurable_data_retention
 ].freeze
 
 STATUSES    = %w[live dead review].freeze
@@ -133,8 +182,11 @@ catalogue.each.with_index(2) do |row, line|
     check_number(file, label, field, row[field], range: 0..Float::INFINITY)
   end
   check_number(file, label, "context_window", row["context_window"], range: 1..Float::INFINITY, integer: true)
-  (%w[ease_score privacy_score] + VARIANT_SCORES).each do |field|
+  CATALOGUE_SCORES.each do |field|
     check_number(file, label, field, row[field], range: 1..10, integer: true)
+  end
+  CATALOGUE_BOOLEANS.each do |field|
+    check_enum(file, label, field, row[field], BOOLEAN, allow_blank: true)
   end
 
   if row["website_url"].to_s.strip.then { |u| !u.empty? && !u.start_with?("http://", "https://") }

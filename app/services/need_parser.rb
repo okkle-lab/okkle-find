@@ -46,7 +46,7 @@ class NeedParser
   # Cache the parsed *filters* (not the picked tools — those stay random).
   # In dev the cache is usually a null store, so this just no-ops.
   def cached_or_parse
-    key = "need_parser/v2/#{Digest::SHA1.hexdigest(@query.downcase)}"
+    key = "need_parser/v3/#{Digest::SHA1.hexdigest(@query.downcase)}"
     Rails.cache.fetch(key, expires_in: 1.day) { parse_with_llm }
   end
 

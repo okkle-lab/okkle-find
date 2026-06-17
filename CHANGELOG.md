@@ -7,6 +7,19 @@ breaking changes).
 
 ## [Unreleased]
 
+## [0.5.0] — 2026-06-17
+
+### Added
+- Added rubric v3 score fields and capability booleans to the seed CSVs,
+  database schema, catalogue lint, scoring metadata, product facts, and compare
+  page.
+
+### Changed
+- Category scores now use the rubric's atomic-score weights, while overall
+  score remains an equal average of category composites.
+- Review-page score details are collapsed under category aggregate rows by
+  default and can be expanded on click.
+
 ## [0.4.1] — 2026-06-17
 
 ### Changed
@@ -171,7 +184,8 @@ recommendations, built on Rails + PostgreSQL.
   keyword parser and still works.
 - Catalogue figures are reasonable approximations pending human curation.
 
-[Unreleased]: https://github.com/okkle-lab/AI-Finder/compare/v0.4.1...HEAD
+[Unreleased]: https://github.com/okkle-lab/AI-Finder/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/okkle-lab/AI-Finder/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/okkle-lab/AI-Finder/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/okkle-lab/AI-Finder/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/okkle-lab/AI-Finder/compare/v0.2.0...v0.3.0
