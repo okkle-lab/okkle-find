@@ -13,7 +13,61 @@
   <%# The complete score overview — every criterion and the scores assigned %>
   <%= render "scorecard", tool: @tool, detailed: true %>
 
+  <% variants = @tool.model_variants.ordered %>
+
+  <% if variants.any? %>
+    <section class="specs-block models-block">
+      <h2 class="specs-title">Models &amp; pricing</h2>
+      <table class="models-table">
+        <thead>
+          <tr><th>Model</th><th>Best for</th><th>API price</th><th>Context window</th><th>Free to try</th></tr>
+        </thead>
+        <tbody>
+          <% variants.each do |variant| %>
+            <tr>
+              <td class="models-name"><%= variant.name %></td>
+              <td><%= variant.best_for %></td>
+              <td><%= variant.price_summary || "—" %></td>
+              <td><%= variant.context_window.present? ? "#{number_with_delimiter(variant.context_window)} tokens" : "—" %></td>
+              <td><%= yes_no_or_unknown(variant.free_to_try) %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+      <% if (checked = variants.filter_map(&:last_verified).max) %>
+        <p class="last-checked">Model lineup last checked <%= checked.strftime("%-d %b %Y") %>.</p>
+      <% end %>
+    </section>
+  <% end %>
+
   <%= render "facts", tool: @tool %>
+
+  <section class="specs-block">
+    <h2 class="specs-title">The full specs</h2>
+    <dl class="specs">
+      <dt>Free app for individuals</dt><dd><%= @tool.consumer_free_app? ? "Yes" : "No" %></dd>
+      <dt>Free API tier</dt><dd><%= @tool.api_free_tier? ? "Yes" : "No" %></dd>
+      <dt>Runs on your computer</dt><dd><%= @tool.runs_locally? ? "Yes" : "No" %></dd>
+      <dt>Data retention</dt><dd><%= @tool.data_retention.humanize %></dd>
+
+      <% if @tool.context_window.present? %>
+        <dt>Context window</dt><dd><%= number_with_delimiter(@tool.context_window) %> tokens</dd>
+      <% end %>
+
+      <% if @tool.input_usd_per_m.present? || @tool.output_usd_per_m.present? %>
+        <dt>API price</dt>
+        <dd>
+          <% parts = [] %>
+          <% parts << "$#{@tool.input_usd_per_m} in" if @tool.input_usd_per_m.present? %>
+          <% parts << "$#{@tool.output_usd_per_m} out" if @tool.output_usd_per_m.present? %>
+          <%= parts.join(" / ") %> <%= @tool.pricing_unit %>
+        </dd>
+      <% elsif @tool.price_low_usd.present? %>
+        <dt>Price</dt>
+        <dd>$<%= @tool.price_low_usd %><%= " – $#{@tool.price_high_usd}" if @tool.price_high_usd.present? %> <%= @tool.pricing_unit %></dd>
+      <% end %>
+    </dl>
+  </section>
 
   <%# Written review, only if we've uploaded one for this tool %>
   <% if @review %>

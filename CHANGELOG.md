@@ -18,6 +18,9 @@ breaking changes).
   individual model score rows.
 - Verdict cards now place the overall score inside the summary body and use
   tighter heading spacing.
+- Product pages are now focused on the verdict summary, with visit actions
+  below the card and detailed pricing, availability, and full specs moved to
+  the review page.
 
 ## [0.5.0] — 2026-06-17
 

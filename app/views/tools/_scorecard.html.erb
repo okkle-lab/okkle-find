@@ -84,15 +84,6 @@
     </div>
   </div>
 
-  <% if detailed %>
-    <p class="scorecard-note">
-      Score is out of 10. Best for uses the strongest category scores; not ideal uses weaker scores or missing capabilities.
-      Our verdict is the best model's overall score.
-    </p>
-  <% else %>
-    <p class="scorecard-note">Score is out of 10. Our verdict is the best model's overall score.</p>
-  <% end %>
-
   <% unless detailed %>
     <p class="scorecard-review-link"><%= link_to "See full review →", review_tool_path(tool) %></p>
   <% end %>
