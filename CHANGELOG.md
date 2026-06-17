@@ -22,6 +22,8 @@ breaking changes).
   below the card and detailed pricing, availability, and full specs moved to
   the review page.
 - Product-page compare controls now appear above the external visit button.
+- Product-page compare controls now sit right-aligned without a card frame,
+  with the compare action styled as a text link.
 
 ## [0.5.0] — 2026-06-17
 

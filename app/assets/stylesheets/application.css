@@ -318,7 +318,7 @@ a:hover { text-decoration: underline; }
 .compare-remove:hover { color: #b91c1c; }
 
 .compare-add { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin: 1.2rem 0 0; }
-.compare-with { margin: 1.2rem 0; padding: 0.9rem 1rem; background: var(--card-surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--card-shadow); }
+.compare-with { justify-content: flex-end; margin: 1.2rem 0 0; padding: 0; background: transparent; border: 0; box-shadow: none; }
 .compare-add-label { font-weight: 600; }
 .compare-select { padding: 0.5rem 0.6rem; border: 1px solid var(--line); border-radius: 8px; font-size: 0.9rem; background: #fff; }
 .compare-add-btn {
@@ -327,6 +327,11 @@ a:hover { text-decoration: underline; }
   text-shadow: 0 1px 2px rgba(26, 26, 46, 0.18);
 }
 .compare-add-btn:hover { filter: brightness(1.05); }
+.compare-with .compare-add-btn {
+  padding: 0; border-radius: 0; color: var(--accent); background: transparent;
+  text-shadow: none; box-shadow: none;
+}
+.compare-with .compare-add-btn:hover { filter: none; text-decoration: underline; }
 
 /* ---- scorecard (detail page) ---- */
 .scorecard-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
