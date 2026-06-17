@@ -55,6 +55,13 @@
     <% if detailed %>
       <% grid_template = "1rem minmax(14rem, 1.4fr) repeat(#{variants.size}, minmax(8rem, 1fr))" %>
       <div class="score-category-list">
+        <div class="score-category-summary score-category-header" style="grid-template-columns: <%= grid_template %>">
+          <span>Criterion</span>
+          <% variants.each do |variant| %>
+            <span><%= variant.name %></span>
+          <% end %>
+        </div>
+
         <div class="score-category-summary score-overall-row" style="grid-template-columns: <%= grid_template %>">
           <span class="score-category-name">Overall</span>
           <% variants.each do |variant| %>
@@ -67,7 +74,6 @@
             <summary class="score-category-summary" style="grid-template-columns: <%= grid_template %>">
               <span class="score-category-name">
                 <%= category %>
-                <span class="score-category-hint">Show sub-scores</span>
               </span>
               <% variants.each do |variant| %>
                 <%= colored_score(variant.category_score(fields, extra_scores: tool.rubric_field_values, category: category)) %>

@@ -381,7 +381,11 @@ a:hover { text-decoration: underline; }
 .score-category-summary > *:first-child { grid-column: 2; }
 .score-category-summary > *:not(:first-child) { text-align: center; }
 .score-category-name { font-weight: 700; color: var(--ink); }
-.score-category-hint { display: block; color: var(--muted); font-weight: 500; font-size: 0.78rem; }
+.score-category-header {
+  cursor: default; color: var(--muted); font-size: 0.78rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.03em; padding-bottom: 0.45rem;
+}
+.score-category-header::before { content: ""; }
 .score-overall-row {
   cursor: default; border-bottom: 1px solid var(--line);
 }
