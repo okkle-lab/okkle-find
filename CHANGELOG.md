@@ -105,6 +105,8 @@ breaking changes).
   score remains an equal average of category composites.
 - Review-page score details are collapsed under category aggregate rows by
   default and can be expanded on click.
+- Search results headings now use the selected browse tile's display label
+  instead of reconstructing a title from the category slug.
 
 ## [0.4.1] — 2026-06-17
 
