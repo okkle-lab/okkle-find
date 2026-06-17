@@ -7,6 +7,8 @@ breaking changes).
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-06-16
+
 ### Added
 - Added a double-clickable macOS launcher (`Launch AI Finder.command`) backed by
   `bin/launch`, which checks dependencies, prepares the database, starts the
@@ -19,8 +21,21 @@ breaking changes).
 - Tool detail pages now explain search-driven recommendations with a
   "Why you're seeing this" score strip when the user arrives from an intent
   search, showing the matched score alongside the overall score.
+- Search results can now be sorted by relevance, overall score, or price. The
+  relevance search still chooses the result set first; score and price only
+  reorder those selected tools.
+- Model variant seed data now includes explicit editable columns for every new
+  rubric sub-score plus `free_to_try`, so score updates can be made directly
+  through Git.
 
 ### Changed
+- Reworked the scoring rubric around category averages: subcategory scores
+  roll up into category scores, then category scores average into the overall
+  score.
+- Review pages now show the full score table vertically by criterion, while
+  product pages keep the scorecard compact.
+- Product and review pages now surface availability and data facts separately
+  from the score table, including model-level `free_to_try`.
 - Enlarged the review-page "Our verdict" card and colour-coded verdict numbers
   on a red-to-green 1-10 scale.
 - Simplified the product-page scorecard: direct visits show the overall score
@@ -39,6 +54,9 @@ breaking changes).
   The review page shows every criterion and the individual scores assigned
   (including the five output sub-scores per model); the detail page keeps its
   compact scorecard.
+- The catalogue lint now accepts and validates the new model rubric columns in
+  `model_variants.csv`.
+- Cards now use a subtler white-to-light-grey surface gradient with soft depth.
 
 ## [0.3.0] — 2026-06-12
 
@@ -143,7 +161,8 @@ recommendations, built on Rails + PostgreSQL.
   keyword parser and still works.
 - Catalogue figures are reasonable approximations pending human curation.
 
-[Unreleased]: https://github.com/okkle-lab/AI-Finder/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/okkle-lab/AI-Finder/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/okkle-lab/AI-Finder/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/okkle-lab/AI-Finder/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/okkle-lab/AI-Finder/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/okkle-lab/AI-Finder/releases/tag/v0.1.0
