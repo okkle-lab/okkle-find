@@ -389,7 +389,7 @@ a:hover { text-decoration: underline; }
 .scorecard-sub { font-size: 0.95rem; margin: 1.2rem 0 0.4rem; }
 .score-category-list {
   display: flex; flex-direction: column;
-  border-top: 1px solid var(--line);
+  margin-top: 1.2rem; border-top: 1px solid var(--line);
 }
 .score-category {
   border-bottom: 1px solid var(--line);

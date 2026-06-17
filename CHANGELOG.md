@@ -25,6 +25,8 @@ breaking changes).
 - Product-page compare controls now sit right-aligned without a card frame,
   with the compare action styled as a text link.
 - Compare controls now live on review pages instead of product pages.
+- Review verdict cards now include the expandable model scorecard again,
+  keeping product pages simplified.
 
 ## [0.5.0] — 2026-06-17
 

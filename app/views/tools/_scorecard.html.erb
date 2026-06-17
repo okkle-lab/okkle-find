@@ -84,6 +84,58 @@
     </div>
   </div>
 
+  <% if detailed && variants.any? %>
+    <% grid_template = "1rem minmax(12rem, 1.45fr) repeat(#{variants.size}, minmax(0, 1fr))" %>
+    <div class="score-category-list">
+      <div class="score-category-summary score-category-header" style="grid-template-columns: <%= grid_template %>">
+        <span>Criterion</span>
+        <% variants.each do |variant| %>
+          <span><%= variant.name %></span>
+        <% end %>
+      </div>
+
+      <div class="score-category-summary score-overall-row" style="grid-template-columns: <%= grid_template %>">
+        <span class="score-category-name">Overall</span>
+        <% variants.each do |variant| %>
+          <strong><%= colored_score(variant.verdict) %></strong>
+        <% end %>
+      </div>
+
+      <% Rubric::OVERALL_CATEGORIES.each do |category, fields| %>
+        <details class="score-category">
+          <summary class="score-category-summary" style="grid-template-columns: <%= grid_template %>">
+            <span class="score-category-name"><%= category %></span>
+            <% variants.each do |variant| %>
+              <%= colored_score(variant.category_score(fields, extra_scores: tool.rubric_field_values, category: category)) %>
+            <% end %>
+          </summary>
+          <div class="scores-scroll score-category-details">
+            <table class="models-table scores-table">
+              <thead>
+                <tr>
+                  <th>Sub-score</th>
+                  <% variants.each do |variant| %>
+                    <th><%= variant.name %></th>
+                  <% end %>
+                </tr>
+              </thead>
+              <tbody>
+                <% fields.each do |field| %>
+                  <tr>
+                    <th class="models-name" scope="row"><%= Rubric::SUBCATEGORY_FIELDS.key(field) || field.to_s.humanize %></th>
+                    <% variants.each do |variant| %>
+                      <td><%= colored_score(variant.category_score([field], extra_scores: tool.rubric_field_values, category: category)) %></td>
+                    <% end %>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        </details>
+      <% end %>
+    </div>
+  <% end %>
+
   <% unless detailed %>
     <p class="scorecard-review-link"><%= link_to "See full review →", review_tool_path(tool) %></p>
   <% end %>
