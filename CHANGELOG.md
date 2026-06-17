@@ -11,6 +11,8 @@ breaking changes).
 
 ### Changed
 - Started a follow-up improvement release after the rubric v3 update.
+- Review scorecard model headers now wrap within the card instead of
+  overflowing when several long model names are shown.
 
 ## [0.5.0] — 2026-06-17
 

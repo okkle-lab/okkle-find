@@ -53,7 +53,7 @@
       <% if detailed %>Scores by model<% elsif pd_variant_fields.any? %><%= pd_label.capitalize %> &amp; score, by model<% else %>Score by model<% end %>
     </h3>
     <% if detailed %>
-      <% grid_template = "1rem minmax(14rem, 1.4fr) repeat(#{variants.size}, minmax(8rem, 1fr))" %>
+      <% grid_template = "1rem minmax(12rem, 1.45fr) repeat(#{variants.size}, minmax(0, 1fr))" %>
       <div class="score-category-list">
         <div class="score-category-summary score-category-header" style="grid-template-columns: <%= grid_template %>">
           <span>Criterion</span>
