@@ -13,6 +13,8 @@ breaking changes).
 - Clarified scorecard copy so "Our verdict" refers to the best model's
   overall score.
 - Moved the product-page compare control below the full specs section.
+- Updated the compare page with the new score categories and availability/data
+  facts.
 
 ## [0.4.0] — 2026-06-16
 

@@ -7,14 +7,37 @@
 </section>
 
 <%
-  rows = [
+  free_to_try_summary = lambda do |tool|
+    variants = tool.model_variants.ordered
+    if variants.any?
+      free_models = variants.select(&:free_to_try).map(&:name)
+      free_models.any? ? "Yes: #{free_models.to_sentence}" : "No"
+    else
+      "—"
+    end
+  end
+
+  score_rows = [
+    ["Overall score", ->(t) { tag.strong(colored_score(t.overall_verdict)) }]
+  ]
+  Rubric::OVERALL_CATEGORIES.each do |label, fields|
+    score_rows << [label, ->(t) { colored_score(t.comparison_category_score(fields)) }]
+  end
+
+  rows = score_rows + [
     ["Provider",                ->(t) { t.provider.presence || "—" }],
     ["Price",                   ->(t) { t.display_price_label }],
     ["API price",               ->(t) { t.price_summary }],
-    ["Privacy",                 ->(t) { t.display_privacy_label }],
-    ["Ease of setup",           ->(t) { t.display_ease_label }],
+    ["Free to try",             ->(t) { free_to_try_summary.call(t) }],
     ["Free app for individuals",->(t) { t.consumer_free_app? ? "Yes" : "No" }],
+    ["Free API tier",           ->(t) { t.api_free_tier? ? "Yes" : "No" }],
+    ["Web app",                 ->(t) { yes_no_or_unknown(t.web_available) }],
+    ["Mobile app",              ->(t) { yes_no_or_unknown(t.mobile_available) }],
+    ["Desktop app",             ->(t) { yes_no_or_unknown(t.desktop_available) }],
     ["Runs on your computer",   ->(t) { t.runs_locally? ? "Yes" : "No" }],
+    ["Data location",           ->(t) { fact_or_unknown(t.data_location) }],
+    ["Trains on your data",     ->(t) { fact_or_unknown(t.trains_on_user_data) }],
+    ["Retains your data",       ->(t) { fact_or_unknown(t.retains_user_data) }],
     ["Data retention",          ->(t) { t.data_retention.humanize }],
     ["Context window",          ->(t) { t.context_window ? "#{number_with_delimiter(t.context_window)} tokens" : "—" }],
     ["Last checked",            ->(t) { t.last_verified&.strftime("%-d %b %Y") || "—" }],

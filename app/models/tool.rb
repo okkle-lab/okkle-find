@@ -42,6 +42,18 @@ class Tool < ApplicationRecord
     self_verdict&.round(1)
   end
 
+  def best_model_variant
+    model_variants.max_by { |variant| variant.verdict || -Float::INFINITY }
+  end
+
+  def comparison_category_score(fields)
+    if (variant = best_model_variant)
+      variant.category_score(fields, extra_scores: rubric_field_values)
+    else
+      category_score(fields)
+    end
+  end
+
   # Verdict from the tool's own scores — used when there are no scored
   # variants (single-model products). Same gated formula as a model verdict.
   def self_verdict
