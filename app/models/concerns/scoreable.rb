@@ -13,7 +13,26 @@ module Scoreable
     vals.any? ? vals.sum.to_f / vals.size : nil
   end
 
-  def category_score(fields, extra_scores: {})
+  def category_score(fields, extra_scores: {}, category: nil)
+    vals = Array(fields).filter_map do |field|
+      value =
+        if respond_to?(field)
+          public_send(field)
+        else
+          extra_scores[field]
+        end
+      next if value.nil?
+
+      [value, Rubric.weight_for(category, field)]
+    end
+    return nil if vals.empty?
+
+    weighted_sum = vals.sum { |value, weight| value.to_f * weight.to_f }
+    weight_sum = vals.sum { |_value, weight| weight.to_f }
+    weighted_sum / weight_sum
+  end
+
+  def category_score_unweighted(fields, extra_scores: {})
     vals = Array(fields).filter_map do |field|
       if respond_to?(field)
         public_send(field)
@@ -26,7 +45,7 @@ module Scoreable
 
   def category_scores(extra_scores: {})
     Rubric::OVERALL_CATEGORIES.filter_map do |label, fields|
-      score = category_score(fields, extra_scores:)
+      score = category_score(fields, extra_scores:, category: label)
       [label, score] if score
     end.to_h
   end

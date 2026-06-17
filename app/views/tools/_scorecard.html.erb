@@ -70,7 +70,7 @@
                 <th class="models-name" scope="row"><%= label %></th>
                 <% variants.each do |variant| %>
                   <td>
-                    <% value = fields ? variant.category_score(fields, extra_scores: tool.rubric_field_values) : variant.verdict %>
+                    <% value = fields ? variant.category_score(fields, extra_scores: tool.rubric_field_values, category: label) : variant.verdict %>
                     <% if fields %>
                       <%= colored_score(value) %>
                     <% else %>
@@ -94,7 +94,7 @@
               <tr>
                 <td class="models-name"><%= variant.name %></td>
                 <% if pd_variant_fields.any? %>
-                  <td><%= colored_score(variant.score_average(pd_variant_fields)) %></td>
+                  <td><%= colored_score(variant.category_score(pd_variant_fields, category: pd_config[:category])) %></td>
                 <% end %>
                 <td><strong><%= colored_score(variant.verdict) %></strong></td>
               </tr>
@@ -107,7 +107,7 @@
 
   <% if detailed %>
     <p class="scorecard-note">
-      Scores are out of 10. Each category score averages its subcategory scores. Overall averages the category scores.
+      Scores are out of 10. Each category score weights its subcategory scores. Overall averages the category scores.
       Our verdict is the best model's overall score.
     </p>
   <% else %>

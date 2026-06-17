@@ -1,12 +1,101 @@
 class Rubric
-  # Single source of truth for score dimensions that participate in search
-  # ranking and overall verdicts. A dimension can map to one score field or to
-  # a composite of fields.
+  # Rubric v3. Composite scores average into the overall score equally. Atomic
+  # scores use the weights defined inside each composite category.
+  CATEGORIES = {
+    "Writing" => {
+      key: "writing",
+      fields: {
+        write_edit_score: 0.50,
+        summarisation_score: 0.30,
+        prompt_effort_score: 0.20
+      }
+    },
+    "Research" => {
+      key: "research",
+      fields: {
+        research_fact_checking_score: 0.35,
+        source_quality_score: 0.25,
+        hallucination_resistance_score: 0.20,
+        deep_research_score: 0.20
+      }
+    },
+    "Coding" => {
+      key: "coding",
+      fields: {
+        coding_speed_score: 0.25,
+        coding_accuracy_score: 0.35,
+        debugging_score: 0.20,
+        agentic_coding_score: 0.20
+      }
+    },
+    "Accuracy & trustworthiness" => {
+      key: "accuracy",
+      fields: {
+        hallucination_resistance_score: 0.30,
+        source_quality_score: 0.20,
+        consistency_score: 0.20,
+        reasoning_score: 0.30
+      }
+    },
+    "Ease of use" => {
+      key: "ease_of_use",
+      fields: {
+        prompt_effort_score: 0.40,
+        interface_score: 0.40,
+        learning_curve_score: 0.20
+      }
+    },
+    "Image generation" => {
+      key: "image",
+      fields: {
+        image_quality_score: 0.35,
+        prompt_adherence_score: 0.25,
+        text_rendering_score: 0.20,
+        image_editing_score: 0.20
+      }
+    },
+    "Meetings" => {
+      key: "meetings",
+      fields: {
+        transcription_score: 0.35,
+        meeting_summary_score: 0.35,
+        follow_up_score: 0.20,
+        integration_score: 0.10
+      }
+    },
+    "Privacy & data safety" => {
+      key: "privacy",
+      fields: {
+        data_retention_score: 0.30,
+        training_on_user_data_score: 0.30,
+        security_certifications_score: 0.25,
+        privacy_controls_score: 0.15
+      }
+    },
+    "Enterprise" => {
+      key: "enterprise",
+      fields: {
+        enterprise_controls_score: 0.35,
+        security_certifications_score: 0.25,
+        deployment_flexibility_score: 0.20,
+        support_sla_score: 0.20
+      }
+    },
+    "Translation" => {
+      key: "translation",
+      fields: {
+        translation_accuracy_score: 0.70,
+        translation_speed_score: 0.30
+      }
+    }
+  }.freeze
+
   DIMENSIONS = {
     "write_edit" => {
       label: "Write / edit",
       short_label: "Writing",
-      fields: [:score_write_edit],
+      fields: [:write_edit_score],
+      category: "Writing",
       level: :model,
       group: :output,
       intent_words: %w[write writing wrote draft drafting edit editing rewrite rewriting email emails reply replies outreach blog blogs article articles essay essays copy copywriting content caption captions post posts story stories newsletter newsletters letter letters message messages],
@@ -15,7 +104,8 @@ class Rubric
     "summarization" => {
       label: "Summarisation",
       short_label: "Summary",
-      fields: [:score_summarization],
+      fields: [:summarisation_score],
+      category: "Writing",
       level: :model,
       group: :output,
       intent_words: %w[summarise summarize summary summarised summarized tldr condense shorten recap notes briefing brief digest],
@@ -24,79 +114,138 @@ class Rubric
     "research" => {
       label: "Research",
       short_label: "Research",
-      fields: [:score_research_fact_check, :score_source_quality, :score_hallucination_resistance],
+      fields: CATEGORIES.fetch("Research").fetch(:fields).keys,
+      category: "Research",
       level: :model,
       group: :output,
-      intent_words: %w[research cite cites citation citations source sources factual accurate accuracy facts factcheck factchecking trustworthy trust verify verification reference references study studies],
-      intent_phrases: ["find sources", "cite sources", "with citations", "fact check", "fact-check", "check facts", "up to date", "trustworthy answer"]
-    },
-    "meetings_transcription" => {
-      label: "Meetings & transcriptions",
-      short_label: "Meetings",
-      fields: [:score_meetings_transcription],
-      level: :model,
-      group: :output,
-      intent_words: %w[transcribe transcription transcript transcripts interview interviews audio voice recording recordings dictation subtitle subtitles caption captions podcast meeting meetings notes minutes],
-      intent_phrases: ["meeting notes", "transcribe audio", "transcribe interviews", "interview transcript", "meeting minutes", "action items"]
+      intent_words: %w[research cite cites citation citations source sources factual accurate accuracy facts factcheck factchecking trustworthy trust verify verification reference references study studies deep],
+      intent_phrases: ["find sources", "cite sources", "with citations", "fact check", "fact-check", "check facts", "up to date", "trustworthy answer", "deep research"]
     },
     "coding" => {
       label: "Coding",
       short_label: "Coding",
-      fields: [:score_coding_speed, :score_coding_efficiency],
+      fields: CATEGORIES.fetch("Coding").fetch(:fields).keys,
+      category: "Coding",
       level: :model,
       group: :output,
-      intent_words: %w[code coding program programming developer develop debug debugging software script scripts javascript typescript python ruby rails react api bug bugs error errors stacktrace refactor refactoring],
-      intent_phrases: ["write code", "review code", "debug code", "fix code", "fix a bug", "build an app", "build a website", "make a website", "web app", "code review"]
-    },
-    "translation" => {
-      label: "Translation",
-      short_label: "Translate",
-      fields: [:score_translation_speed, :score_translation_accuracy],
-      level: :model,
-      group: :output,
-      intent_words: %w[translate translation translator translating language languages multilingual localize localisation localization],
-      intent_phrases: ["translate text", "translate documents", "across languages", "localize content"]
+      intent_words: %w[code coding program programming developer develop debug debugging software script scripts javascript typescript python ruby rails react api bug bugs error errors stacktrace refactor refactoring agentic],
+      intent_phrases: ["write code", "review code", "debug code", "fix code", "fix a bug", "build an app", "build a website", "make a website", "web app", "code review", "coding agent"]
     },
     "trustworthiness" => {
       label: "Accuracy & trustworthiness",
       short_label: "Trust",
-      fields: [:score_hallucination_resistance, :score_source_quality, :score_consistency],
+      fields: CATEGORIES.fetch("Accuracy & trustworthiness").fetch(:fields).keys,
+      category: "Accuracy & trustworthiness",
       level: :model,
       group: :gate,
-      intent_words: %w[hallucination hallucinations reliable reliability consistent consistency trustworthy trust accurate accuracy source sources safe],
+      intent_words: %w[hallucination hallucinations reliable reliability consistent consistency trustworthy trust accurate accuracy source sources safe reasoning],
       intent_phrases: ["does not hallucinate", "low hallucination", "reliable answers", "consistent answers", "accuracy and trustworthiness"]
     },
-    "prompt_effort" => {
-      label: "Prompt effort",
-      short_label: "Prompt",
-      fields: [:score_prompt_effort],
+    "ease_of_use" => {
+      label: "Ease of use",
+      short_label: "Ease",
+      fields: CATEGORIES.fetch("Ease of use").fetch(:fields).keys,
+      category: "Ease of use",
       level: :tool,
       group: :product,
-      intent_words: %w[easy simple beginner beginner-friendly nontechnical non-technical quick straightforward intuitive prompt prompting],
-      intent_phrases: ["easy to use", "simple to use", "beginner friendly", "no setup", "quick setup", "little prompt effort"]
+      intent_words: %w[easy simple beginner beginner-friendly nontechnical non-technical quick straightforward intuitive prompt prompting interface ui learning],
+      intent_phrases: ["easy to use", "simple to use", "beginner friendly", "no setup", "quick setup", "little prompt effort", "clean app"]
     },
-    "interface" => {
-      label: "Interface",
-      short_label: "UI",
-      fields: [:score_interface],
-      level: :tool,
-      group: :product,
-      intent_words: %w[interface ui app design navigation workflow workflows polished clean],
-      intent_phrases: ["nice interface", "good interface", "easy interface", "clean app"]
+    "image_generation" => {
+      label: "Image generation",
+      short_label: "Images",
+      fields: CATEGORIES.fetch("Image generation").fetch(:fields).keys,
+      category: "Image generation",
+      level: :model,
+      group: :output,
+      intent_words: %w[image images picture pictures visual visuals generate generation editing edit prompt adherence text rendering],
+      intent_phrases: ["image generation", "generate images", "make images", "edit images", "image editing", "text in images"]
     },
-    "security_certifications" => {
-      label: "Security & certifications",
-      short_label: "Security",
-      fields: [:score_security_certifications],
+    "meetings" => {
+      label: "Meetings",
+      short_label: "Meetings",
+      fields: CATEGORIES.fetch("Meetings").fetch(:fields).keys,
+      category: "Meetings",
+      level: :model,
+      group: :output,
+      intent_words: %w[transcribe transcription transcript transcripts interview interviews audio voice recording recordings dictation subtitle subtitles caption captions podcast meeting meetings notes minutes followup follow-up calendar],
+      intent_phrases: ["meeting notes", "transcribe audio", "transcribe interviews", "interview transcript", "meeting minutes", "action items", "meeting bot"]
+    },
+    "privacy" => {
+      label: "Privacy & data safety",
+      short_label: "Privacy",
+      fields: CATEGORIES.fetch("Privacy & data safety").fetch(:fields).keys,
+      category: "Privacy & data safety",
       level: :tool,
       group: :product,
-      intent_words: %w[security secure certification certifications compliance enterprise soc hipaa iso private privacy confidential sensitive],
-      intent_phrases: ["data safety", "security certifications", "enterprise security", "privacy and data safety", "confidential data"]
+      intent_words: %w[private privacy confidential sensitive retention training data safety secure security],
+      intent_phrases: ["data safety", "privacy and data safety", "confidential data", "no training on user data", "data retention"]
+    },
+    "enterprise" => {
+      label: "Enterprise",
+      short_label: "Enterprise",
+      fields: CATEGORIES.fetch("Enterprise").fetch(:fields).keys,
+      category: "Enterprise",
+      level: :tool,
+      group: :product,
+      intent_words: %w[enterprise admin governance compliance deployment sso scim audit sla support company team],
+      intent_phrases: ["enterprise controls", "security certifications", "admin controls", "deployment flexibility", "support sla"]
+    },
+    "translation" => {
+      label: "Translation",
+      short_label: "Translate",
+      fields: CATEGORIES.fetch("Translation").fetch(:fields).keys,
+      category: "Translation",
+      level: :model,
+      group: :output,
+      intent_words: %w[translate translation translator translating language languages multilingual localize localisation localization],
+      intent_phrases: ["translate text", "translate documents", "across languages", "localize content"]
     }
   }.freeze
 
   FACT_FIELDS = {
     free_to_try: { level: :model, format: :boolean },
+    has_web_search: { level: :tool, format: :boolean },
+    shows_citations: { level: :tool, format: :boolean },
+    has_file_uploads: { level: :tool, format: :boolean },
+    has_image_uploads: { level: :tool, format: :boolean },
+    has_voice_mode: { level: :tool, format: :boolean },
+    supports_model_selection: { level: :tool, format: :boolean },
+    has_image_generation: { level: :tool, format: :boolean },
+    has_image_editing: { level: :tool, format: :boolean },
+    has_video_generation: { level: :tool, format: :boolean },
+    has_audio_generation: { level: :tool, format: :boolean },
+    has_presentation_generation: { level: :tool, format: :boolean },
+    has_coding_agent: { level: :tool, format: :boolean },
+    has_code_execution: { level: :tool, format: :boolean },
+    has_repository_access: { level: :tool, format: :boolean },
+    has_deep_research: { level: :tool, format: :boolean },
+    has_live_data_access: { level: :tool, format: :boolean },
+    has_transcription: { level: :tool, format: :boolean },
+    has_meeting_bot: { level: :tool, format: :boolean },
+    has_action_items: { level: :tool, format: :boolean },
+    has_api: { level: :tool, format: :boolean },
+    has_mobile_app: { level: :tool, format: :boolean },
+    has_desktop_app: { level: :tool, format: :boolean },
+    has_browser_extension: { level: :tool, format: :boolean },
+    has_calendar_integration: { level: :tool, format: :boolean },
+    has_email_integration: { level: :tool, format: :boolean },
+    has_workspace_integration: { level: :tool, format: :boolean },
+    has_free_plan: { level: :tool, format: :boolean },
+    has_paid_plan: { level: :tool, format: :boolean },
+    has_team_plan: { level: :tool, format: :boolean },
+    has_enterprise_plan: { level: :tool, format: :boolean },
+    supports_sso: { level: :tool, format: :boolean },
+    supports_scim: { level: :tool, format: :boolean },
+    has_audit_logs: { level: :tool, format: :boolean },
+    has_admin_controls: { level: :tool, format: :boolean },
+    has_soc2: { level: :tool, format: :boolean },
+    has_iso27001: { level: :tool, format: :boolean },
+    has_dpa: { level: :tool, format: :boolean },
+    gdpr_ready: { level: :tool, format: :boolean },
+    hipaa_eligible: { level: :tool, format: :boolean },
+    no_training_on_user_data: { level: :tool, format: :boolean },
+    configurable_data_retention: { level: :tool, format: :boolean },
     web_available: { level: :tool, format: :boolean },
     mobile_available: { level: :tool, format: :boolean },
     desktop_available: { level: :tool, format: :boolean },
@@ -105,50 +254,41 @@ class Rubric
     retains_user_data: { level: :tool, format: :string }
   }.freeze
 
-  OVERALL_CATEGORIES = {
-    "Output quality" => [
-      :score_write_edit,
-      :score_summarization,
-      :score_research_fact_check,
-      :score_meetings_transcription
-    ],
-    "Coding" => [
-      :score_coding_speed,
-      :score_coding_efficiency
-    ],
-    "Accuracy & trustworthiness" => [
-      :score_hallucination_resistance,
-      :score_source_quality,
-      :score_consistency
-    ],
-    "Ease of use" => [
-      :score_prompt_effort,
-      :score_interface
-    ],
-    "Privacy & data safety" => [
-      :score_security_certifications
-    ],
-    "Translations" => [
-      :score_translation_speed,
-      :score_translation_accuracy
-    ]
-  }.freeze
+  OVERALL_CATEGORIES = CATEGORIES.transform_values { |config| config.fetch(:fields).keys }.freeze
 
   SUBCATEGORY_FIELDS = {
-    "Write / edit" => :score_write_edit,
-    "Summarisation quality" => :score_summarization,
-    "Research & check facts" => :score_research_fact_check,
-    "Meetings & transcriptions" => :score_meetings_transcription,
-    "Coding speed" => :score_coding_speed,
-    "Coding efficiency" => :score_coding_efficiency,
-    "Hallucination resistance" => :score_hallucination_resistance,
-    "Source quality" => :score_source_quality,
-    "Consistency" => :score_consistency,
-    "Prompt effort" => :score_prompt_effort,
-    "Interface" => :score_interface,
-    "Security & certifications" => :score_security_certifications,
-    "Translation speed" => :score_translation_speed,
-    "Translation accuracy" => :score_translation_accuracy
+    "Write & edit" => :write_edit_score,
+    "Summarisation" => :summarisation_score,
+    "Prompt effort" => :prompt_effort_score,
+    "Research & fact checking" => :research_fact_checking_score,
+    "Source quality" => :source_quality_score,
+    "Hallucination resistance" => :hallucination_resistance_score,
+    "Deep research" => :deep_research_score,
+    "Coding speed" => :coding_speed_score,
+    "Coding accuracy" => :coding_accuracy_score,
+    "Code review & debugging" => :debugging_score,
+    "Agentic coding" => :agentic_coding_score,
+    "Consistency" => :consistency_score,
+    "Reasoning" => :reasoning_score,
+    "Interface" => :interface_score,
+    "Learning curve" => :learning_curve_score,
+    "Image quality" => :image_quality_score,
+    "Prompt adherence" => :prompt_adherence_score,
+    "Text rendering" => :text_rendering_score,
+    "Image editing" => :image_editing_score,
+    "Transcription" => :transcription_score,
+    "Meeting summaries" => :meeting_summary_score,
+    "Follow-up automation" => :follow_up_score,
+    "Calendar & workspace integration" => :integration_score,
+    "Data retention" => :data_retention_score,
+    "Training on user data" => :training_on_user_data_score,
+    "Security & certifications" => :security_certifications_score,
+    "Privacy controls" => :privacy_controls_score,
+    "Enterprise controls" => :enterprise_controls_score,
+    "Deployment flexibility" => :deployment_flexibility_score,
+    "Support & SLA" => :support_sla_score,
+    "Translation accuracy" => :translation_accuracy_score,
+    "Translation speed" => :translation_speed_score
   }.freeze
 
   OUTPUT_DIMENSIONS = DIMENSIONS.select { |_key, config| config[:group] == :output }.freeze
@@ -160,6 +300,14 @@ class Rubric
 
   def self.fields_for(dimension)
     Array(PRIORITY_DIMENSIONS[dimension])
+  end
+
+  def self.category_for(dimension)
+    DIMENSIONS.dig(dimension, :category)
+  end
+
+  def self.weight_for(category, field)
+    CATEGORIES.dig(category, :fields, field.to_sym) || 1.0
   end
 
   def self.label_for(dimension)

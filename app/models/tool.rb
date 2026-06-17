@@ -47,10 +47,11 @@ class Tool < ApplicationRecord
   end
 
   def comparison_category_score(fields)
+    category = Rubric::OVERALL_CATEGORIES.key(fields) if Rubric::OVERALL_CATEGORIES.respond_to?(:key)
     if (variant = best_model_variant)
-      variant.category_score(fields, extra_scores: rubric_field_values)
+      variant.category_score(fields, extra_scores: rubric_field_values, category:)
     else
-      category_score(fields)
+      category_score(fields, category:)
     end
   end
 
@@ -74,8 +75,9 @@ class Tool < ApplicationRecord
     fields = Rubric.fields_for(priority_dimension)
     return nil if fields.empty?
 
-    vals = model_variants.filter_map { |variant| variant.score_average(fields) }
-    vals << score_average(fields)
+    category = Rubric.category_for(priority_dimension)
+    vals = model_variants.filter_map { |variant| variant.category_score(fields, category:) }
+    vals << category_score(fields, category:)
     vals.compact.max
   end
 

@@ -8,7 +8,7 @@ class ToolRankingTest < ActiveSupport::TestCase
   # the only rated category, so its overall verdict works out to 8.0.
   def coding_tool
     tool = Tool.new(name: "Coder")
-    tool.model_variants.build(name: "v1", score_coding_speed: 8, score_coding_efficiency: 8)
+    tool.model_variants.build(name: "v1", coding_speed_score: 8, coding_accuracy_score: 8)
     tool
   end
 
@@ -45,73 +45,66 @@ class ToolRankingTest < ActiveSupport::TestCase
   end
 
   test "product overall scores are derived from product rubric fields" do
-    tool = Tool.new(name: "Product Scores", score_prompt_effort: 7, score_interface: 8,
-      score_security_certifications: 9)
+    tool = Tool.new(name: "Product Scores", prompt_effort_score: 7, interface_score: 8,
+      security_certifications_score: 9)
 
     assert_equal [7, 8, 9], tool.product_overall_scores
   end
 
   test "overall verdict averages category scores rather than all raw scores" do
     tool = Tool.new(name: "Category Average",
-      score_prompt_effort: 10,
-      score_interface: 10,
-      score_security_certifications: 4)
+      prompt_effort_score: 10,
+      interface_score: 10,
+      security_certifications_score: 4)
     tool.model_variants.build(name: "v1",
-      score_write_edit: 8,
-      score_summarization: 6,
-      score_coding_speed: 10,
-      score_coding_efficiency: 6,
-      score_hallucination_resistance: 5,
-      score_source_quality: 7,
-      score_consistency: 6,
-      score_translation_speed: 9,
-      score_translation_accuracy: 7)
+      write_edit_score: 8,
+      summarisation_score: 6,
+      coding_speed_score: 10,
+      coding_accuracy_score: 6,
+      hallucination_resistance_score: 5,
+      source_quality_score: 7,
+      consistency_score: 6,
+      translation_speed_score: 9,
+      translation_accuracy_score: 7)
 
-    # Category scores:
-    # output quality: (8 + 6) / 2 = 7
-    # coding: (10 + 6) / 2 = 8
-    # accuracy: (5 + 7 + 6) / 3 = 6
-    # ease: (10 + 10) / 2 = 10
-    # privacy: 4
-    # translations: (9 + 7) / 2 = 8
-    assert_equal 7.2, tool.overall_verdict
+    assert_in_delta 7.2, tool.overall_verdict, 0.05
   end
 
   test "best_score reads tool-only rubric columns" do
-    tool = Tool.new(name: "Easy", score_prompt_effort: 7)
-    assert_equal 7, tool.best_score(:score_prompt_effort)
+    tool = Tool.new(name: "Easy", prompt_effort_score: 7)
+    assert_equal 7, tool.best_score(:prompt_effort_score)
   end
 
   test "best_score takes the best across variants" do
     tool = Tool.new(name: "Multi")
-    tool.model_variants.build(name: "a", score_coding_speed: 6)
-    tool.model_variants.build(name: "b", score_coding_speed: 9)
-    assert_equal 9, tool.best_score(:score_coding_speed)
+    tool.model_variants.build(name: "a", coding_speed_score: 6)
+    tool.model_variants.build(name: "b", coding_speed_score: 9)
+    assert_equal 9, tool.best_score(:coding_speed_score)
   end
 
   test "dimension_score averages composite rubric fields" do
     tool = Tool.new(name: "Composite")
-    tool.model_variants.build(name: "a", score_coding_speed: 6, score_coding_efficiency: 8)
+    tool.model_variants.build(name: "a", coding_speed_score: 6, coding_accuracy_score: 8)
 
-    assert_equal 7.0, tool.dimension_score("coding")
+    assert_in_delta 7.2, tool.dimension_score("coding"), 0.05
   end
 
   test "dimension_score uses the best model composite instead of mixing fields across models" do
     tool = Tool.new(name: "Composite Best")
-    tool.model_variants.build(name: "fast", score_coding_speed: 10, score_coding_efficiency: 2)
-    tool.model_variants.build(name: "efficient", score_coding_speed: 2, score_coding_efficiency: 10)
+    tool.model_variants.build(name: "fast", coding_speed_score: 10, coding_accuracy_score: 2)
+    tool.model_variants.build(name: "efficient", coding_speed_score: 2, coding_accuracy_score: 10)
 
-    assert_equal 6.0, tool.dimension_score("coding")
+    assert_in_delta 6.7, tool.dimension_score("coding"), 0.05
   end
 
   test "a tool scored on the dimension outranks a higher-overall tool that isn't" do
     generalist = Tool.new(name: "Generalist") # overall 9, but NO translation score
-    generalist.model_variants.build(name: "g", score_write_edit: 9,
-      score_coding_speed: 9, score_coding_efficiency: 9, score_hallucination_resistance: 9)
+    generalist.model_variants.build(name: "g", write_edit_score: 9,
+      coding_speed_score: 9, coding_accuracy_score: 9, hallucination_resistance_score: 9)
 
     specialist = Tool.new(name: "Specialist") # lower overall, but scored on translation
-    specialist.model_variants.build(name: "s", score_write_edit: 4,
-      score_translation_speed: 9, score_translation_accuracy: 9)
+    specialist.model_variants.build(name: "s", write_edit_score: 4,
+      translation_speed_score: 9, translation_accuracy_score: 9)
 
     # Sanity: the generalist still wins on a plain overall ranking.
     assert_operator generalist.rank_score(nil), :>, specialist.rank_score(nil)
@@ -133,9 +126,9 @@ class ToolRankingTest < ActiveSupport::TestCase
 
   test "score sort ranks by overall verdict" do
     low = Tool.new(name: "Low")
-    low.model_variants.build(name: "v1", score_coding_speed: 5, score_coding_efficiency: 5)
+    low.model_variants.build(name: "v1", coding_speed_score: 5, coding_accuracy_score: 5)
     high = Tool.new(name: "High")
-    high.model_variants.build(name: "v1", score_coding_speed: 8, score_coding_efficiency: 8)
+    high.model_variants.build(name: "v1", coding_speed_score: 8, coding_accuracy_score: 8)
 
     matcher = ToolMatcher.new(ParsedNeed.new(priority_dimension: "coding"), sort: "score")
 
@@ -154,11 +147,11 @@ class ToolRankingTest < ActiveSupport::TestCase
 
   test "non relevance sorts only reorder the relevance selected result set" do
     relevant_expensive = Tool.new(name: "Relevant Expensive", price_low_usd: 30)
-    relevant_expensive.model_variants.build(name: "v1", score_coding_speed: 9, score_coding_efficiency: 9)
+    relevant_expensive.model_variants.build(name: "v1", coding_speed_score: 9, coding_accuracy_score: 9)
     relevant_cheap = Tool.new(name: "Relevant Cheap", price_low_usd: 5)
-    relevant_cheap.model_variants.build(name: "v1", score_coding_speed: 8, score_coding_efficiency: 8)
+    relevant_cheap.model_variants.build(name: "v1", coding_speed_score: 8, coding_accuracy_score: 8)
     irrelevant_high_score = Tool.new(name: "Irrelevant High Score", price_low_usd: 1)
-    irrelevant_high_score.model_variants.build(name: "v1", score_write_edit: 10)
+    irrelevant_high_score.model_variants.build(name: "v1", write_edit_score: 10)
 
     matcher = ToolMatcher.new(ParsedNeed.new(priority_dimension: "coding"), count: 2, sort: "price")
     matcher.define_singleton_method(:hard_filtered) do

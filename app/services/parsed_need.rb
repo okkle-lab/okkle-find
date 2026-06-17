@@ -31,7 +31,7 @@ class ParsedNeed
     "research"     => "research",
     "summarize"    => "summarization",
     "translate"    => "translation",
-    "audio-to-text" => "meetings_transcription"
+    "audio-to-text" => "meetings"
   }.freeze
 
   attr_reader :raw_query, :task, :must_be_free, :must_be_private, :must_run_locally,
