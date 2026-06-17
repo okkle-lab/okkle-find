@@ -29,30 +29,6 @@
 
   <%= render "scorecard", tool: @tool, priority_dimension: @priority_dimension %>
 
-  <% if @compare_candidates.results? %>
-    <%= form_with url: compare_path, method: :get, class: "compare-add compare-with" do |f| %>
-      <%= f.hidden_field :ids, value: @tool.id %>
-      <%= f.hidden_field :from, value: @compare_candidates.from_param %>
-      <%= f.label :add, "Compare with another result:", class: "compare-add-label" %>
-      <%= f.select :add,
-            options_from_collection_for_select(@compare_candidates.result_tools, :id, :name),
-            { include_blank: "Choose a tool…" }, class: "compare-select" %>
-      <%= f.submit "Compare", class: "compare-add-btn" %>
-    <% end %>
-  <% elsif @compare_candidates.catalogue? && @compare_candidates.catalogue_options? %>
-    <%= form_with url: compare_path, method: :get, class: "compare-add compare-with" do |f| %>
-      <%= f.hidden_field :ids, value: @tool.id %>
-      <%= f.label :add, "Compare with:", class: "compare-add-label" %>
-      <%= f.select :add,
-            grouped_options_for_select([
-              ["Similar tools", @compare_candidates.similar_tools.map { |t| [t.name, t.id] }],
-              ["Other tools",   @compare_candidates.other_tools.map { |t| [t.name, t.id] }]
-            ]),
-            { include_blank: "Choose a tool…" }, class: "compare-select" %>
-      <%= f.submit "Compare", class: "compare-add-btn" %>
-    <% end %>
-  <% end %>
-
   <% if @tool.website_url.present? %>
     <p class="detail-visit"><%= link_to "Visit #{@tool.name} →", @tool.website_url, target: "_blank", rel: "noopener", class: "visit-btn",
           data: { controller: "event-logger", action: "click->event-logger#log",

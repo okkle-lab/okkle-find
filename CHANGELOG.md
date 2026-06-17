@@ -24,6 +24,7 @@ breaking changes).
 - Product-page compare controls now appear above the external visit button.
 - Product-page compare controls now sit right-aligned without a card frame,
   with the compare action styled as a text link.
+- Compare controls now live on review pages instead of product pages.
 
 ## [0.5.0] — 2026-06-17
 

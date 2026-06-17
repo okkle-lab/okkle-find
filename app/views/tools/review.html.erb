@@ -13,6 +13,8 @@
   <%# The complete score overview — every criterion and the scores assigned %>
   <%= render "scorecard", tool: @tool, detailed: true %>
 
+  <%= render "compare_control", tool: @tool, compare_candidates: @compare_candidates %>
+
   <% variants = @tool.model_variants.ordered %>
 
   <% if variants.any? %>
