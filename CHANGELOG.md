@@ -7,6 +7,15 @@ breaking changes).
 
 ## [Unreleased]
 
+## [0.4.1] — 2026-06-17
+
+### Changed
+- Clarified scorecard copy so "Our verdict" refers to the best model's
+  overall score.
+- Moved the product-page compare control below the full specs section.
+- Updated the compare page with the new score categories and availability/data
+  facts.
+
 ## [0.4.0] — 2026-06-16
 
 ### Added
@@ -44,7 +53,8 @@ breaking changes).
 - Back links now climb the product hierarchy predictably — review page to tool
   page, tool page to home — instead of relying on browser history.
 - Renamed the per-model scorecard column "Verdict" → "Overall" to avoid
-  clashing with the headline "Our verdict" (which is the best model's overall).
+  clashing with the headline "Our verdict" (which is the best model's overall
+  score).
 - Reframed reviews as a per-tool page (`/tools/:id/review`): the full score
   overview (scorecard, extracted to a shared partial) followed by our written
   review if one exists, else just the scores + a link to visit the product.
@@ -161,7 +171,8 @@ recommendations, built on Rails + PostgreSQL.
   keyword parser and still works.
 - Catalogue figures are reasonable approximations pending human curation.
 
-[Unreleased]: https://github.com/okkle-lab/AI-Finder/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/okkle-lab/AI-Finder/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/okkle-lab/AI-Finder/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/okkle-lab/AI-Finder/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/okkle-lab/AI-Finder/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/okkle-lab/AI-Finder/compare/v0.1.0...v0.2.0

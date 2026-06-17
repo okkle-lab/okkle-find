@@ -33,30 +33,6 @@
                   "event-logger-type-value": "card_click", "event-logger-tool-value": @tool.id } %></p>
   <% end %>
 
-  <% if @compare_candidates.results? %>
-    <%= form_with url: compare_path, method: :get, class: "compare-add compare-with" do |f| %>
-      <%= f.hidden_field :ids, value: @tool.id %>
-      <%= f.hidden_field :from, value: @compare_candidates.from_param %>
-      <%= f.label :add, "Compare with another result:", class: "compare-add-label" %>
-      <%= f.select :add,
-            options_from_collection_for_select(@compare_candidates.result_tools, :id, :name),
-            { include_blank: "Choose a tool…" }, class: "compare-select" %>
-      <%= f.submit "Compare", class: "compare-add-btn" %>
-    <% end %>
-  <% elsif @compare_candidates.catalogue? && @compare_candidates.catalogue_options? %>
-    <%= form_with url: compare_path, method: :get, class: "compare-add compare-with" do |f| %>
-      <%= f.hidden_field :ids, value: @tool.id %>
-      <%= f.label :add, "Compare with:", class: "compare-add-label" %>
-      <%= f.select :add,
-            grouped_options_for_select([
-              ["Similar tools", @compare_candidates.similar_tools.map { |t| [t.name, t.id] }],
-              ["Other tools",   @compare_candidates.other_tools.map { |t| [t.name, t.id] }]
-            ]),
-            { include_blank: "Choose a tool…" }, class: "compare-select" %>
-      <%= f.submit "Compare", class: "compare-add-btn" %>
-    <% end %>
-  <% end %>
-
   <% variants = @tool.model_variants.ordered %>
 
   <%= render "scorecard", tool: @tool, priority_dimension: @priority_dimension %>
@@ -114,6 +90,30 @@
       <% end %>
     </dl>
   </section>
+
+  <% if @compare_candidates.results? %>
+    <%= form_with url: compare_path, method: :get, class: "compare-add compare-with" do |f| %>
+      <%= f.hidden_field :ids, value: @tool.id %>
+      <%= f.hidden_field :from, value: @compare_candidates.from_param %>
+      <%= f.label :add, "Compare with another result:", class: "compare-add-label" %>
+      <%= f.select :add,
+            options_from_collection_for_select(@compare_candidates.result_tools, :id, :name),
+            { include_blank: "Choose a tool…" }, class: "compare-select" %>
+      <%= f.submit "Compare", class: "compare-add-btn" %>
+    <% end %>
+  <% elsif @compare_candidates.catalogue? && @compare_candidates.catalogue_options? %>
+    <%= form_with url: compare_path, method: :get, class: "compare-add compare-with" do |f| %>
+      <%= f.hidden_field :ids, value: @tool.id %>
+      <%= f.label :add, "Compare with:", class: "compare-add-label" %>
+      <%= f.select :add,
+            grouped_options_for_select([
+              ["Similar tools", @compare_candidates.similar_tools.map { |t| [t.name, t.id] }],
+              ["Other tools",   @compare_candidates.other_tools.map { |t| [t.name, t.id] }]
+            ]),
+            { include_blank: "Choose a tool…" }, class: "compare-select" %>
+      <%= f.submit "Compare", class: "compare-add-btn" %>
+    <% end %>
+  <% end %>
 
   <footer class="detail-foot">
     <% if @tool.last_verified.present? %>

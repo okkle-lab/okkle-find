@@ -10,7 +10,7 @@ class ComparisonsController < ApplicationController
     ids.delete(params[:remove].to_i) if params[:remove].present?
     ids = ids.uniq.reject(&:zero?).first(MAX_TOOLS)
 
-    by_id  = Tool.where(id: ids).index_by(&:id)
+    by_id  = Tool.includes(:model_variants).where(id: ids).index_by(&:id)
     @tools = ids.filter_map { |id| by_id[id] } # preserve the user's order
 
     if @tools.empty?
