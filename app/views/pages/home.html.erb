@@ -1,22 +1,54 @@
+<% content_for :home_header, true %>
+
 <section class="hero">
+  <p class="hero-eyebrow">Curated · cross-judged · honest</p>
   <h1>What do you need AI to do?</h1>
-  <p class="hero-sub">Describe it in plain English. We'll suggest a few honest options — and tell you the catch.</p>
+  <p class="hero-sub">Describe it in plain English. We'll show the honest options — and the catch.</p>
 
   <%= form_with url: search_path, method: :get, class: "search-form" do |f| %>
     <%= f.search_field :q,
-          placeholder: "e.g. transcribe my interviews without my data being kept",
+          placeholder: "e.g. transcribe my interviews privately",
           autofocus: true,
           autocomplete: "off",
           class: "search-input" %>
     <%= f.submit "Find tools", class: "search-button" %>
   <% end %>
+
+  <ul class="hero-hints">
+    <% ["write code", "free for coding", "most private", "transcribe meetings"].each do |hint| %>
+      <li><%= link_to hint, search_path(q: hint), class: "hero-hint" %></li>
+    <% end %>
+  </ul>
+
+  <p class="hero-stat">Independently testing <strong><%= @stats[:tools] %> tools</strong> and
+    <strong><%= @stats[:models] %> models</strong> across <strong><%= @stats[:categories] %> categories</strong>. No sponsored rankings.</p>
 </section>
 
-<section class="browse">
-  <h2 class="browse-title">…or browse by what you want to do</h2>
+<% if @top_rated.any? %>
+  <section class="home-section">
+    <div class="section-head">
+      <h2 class="panel-title">Top rated</h2>
+      <%= link_to "All leaderboards →", leaderboards_path, class: "section-all" %>
+    </div>
+    <ol class="top-list">
+      <% @top_rated.each_with_index do |(tool, score), i| %>
+        <li class="top-row">
+          <span class="top-rank"><%= i + 1 %></span>
+          <%= link_to tool.name, tool_path(tool), class: "top-name" %>
+          <% if tool.provider.present? %><span class="top-prov"><%= tool.provider %></span><% end %>
+          <%= colored_score(score, css_class: "top-score") %>
+        </li>
+      <% end %>
+    </ol>
+  </section>
+<% end %>
+
+<section class="home-section">
+  <h2 class="panel-title">Browse by task</h2>
   <div class="tile-grid">
     <% @categories.each do |category| %>
       <%= link_to search_path(category: category.slug), class: "tile" do %>
+        <span class="tile-icon" style="color: <%= tool_monogram_color(category.display_name) %>"><%= icon(category.icon.presence || "sparkles", size: 22) %></span>
         <span class="tile-name"><%= category.display_name %></span>
         <span class="tile-sub"><%= category.subtitle %></span>
       <% end %>
@@ -25,18 +57,18 @@
 </section>
 
 <% if @recent_posts.any? %>
-  <section class="blog-preview">
+  <section class="home-section">
     <div class="section-head">
-      <h2 class="browse-title">Latest in AI</h2>
-      <%= link_to "See all →", posts_path, class: "section-all" %>
+      <h2 class="panel-title">Latest in AI</h2>
+      <%= link_to "All news →", posts_path, class: "section-all" %>
     </div>
-    <div class="post-list">
+    <div class="news-list">
       <% @recent_posts.each do |post| %>
-        <article class="post-card">
-          <% if post.published_at %><p class="post-date"><%= post.published_at.strftime("%-d %b %Y") %></p><% end %>
-          <h3 class="post-title"><%= link_to post.title, post_path(post) %></h3>
-          <% if post.excerpt.present? %><p class="post-excerpt"><%= post.excerpt %></p><% end %>
-        </article>
+        <%= link_to post_path(post), class: "news-item" do %>
+          <% if post.published_at %><span class="news-date"><%= post.published_at.strftime("%-d %b") %></span><% end %>
+          <span class="news-title"><%= post.title %></span>
+          <% if post.excerpt.present? %><span class="news-excerpt"><%= truncate(post.excerpt, length: 110) %></span><% end %>
+        <% end %>
       <% end %>
     </div>
   </section>

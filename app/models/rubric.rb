@@ -291,6 +291,51 @@ class Rubric
     "Translation speed" => :translation_speed_score
   }.freeze
 
+  # The universal 1–10 scale every judge scores against, so a number means the
+  # same thing across all models (from the scoring guide).
+  SCORE_BANDS = [
+    { range: "1–3", label: "Poor", blurb: "Misses the point, wrong, or unusable." },
+    { range: "4–6", label: "Adequate", blurb: "Works, but generic, uneven, or with errors." },
+    { range: "7–8", label: "Strong", blurb: "Accurate, complete, and dependable." },
+    { range: "9–10", label: "Excellent", blurb: "Polished, precise, best-in-class." }
+  ].freeze
+
+  # Plain-English "what it measures" for each criterion (from the scoring guide).
+  CRITERION_MEASURES = {
+    write_edit_score: "Clarity, concision, and professionalism when drafting or rewriting text.",
+    summarisation_score: "Accuracy and faithfulness when condensing long content to the requested format.",
+    prompt_effort_score: "How much the result improves with thoughtful prompting versus fighting the tool.",
+    research_fact_checking_score: "Coverage and accuracy when comparing sources and checking claims.",
+    source_quality_score: "Credibility and proper attribution of the sources it cites.",
+    hallucination_resistance_score: "Whether it admits uncertainty instead of inventing facts or citations.",
+    deep_research_score: "Depth of multi-step research with balanced arguments and synthesis.",
+    coding_speed_score: "Producing correct, working code quickly for straightforward tasks.",
+    coding_accuracy_score: "Correctness on strict tests, including adversarial and edge cases.",
+    debugging_score: "Finding and explaining bugs, then delivering a correct fix.",
+    agentic_coding_score: "Investigating and improving real code while preserving behaviour.",
+    consistency_score: "Giving stable answers across repeated runs of the same question.",
+    reasoning_score: "Working through tricky, multi-step problems to the right answer.",
+    interface_score: "How clean and capable the app itself is to work in.",
+    learning_curve_score: "How quickly a new user becomes productive.",
+    image_quality_score: "Visual quality and realism of generated images.",
+    prompt_adherence_score: "How precisely the image matches every element of the prompt.",
+    text_rendering_score: "Spelling and legibility of text rendered inside images.",
+    image_editing_score: "Clean, seamless edits that preserve the rest of the image.",
+    transcription_score: "Accuracy of speech-to-text, including speakers and terminology.",
+    meeting_summary_score: "Correctly extracting decisions, action items, and risks.",
+    follow_up_score: "Generating accurate, send-ready follow-up communications.",
+    integration_score: "Quality of the calendar and workspace actions it can take.",
+    data_retention_score: "How long your data is kept, evidenced from the policy.",
+    training_on_user_data_score: "Whether your inputs are used to train the model.",
+    security_certifications_score: "Verified security certifications (SOC 2, ISO, and similar).",
+    privacy_controls_score: "Controls for deletion, retention, sharing, and permissions.",
+    enterprise_controls_score: "SSO, SCIM, RBAC, audit logs, and governance.",
+    deployment_flexibility_score: "API, workspace, and private-deployment options.",
+    support_sla_score: "Support tiers and SLA commitments.",
+    translation_accuracy_score: "Accuracy and naturalness, preserving tone and nuance.",
+    translation_speed_score: "Response latency for translation."
+  }.freeze
+
   OUTPUT_DIMENSIONS = DIMENSIONS.select { |_key, config| config[:group] == :output }.freeze
   OUTPUT_FIELDS = OUTPUT_DIMENSIONS.values.flat_map { |config| config[:fields] }.uniq.freeze
   PRODUCT_FIELDS = DIMENSIONS.values.filter_map { |config| config[:fields] if config[:group] == :product }.flatten.uniq.freeze

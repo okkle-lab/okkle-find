@@ -1,11 +1,7 @@
 {
   "version": "0.0.1",
+  "autoPort": true,
   "configurations": [
-    {
-      "name": "rails",
-      "runtimeExecutable": "bundle",
-      "runtimeArgs": ["exec", "rails", "server", "-p", "3000", "-b", "127.0.0.1"],
-      "port": 3000
-    }
+    { "name": "ai-finder", "runtimeExecutable": "/Users/motonarishiga/Documents/AI-Finder/bin/preview-server", "runtimeArgs": [], "port": 3000 }
   ]
 }

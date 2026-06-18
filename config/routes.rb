@@ -7,6 +7,11 @@ Rails.application.routes.draw do
 
   get "search", to: "search#index"
   get "compare", to: "comparisons#show"
+  get "methodology", to: "pages#methodology"
+  get "learn", to: "pages#learn"
+  get "learn/:slug", to: "pages#learn_topic", as: :learn_topic
+  get "leaderboards", to: "leaderboards#index"
+  get "leaderboards/:category", to: "leaderboards#show", as: :leaderboard
   resources :tools, only: :show do
     member { get :review }
   end

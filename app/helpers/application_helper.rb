@@ -43,6 +43,72 @@ module ApplicationHelper
     value.present? ? value.to_s.humanize : "Unknown"
   end
 
+  # --- context-aware scorecard helpers -------------------------------------
+  # The criteria (label + 1-10 score) for the dimension a search matched, so a
+  # result card can surface exactly the sub-scores that matter for the task.
+  # Returns [[label, score_or_nil], ...]; score is nil when not yet rated.
+  def dimension_criteria(tool, dimension, limit: 4)
+    fields = Rubric.fields_for(dimension)
+    return [] if fields.empty?
+
+    fields.first(limit).map do |field|
+      label = Rubric::SUBCATEGORY_FIELDS.key(field) || field.to_s.humanize
+      [label, tool.best_score(field)]
+    end
+  end
+
+  # The headline score a card/detail should lead with given the search intent:
+  # the matched dimension's score when we have one, else the overall verdict.
+  # Returns [value_or_nil, short_caption].
+  def headline_score(tool, dimension)
+    config = Rubric::DIMENSIONS[dimension]
+    if config
+      # Lead with the matched dimension; caption reflects the task even before
+      # it's scored, so the pill reads "— / Coding" not "— / Overall".
+      [tool.dimension_score(dimension) || tool.overall_verdict, config[:short_label]]
+    else
+      [tool.overall_verdict, "Overall"]
+    end
+  end
+
+  # A horizontal score bar (1-10). Width + colour track the value; a nil value
+  # renders an empty "not yet rated" track.
+  def score_bar(label, value)
+    pct = value.nil? ? 0 : (value.to_f.clamp(0, 10) * 10).round
+    val = value.nil? ? content_tag(:span, "—", class: "score-none") : score_number(value)
+    fill = value.nil? ? "" : tag.span(class: "bar-fill", style: "width: #{pct}%; background: #{score_color(value)}")
+
+    content_tag(:div, class: "bar-row") do
+      content_tag(:div, class: "bar-top") do
+        content_tag(:span, label, class: "bar-label") + content_tag(:span, val.html_safe, class: "bar-val")
+      end + content_tag(:div, fill.presence&.html_safe || "", class: "bar-track")
+    end
+  end
+
+  # A drafted editorial "Our take" paragraph, generated from the tool's verdict
+  # data. Sample copy — replace with hand-written commentary per tool later.
+  def tool_verdict_commentary(tool)
+    v = tool.overall_verdict
+    return "We haven't finished testing #{tool.name} yet — scores and our full take are on the way." if v.nil?
+
+    tier =
+      if v >= 8.5 then "one of the strongest tools we've tested"
+      elsif v >= 7.5 then "a confident, well-rounded choice"
+      elsif v >= 6.5 then "a capable option with clear trade-offs"
+      else "a niche pick that only fits specific needs"
+      end
+
+    best = tool.verdict_best_for.map(&:downcase)
+    weak = tool.verdict_not_ideal_for.map(&:downcase)
+    free = tool.verdict_free_tier? ? " A usable free tier lowers the risk of trying it." : " There's no real free tier, so you're committing budget to find out."
+
+    parts = ["At #{score_number(v)}/10 overall, #{tool.name} is #{tier}."]
+    parts << "It earns its place on #{best.to_sentence}, where our cross-judged tests rate it well." if best.any?
+    parts << "The trade-off is #{weak.to_sentence} — go in expecting that." if weak.any?
+    parts << free.strip
+    parts.join(" ")
+  end
+
   # Colour a 1-10 score on a red→green scale: 1 is red, 10 is green.
   def score_color(value)
     return nil if value.nil?

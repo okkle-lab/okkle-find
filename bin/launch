@@ -3,6 +3,10 @@
 # database, open the browser, then run the Rails server. Stop with Ctrl-C.
 set -euo pipefail
 
+# Load rbenv so the correct Ruby version is used instead of system Ruby.
+export PATH="$HOME/.rbenv/bin:$HOME/.rbenv/shims:/opt/homebrew/bin:$PATH"
+if command -v rbenv >/dev/null 2>&1; then eval "$(rbenv init -)"; fi
+
 # This script lives in bin/, so the app root is one level up.
 APP_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$APP_ROOT"

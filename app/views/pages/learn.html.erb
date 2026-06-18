@@ -1,0 +1,40 @@
+<% content_for :title, "Learn — AI Finder" %>
+
+<section class="page-head">
+  <p class="hero-eyebrow">Learn · use AI better</p>
+  <h1 class="page-title">What can AI actually do?</h1>
+  <p class="page-sub">Most people use a fraction of what these tools can do. Plain-English lessons — no jargon, no hype.</p>
+</section>
+
+<h2 class="section-title">Capabilities — what AI is good at</h2>
+<p class="page-sub">A quick tour of the jobs today's AI handles well, and where it still struggles. Open any one for the full guide.</p>
+<div class="learn-lessons">
+  <% @topics.each do |slug, topic| %>
+    <%= link_to learn_topic_path(slug), class: "lesson lesson-link" do %>
+      <div class="lesson-head">
+        <span class="lesson-ic"><%= icon(topic[:icon], size: 22) %></span>
+        <h3 class="lesson-title"><%= topic[:title] %></h3>
+      </div>
+      <p class="lesson-body"><%= topic[:summary] %></p>
+      <span class="lesson-cta">Read the guide →</span>
+    <% end %>
+  <% end %>
+</div>
+
+<h2 class="section-title">Concepts, explained</h2>
+<p class="page-sub">The ideas worth understanding before you trust an answer.</p>
+<div class="concepts">
+  <% [
+    ["What is a “hallucination”?", "AI can state false things with complete confidence — inventing a fact, a quote, or a source that doesn't exist. It isn't lying; it's predicting plausible text. The fix is habit: ask for sources, and verify anything that matters. This is exactly what we test for under <strong>hallucination resistance</strong>."],
+    ["What does “trains on your data” mean?", "Some tools use what you type to improve their models; others don't, or let you opt out. If you're pasting anything sensitive, this is the single most important setting to check. We score it under <strong>privacy &amp; data safety</strong>."],
+    ["What is a “context window”?", "How much text a model can consider at once — its short-term memory. A bigger window means you can paste a whole document or long conversation. Past the limit, it quietly forgets the earliest parts."],
+    ["Prompting that actually works", "Four habits cover most of it: give context and a role, show an example of the output you want, ask it to think step by step, and iterate instead of accepting the first try. Small wording changes produce large quality changes."]
+  ].each do |title, body| %>
+    <article class="concept">
+      <h3 class="concept-title"><%= title.html_safe %></h3>
+      <p class="concept-body"><%= body.html_safe %></p>
+    </article>
+  <% end %>
+</div>
+
+<p class="page-foot">Want to see which tools do these best? <%= link_to "Browse the leaderboards →", leaderboards_path %></p>

@@ -1,0 +1,72 @@
+<% content_for :title, "How we score — AI Finder" %>
+
+<section class="page-head">
+  <p class="hero-eyebrow">Methodology</p>
+  <h1 class="page-title">How we score</h1>
+  <p class="page-sub">No sponsorships, no vibes. Every model is judged on the same rubric by a panel of rival flagship models, then the scores are weighted into a result.</p>
+</section>
+
+<div class="method-steps">
+  <div class="method-step">
+    <span class="method-num">1</span>
+    <div>
+      <h3>The same tests for everyone</h3>
+      <p>Each model runs an identical set of tasks across <%= @categories.size %> categories — from writing and coding to privacy and enterprise.</p>
+    </div>
+  </div>
+  <div class="method-step">
+    <span class="method-num">2</span>
+    <div>
+      <h3>Cross-judged, 1–10</h3>
+      <p>Eight rival company flagships judge every answer against fixed band definitions (1–3 poor, 4–6 adequate, 7–8 strong, 9–10 excellent). A model never judges itself.</p>
+    </div>
+  </div>
+  <div class="method-step">
+    <span class="method-num">3</span>
+    <div>
+      <h3>Weighted into a score</h3>
+      <p>Each criterion has a weight. Criteria roll up into a category score; categories average into the overall. Higher-weighted criteria move the result more.</p>
+    </div>
+  </div>
+</div>
+
+<h2 class="section-title">What a score means</h2>
+<p class="page-sub">Every judge scores 1–10 against the same fixed bands, so an 8 means the same thing for every model.</p>
+<div class="band-scale">
+  <% Rubric::SCORE_BANDS.each_with_index do |band, i| %>
+    <div class="band band-<%= i %>">
+      <span class="band-range"><%= band[:range] %></span>
+      <span class="band-label"><%= band[:label] %></span>
+      <span class="band-blurb"><%= band[:blurb] %></span>
+    </div>
+  <% end %>
+</div>
+
+<h2 class="section-title">The rubric</h2>
+<p class="page-sub">Every category, the weighted criteria behind it, and what each one measures. Higher weights move the score more.</p>
+
+<div class="method-rubric">
+  <% @categories.each do |name, config| %>
+    <details class="method-cat">
+      <summary class="method-cat-sum">
+        <span class="method-cat-name"><%= name %></span>
+        <span class="method-cat-count"><%= config[:fields].size %> criteria</span>
+      </summary>
+      <ul class="method-criteria">
+        <% config[:fields].each do |field, weight| %>
+          <li class="method-criterion">
+            <div class="method-crit-text">
+              <span class="method-crit-name"><%= Rubric::SUBCATEGORY_FIELDS.key(field) || field.to_s.humanize %></span>
+              <% if (measure = Rubric::CRITERION_MEASURES[field]) %>
+                <span class="method-crit-measure"><%= measure %></span>
+              <% end %>
+            </div>
+            <span class="method-crit-weight"><%= (weight * 100).round %>%</span>
+          </li>
+        <% end %>
+      </ul>
+    </details>
+  <% end %>
+</div>
+
+<p class="page-foot">Scores shown across the site are demo data until testing completes. <%= link_to "See the leaderboards →", leaderboards_path %></p>
