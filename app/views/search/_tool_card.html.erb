@@ -1,19 +1,46 @@
+<% search_context = local_assigns.fetch(:search_context, SearchContext.new) %>
+<% dimension = search_context.priority_dimension %>
+<% headline, caption = headline_score(tool, dimension) %>
+<% criteria = dimension ? dimension_criteria(tool, dimension) : [] %>
+<% has_scores = criteria.any? { |_label, score| score.present? } %>
+
 <article class="card">
   <header class="card-head">
-    <% search_context = local_assigns.fetch(:search_context, SearchContext.new) %>
-    <h3 class="card-name"><%= link_to tool.name, tool_path(tool, search_context.query_params) %></h3>
-    <% if tool.provider.present? %><span class="card-provider">by <%= tool.provider %></span><% end %>
+    <div class="card-headline">
+      <%= tool_logo(tool, css_class: "card-logo") %>
+      <div class="card-headline-text">
+        <h3 class="card-name"><%= link_to tool.name, tool_path(tool, search_context.query_params) %></h3>
+        <% if tool.provider.present? %><span class="card-provider">by <%= tool.provider %></span><% end %>
+      </div>
+    </div>
+    <div class="score-pill<%= " score-pill-tbd" unless headline %>">
+      <span class="score-pill-num"><%= headline ? score_number(headline) : "—" %></span>
+      <span class="score-pill-cap"><%= caption %></span>
+    </div>
   </header>
 
   <% if tool.why_this_one.present? %>
     <p class="card-why"><%= tool.why_this_one %></p>
   <% end %>
 
-  <ul class="card-labels">
-    <li class="label label-price">💸 <%= tool.display_price_label %></li>
-    <li class="label label-privacy">🔒 <%= tool.display_privacy_label %></li>
-    <li class="label label-ease">🛠️ <%= tool.display_ease_label %></li>
+  <ul class="card-tags">
+    <li class="tag tag-price"><%= tool.display_price_label %></li>
+    <li class="tag tag-privacy"><%= tool.display_privacy_label %></li>
+    <li class="tag tag-ease"><%= tool.display_ease_label %></li>
   </ul>
+
+  <% if criteria.any? && has_scores %>
+    <div class="card-bars">
+      <% criteria.each do |label, score| %>
+        <%= score_bar(label, score) %>
+      <% end %>
+    </div>
+  <% elsif dimension %>
+    <p class="card-tbd">
+      <span class="card-tbd-icon" aria-hidden="true">◔</span>
+      <%= Rubric.label_for(dimension) %> scores rolling out — testing in progress
+    </p>
+  <% end %>
 
   <% variants = tool.model_variants.sort_by { |v| [v.position, v.id] } %>
   <% if variants.any? %>
@@ -24,7 +51,6 @@
       <% end %>
     </p>
   <% end %>
-
 
   <footer class="card-foot">
     <%= link_to "See the full specs →", tool_path(tool, search_context.query_params), class: "card-link" %>

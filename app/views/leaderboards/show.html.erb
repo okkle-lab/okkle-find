@@ -1,0 +1,32 @@
+<% content_for :title, "Best AI for #{@category_name} — AI Finder" %>
+
+<section class="page-head">
+  <%= link_to "← all leaderboards", leaderboards_path, class: "back-link" %>
+  <h1 class="page-title"><%= @category_name %> leaderboard</h1>
+  <p class="page-sub">Ranked by the weighted <%= @category_name.downcase %> score across our judged tests.</p>
+</section>
+
+<% if @ranked.empty? %>
+  <div class="empty"><p class="empty-head">No scores yet for this category.</p><p>Testing is in progress — check back soon.</p></div>
+<% else %>
+  <ol class="lb-board">
+    <% @ranked.each_with_index do |(tool, score), i| %>
+      <li class="lb-row">
+        <span class="lb-rank <%= "lb-rank-top" if i < 3 %>"><%= i + 1 %></span>
+        <div class="lb-row-main">
+          <%= link_to tool.name, tool_path(tool, dim: nil), class: "lb-row-name" %>
+          <% if tool.provider.present? %><span class="lb-row-prov">by <%= tool.provider %></span><% end %>
+        </div>
+        <div class="lb-row-score">
+          <%= colored_score(score, css_class: "lb-row-num") %>
+          <span class="lb-row-cap">/ 10</span>
+        </div>
+      </li>
+    <% end %>
+  </ol>
+<% end %>
+
+<p class="page-foot">
+  Scores are the weighted average of this category's criteria, judged by cross-company flagship models.
+  <%= link_to "How we score →", methodology_path %>
+</p>

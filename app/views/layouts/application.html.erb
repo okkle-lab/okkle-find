@@ -11,9 +11,14 @@
   </head>
 
   <body style="<%= page_gradient_style(session[:header_gradient]) %>">
-    <header class="site-header">
+    <header class="site-header<%= " site-header--home" if content_for?(:home_header) %>">
       <a href="/" class="brand">AI&nbsp;Finder</a>
-      <span class="brand-tag">tell us what you need, in plain English</span>
+      <nav class="site-nav">
+        <%= link_to "Leaderboards", leaderboards_path, class: "site-nav-link" %>
+        <%= link_to "Learn", learn_path, class: "site-nav-link" %>
+        <%= link_to "News", posts_path, class: "site-nav-link" %>
+      </nav>
+      <%= link_to "How we score", methodology_path, class: "site-nav-cta" %>
     </header>
     <main class="container">
       <% if flash[:alert] %><p class="flash flash-alert"><%= flash[:alert] %></p><% end %>

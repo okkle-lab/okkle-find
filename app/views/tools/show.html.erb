@@ -3,29 +3,61 @@
 <article class="detail">
   <%= link_to "← back", root_path, class: "back-link" %>
 
-  <header class="detail-head">
-    <h1 class="detail-name"><%= @tool.name %></h1>
-    <% if @tool.provider.present? %>
-      <p class="detail-provider">by <%= @tool.provider %></p>
-    <% end %>
-    <% if @tool.categories.any? %>
-      <p class="detail-cats">
-        <% @tool.categories.ordered.each do |c| %>
-          <%= link_to c.display_name, search_path(category: c.slug), class: "chip" %>
-        <% end %>
-      </p>
+  <header class="detail-band" style="--brand: <%= tool_monogram_color(@tool.name) %>">
+    <%= tool_logo(@tool, css_class: "detail-logo") %>
+    <div class="detail-band-main">
+      <h1 class="detail-name"><%= @tool.name %></h1>
+      <% if @tool.provider.present? %>
+        <p class="detail-provider">by <%= @tool.provider %></p>
+      <% end %>
+      <% if @tool.categories.any? %>
+        <p class="detail-cats">
+          <% @tool.categories.ordered.each do |c| %>
+            <%= link_to c.display_name, search_path(category: c.slug), class: "band-chip" %>
+          <% end %>
+        </p>
+      <% end %>
+    </div>
+    <% if (v = @tool.overall_verdict) %>
+      <div class="detail-band-score">
+        <span class="dbs-num"><%= score_number(v) %></span>
+        <span class="dbs-cap">Overall</span>
+      </div>
     <% end %>
   </header>
 
   <% if @tool.why_this_one.present? %>
-    <p class="detail-why"><%= @tool.why_this_one %></p>
+    <p class="detail-quote"><%= @tool.why_this_one %></p>
   <% end %>
 
-  <ul class="detail-labels">
-    <li class="label">💸 <%= @tool.display_price_label %></li>
-    <li class="label">🔒 <%= @tool.display_privacy_label %></li>
-    <li class="label">🛠️ <%= @tool.display_ease_label %></li>
-  </ul>
+  <div class="glance-grid">
+    <div class="glance-card">
+      <span class="glance-ic"><%= icon("currency-dollar", size: 18) %></span>
+      <span class="glance-label">Price</span>
+      <span class="glance-val"><%= @tool.display_price_label %></span>
+    </div>
+    <div class="glance-card">
+      <span class="glance-ic"><%= icon("shield-lock", size: 18) %></span>
+      <span class="glance-label">Privacy</span>
+      <span class="glance-val"><%= @tool.display_privacy_label %></span>
+    </div>
+    <div class="glance-card">
+      <span class="glance-ic"><%= icon("bolt", size: 18) %></span>
+      <span class="glance-label">Ease</span>
+      <span class="glance-val"><%= @tool.display_ease_label %></span>
+    </div>
+  </div>
+
+  <section class="our-take">
+    <div class="our-take-head">
+      <span class="our-take-badge"><%= icon("sparkles", size: 15) %> Our take</span>
+      <% if (v = @tool.overall_verdict) %>
+        <span class="our-take-score"><%= colored_score(v, css_class: "our-take-num") %><span class="our-take-den">/10</span></span>
+      <% end %>
+    </div>
+    <p class="our-take-body"><%= tool_verdict_commentary(@tool) %></p>
+    <p class="our-take-byline">— AI Finder editorial · sample commentary</p>
+  </section>
 
   <%= render "scorecard", tool: @tool, priority_dimension: @priority_dimension %>
 

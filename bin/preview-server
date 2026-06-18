@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+export PATH="$HOME/.rbenv/bin:$HOME/.rbenv/shims:/opt/homebrew/bin:$PATH"
+if command -v rbenv >/dev/null 2>&1; then eval "$(rbenv init -)"; fi
+cd "$(dirname "$0")/.."
+exec bundle exec rails server -p "${PORT:-3000}" -b 127.0.0.1
