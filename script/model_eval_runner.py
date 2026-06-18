@@ -89,6 +89,16 @@ MODEL_HEADER_ALIASES = {
 }
 REQUIRED_MODEL_FIELDS = {"model"}
 MANUAL_PROMPT_MARKERS = ("reviewer assessment",)
+IMAGE_EDIT_PROMPT_MARKERS = (
+    "replace ",
+    "edit ",
+    "modify ",
+    "change ",
+    "remove ",
+    "retouch ",
+    "restore ",
+    "recolor ",
+)
 CSV_COLUMNS = [
     "run_id",
     "timestamp",
@@ -143,6 +153,10 @@ class CreditLimitError(RuntimeError):
     """Provider says the account/key cannot afford the requested call."""
 
 
+class RateLimitError(RuntimeError):
+    """Provider rejected the request because a rate or usage limit was hit."""
+
+
 def clean_text(value: Any) -> str:
     if value is None:
         return ""
@@ -178,7 +192,16 @@ def is_image_test(test: PromptTest) -> bool:
 
 
 def is_image_edit_test(test: PromptTest) -> bool:
-    return is_image_test(test) and normalized(test.criterion) == "image editing"
+    if not is_image_test(test):
+        return False
+    criterion = normalized(test.criterion)
+    eval_method = normalized(test.eval_method)
+    prompt = normalized(test.prompt)
+    return (
+        criterion == "image editing"
+        or "image edit" in eval_method
+        or prompt.startswith(IMAGE_EDIT_PROMPT_MARKERS)
+    )
 
 
 def parse_weight(value: Any) -> float:
@@ -208,6 +231,8 @@ def default_config() -> dict[str, Any]:
                 "type": "openai_compatible",
                 "base_url": "https://api.openai.com/v1",
                 "api_key_env": "OPENAI_API_KEY",
+                "max_tokens_param": "max_completion_tokens",
+                "supports_custom_temperature": False,
             },
             "openai_images": {
                 "type": "openai_image_generation",
@@ -260,6 +285,20 @@ def looks_like_audio_model(product: str, name: str, model_id: str) -> bool:
     )
 
 
+def looks_like_openai_text_model(product: str, name: str, model_id: str) -> bool:
+    haystack = normalized(" ".join([product, name, model_id]))
+    return (
+        "chatgpt" in haystack
+        or "openai" in haystack
+        or model_id.startswith(("gpt-", "o1", "o3", "o4"))
+        or model_id.startswith("openai/")
+    )
+
+
+def openai_api_model_id(model_id: str) -> str:
+    return model_id.removeprefix("openai/")
+
+
 def unique_key(base: str, used: set[str]) -> str:
     root = safe_filename(base).lower() or "model"
     key = root
@@ -276,6 +315,60 @@ def model_cell(ws: Any, row_number: int, columns: dict[str, int], field: str) ->
     return ws.cell(row_number, column).value if column else ""
 
 
+def header_column_positions(ws: Any, header_row: int, aliases: list[str]) -> list[int]:
+    values = [clean_text(cell.value) for cell in ws[header_row]]
+    normalized_values = {
+        normalized_header(value): index + 1
+        for index, value in enumerate(values)
+        if value
+    }
+
+    positions: list[int] = []
+    for alias in aliases:
+        column = normalized_values.get(normalized_header(alias))
+        if column and column not in positions:
+            positions.append(column)
+    return positions
+
+
+def first_non_empty_cell(ws: Any, row_number: int, columns: Iterable[int]) -> str:
+    for column in columns:
+        value = clean_text(ws.cell(row_number, column).value)
+        if value:
+            return value
+    return ""
+
+
+def workbook_defaults_to_openai(
+    ws: Any,
+    header_row: int,
+    columns: dict[str, int],
+    direct_model_columns: list[int],
+    model_columns: list[int],
+) -> bool:
+    has_candidate = False
+    for row_number in range(header_row + 1, ws.max_row + 1):
+        provider = clean_text(model_cell(ws, row_number, columns, "provider"))
+        provider_type = clean_text(model_cell(ws, row_number, columns, "provider_type"))
+        capabilities_cell = model_cell(ws, row_number, columns, "capabilities")
+        if provider or provider_type or clean_text(capabilities_cell):
+            continue
+
+        direct_model_id = first_non_empty_cell(ws, row_number, direct_model_columns)
+        any_model_id = first_non_empty_cell(ws, row_number, model_columns)
+        model_id = direct_model_id or any_model_id
+        if not model_id:
+            continue
+
+        has_candidate = True
+        name = clean_text(model_cell(ws, row_number, columns, "name"))
+        product = clean_text(model_cell(ws, row_number, columns, "product"))
+        if not looks_like_openai_text_model(product, name, model_id):
+            return False
+
+    return has_candidate
+
+
 def read_model_workbook(models_path: Path, base_config: dict[str, Any]) -> dict[str, Any]:
     wb = load_workbook(models_path, data_only=True)
     ws = wb[wb.sheetnames[0]]
@@ -284,15 +377,29 @@ def read_model_workbook(models_path: Path, base_config: dict[str, Any]) -> dict[
     config["providers"] = dict(base_config.get("providers", {}))
     config["models"] = []
 
+    model_columns = header_column_positions(ws, header_row, MODEL_HEADER_ALIASES["model"])
+    direct_model_columns = header_column_positions(ws, header_row, ["model_id_string"])
+    default_text_provider = (
+        "openai"
+        if workbook_defaults_to_openai(
+            ws, header_row, columns, direct_model_columns, model_columns
+        )
+        else "openrouter"
+    )
+
     used_keys: set[str] = set()
     for row_number in range(header_row + 1, ws.max_row + 1):
-        model_id = clean_text(model_cell(ws, row_number, columns, "model"))
-        if not model_id:
-            continue
-
         provider = clean_text(model_cell(ws, row_number, columns, "provider"))
         provider_type = clean_text(model_cell(ws, row_number, columns, "provider_type"))
         capabilities_cell = model_cell(ws, row_number, columns, "capabilities")
+        raw_model_id = clean_text(model_cell(ws, row_number, columns, "model"))
+        direct_model_id = first_non_empty_cell(ws, row_number, direct_model_columns)
+        model_id = raw_model_id
+        if not model_id and (provider or provider_type or clean_text(capabilities_cell)):
+            model_id = first_non_empty_cell(ws, row_number, model_columns)
+        if not model_id:
+            continue
+
         name = clean_text(model_cell(ws, row_number, columns, "name")) or model_id
         product = clean_text(model_cell(ws, row_number, columns, "product"))
         if not clean_text(capabilities_cell) and looks_like_audio_model(product, name, model_id):
@@ -300,7 +407,11 @@ def read_model_workbook(models_path: Path, base_config: dict[str, Any]) -> dict[
         else:
             capabilities = parse_capabilities(capabilities_cell, provider, provider_type)
         if not provider:
-            provider = "openai_images" if "image" in capabilities else "openrouter"
+            provider = "openai_images" if "image" in capabilities else default_text_provider
+        if provider == "openai" and direct_model_id:
+            model_id = direct_model_id
+        if provider == "openai":
+            model_id = openai_api_model_id(model_id)
 
         base_url = clean_text(model_cell(ws, row_number, columns, "base_url"))
         api_key_env = clean_text(model_cell(ws, row_number, columns, "api_key_env"))
@@ -766,6 +877,29 @@ def merge_request_options(
     return options
 
 
+def max_tokens_parameter(provider: dict[str, Any], model: dict[str, Any]) -> str:
+    configured = clean_text(model.get("max_tokens_param") or provider.get("max_tokens_param"))
+    if configured:
+        return configured
+
+    base_url = str(provider.get("base_url", "")).lower()
+    if "api.openai.com" in base_url:
+        return "max_completion_tokens"
+    return "max_tokens"
+
+
+def supports_custom_temperature(provider: dict[str, Any], model: dict[str, Any]) -> bool:
+    configured = model.get(
+        "supports_custom_temperature",
+        provider.get("supports_custom_temperature"),
+    )
+    if configured is not None:
+        return truthy(configured, default=True)
+
+    base_url = str(provider.get("base_url", "")).lower()
+    return "api.openai.com" not in base_url
+
+
 def api_key_for(provider: dict[str, Any]) -> str:
     env_name = provider.get("api_key_env")
     if not env_name:
@@ -786,6 +920,52 @@ def build_headers(provider: dict[str, Any], model: dict[str, Any]) -> dict[str, 
     headers.update(provider.get("extra_headers", {}))
     headers.update(model.get("extra_headers", {}))
     return headers
+
+
+def compact_http_error_body(body: str) -> str:
+    try:
+        parsed = json.loads(body)
+    except json.JSONDecodeError:
+        return body.strip()
+
+    error = parsed.get("error") if isinstance(parsed, dict) else None
+    if isinstance(error, dict):
+        message = clean_text(error.get("message"))
+        code = clean_text(error.get("code"))
+        error_type = clean_text(error.get("type"))
+        details = [part for part in [message, f"code={code}" if code else "", f"type={error_type}" if error_type else ""] if part]
+        return "; ".join(details) or body.strip()
+    return body.strip()
+
+
+def retry_delay_seconds(exc: urllib.error.HTTPError, attempt: int) -> float:
+    headers = exc.headers
+    for name in ("retry-after-ms", "Retry-After-Ms"):
+        value = clean_text(headers.get(name))
+        if value:
+            try:
+                return max(0.0, float(value) / 1000.0)
+            except ValueError:
+                pass
+
+    for name in ("retry-after", "Retry-After"):
+        value = clean_text(headers.get(name))
+        if value:
+            try:
+                return max(0.0, float(value))
+            except ValueError:
+                pass
+
+    return min(30.0, float(2**attempt))
+
+
+def http_error(exc: urllib.error.HTTPError, body: str) -> RuntimeError:
+    message = f"HTTP {exc.code}: {compact_http_error_body(body)}"
+    if exc.code == 429:
+        return RateLimitError(message)
+    if exc.code == 402:
+        return CreditLimitError(message)
+    return RuntimeError(message)
 
 
 def post_json(
@@ -809,21 +989,26 @@ def post_json(
     last_error: Exception | None = None
 
     for attempt in range(retries + 1):
+        retry_delay = min(8.0, float(2**attempt))
         try:
             with urllib.request.urlopen(request, timeout=timeout) as response:
                 body = response.read().decode("utf-8")
             return json.loads(body)
         except urllib.error.HTTPError as exc:
-            last_error = exc
             body = exc.read().decode("utf-8", errors="replace")
+            last_error = http_error(exc, body)
+            if exc.code == 429:
+                retry_delay = retry_delay_seconds(exc, attempt)
             if exc.code < 500 and exc.code != 429:
-                raise RuntimeError(f"HTTP {exc.code}: {body}") from exc
+                raise last_error from exc
         except (urllib.error.URLError, TimeoutError) as exc:
             last_error = exc
 
         if attempt < retries:
-            time.sleep(min(8, 2**attempt))
+            time.sleep(retry_delay)
 
+    if isinstance(last_error, (CreditLimitError, RateLimitError)):
+        raise last_error
     raise RuntimeError(f"API request failed after retries: {last_error}") from last_error
 
 
@@ -846,9 +1031,10 @@ def call_openai_compatible(
     payload: dict[str, Any] = {
         "model": model.get("model"),
         "messages": messages,
-        "temperature": options.get("temperature", 0.2),
-        "max_tokens": options.get("max_tokens", 1800),
+        max_tokens_parameter(provider, model): options.get("max_tokens", 1800),
     }
+    if supports_custom_temperature(provider, model):
+        payload["temperature"] = options.get("temperature", 0.2)
     payload.update(provider.get("extra_body", {}))
     payload.update(model.get("extra_body", {}))
 
@@ -1011,21 +1197,26 @@ def post_multipart(
     last_error: Exception | None = None
 
     for attempt in range(retries + 1):
+        retry_delay = min(8.0, float(2**attempt))
         try:
             with urllib.request.urlopen(request, timeout=timeout) as response:
                 response_body = response.read().decode("utf-8")
             return json.loads(response_body)
         except urllib.error.HTTPError as exc:
-            last_error = exc
             response_body = exc.read().decode("utf-8", errors="replace")
+            last_error = http_error(exc, response_body)
+            if exc.code == 429:
+                retry_delay = retry_delay_seconds(exc, attempt)
             if exc.code < 500 and exc.code != 429:
-                raise RuntimeError(f"HTTP {exc.code}: {response_body}") from exc
+                raise last_error from exc
         except (urllib.error.URLError, TimeoutError) as exc:
             last_error = exc
 
         if attempt < retries:
-            time.sleep(min(8, 2**attempt))
+            time.sleep(retry_delay)
 
+    if isinstance(last_error, (CreditLimitError, RateLimitError)):
+        raise last_error
     raise RuntimeError(f"API request failed after retries: {last_error}") from last_error
 
 
@@ -1542,6 +1733,15 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--include-evidence", action="store_true", help="Include evidence/privacy/security rows.")
     parser.add_argument("--include-manual-review", action="store_true", help="Include manual reviewer rows.")
     parser.add_argument(
+        "--rate-limit-skip-after",
+        type=int,
+        default=3,
+        help=(
+            "Skip remaining tests for a model after this many rate-limit errors. "
+            "Use 0 to keep trying every selected pair."
+        ),
+    )
+    parser.add_argument(
         "--verbose-errors",
         action="store_true",
         help="Print full tracebacks for failed model calls.",
@@ -1577,6 +1777,8 @@ def main(argv: list[str]) -> int:
         config.setdefault("request", {})["max_tokens"] = args.max_tokens
     if args.excel_every < 0:
         raise ValueError("--excel-every must be 0 or greater.")
+    if args.rate_limit_skip_after < 0:
+        raise ValueError("--rate-limit-skip-after must be 0 or greater.")
 
     models = enabled_models(config, args.only_models)
     tests = read_prompt_library(
@@ -1630,11 +1832,16 @@ def main(argv: list[str]) -> int:
 
     total = len(pairs)
     done_count = len(completed)
+    rate_limit_errors_by_model: dict[str, int] = {}
+    rate_limited_models: set[str] = set()
     for model, test in pairs:
         provider = model.get("provider", "")
         key = (model.get("key"), test.test_id)
         if key in completed:
             print(f"Skipping existing {key[0]} / {key[1]}")
+            continue
+        if model.get("key") in rate_limited_models:
+            print(f"Skipping rate-limited {key[0]} / {key[1]}")
             continue
 
         done_count += 1
@@ -1675,6 +1882,14 @@ def main(argv: list[str]) -> int:
                     usage=usage,
                 )
         except Exception as exc:  # pragma: no cover - depends on remote APIs
+            if isinstance(exc, RateLimitError):
+                model_key = clean_text(model.get("key"))
+                rate_limit_errors_by_model[model_key] = rate_limit_errors_by_model.get(model_key, 0) + 1
+                if (
+                    args.rate_limit_skip_after
+                    and rate_limit_errors_by_model[model_key] >= args.rate_limit_skip_after
+                ):
+                    rate_limited_models.add(model_key)
             row = result_row(
                 run_id=run_id,
                 model=model,
@@ -1688,6 +1903,12 @@ def main(argv: list[str]) -> int:
                 print(traceback.format_exc(), file=sys.stderr)
             else:
                 print(f"  error: {row['error']}", file=sys.stderr)
+            if model.get("key") in rate_limited_models:
+                print(
+                    "  rate limit: skipping remaining tests for "
+                    f"{model.get('key')} after {args.rate_limit_skip_after} rate-limit errors",
+                    file=sys.stderr,
+                )
 
         append_jsonl(jsonl_path, row)
         all_rows.append(row)

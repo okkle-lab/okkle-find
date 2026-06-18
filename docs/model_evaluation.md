@@ -52,6 +52,9 @@ Drop in:
 Choose an output folder and press Run. Use Dry Run to validate the spreadsheets without API calls.
 
 Cloud model providers still require an API key. With the default model spreadsheet path, the app expects one OpenRouter key for text models. Image models usually need an OpenAI key unless your model spreadsheet points them somewhere else.
+Image generation is supported but off by default in the SwiftUI app to avoid
+accidental image spend. Turn on Image Generation and provide `OPENAI_API_KEY`
+to run the bundled `gpt-image-2` row.
 
 ## Prompt Spreadsheet
 
@@ -81,6 +84,13 @@ The first sheet should contain at least:
 | `API Key Env` | No | Optional API-key environment variable override. |
 | `Provider Type` | No | Optional: `openai_compatible` or `openai_image_generation`. |
 
+For mixed model sheets, blank text-model providers default to OpenRouter. If the
+model sheet contains only ChatGPT/OpenAI text rows and no explicit provider
+settings, the runner defaults those rows to direct OpenAI and uses
+`model_id_string` values such as `gpt-5.5`, so only `OPENAI_API_KEY` is needed.
+You can always make routing explicit with `Provider=openai` or
+`Provider=openrouter`.
+
 Models are routed by `Capabilities`:
 
 - `["text"]` models run the text prompts.
@@ -103,6 +113,13 @@ If you use a local OpenAI-compatible server that does not require authentication
 If OpenRouter returns HTTP 402 saying a request requires more credits or fewer
 `max_tokens`, lower the SwiftUI app's Max Tokens value or pass `--max-tokens`
 on the CLI. The app defaults to `1000`.
+
+If OpenAI or another provider returns HTTP 429, the account has hit a rate,
+usage, or budget limit. The runner preserves the provider's error message,
+honours retry headers when present, and skips the rest of a model after three
+rate-limit failures by default. Use `--rate-limit-skip-after 0` to keep trying
+every selected pair, or lower `--max-tokens` / test fewer prompts while
+checking account limits.
 
 If OpenRouter returns HTTP 400 saying a model is not valid, the spreadsheet is
 using a catalogue/internal model ID rather than an OpenRouter slug. Add an
@@ -146,7 +163,14 @@ python3 script/model_eval_runner.py \
 
 The runner saves generated images to the run output directory and records local file paths in `responses.csv` and the `Run Results` workbook sheet. Image outputs are left unscored by the judge model; score them manually in the workbook.
 
-The current workbook's `IG4` row is an image-editing prompt but has no source image. The runner skips it until `Input Material` contains a local source image path.
+The bundled model workbook includes a `gpt-image-2` row configured with
+`Provider=openai_images`, `Provider Type=openai_image_generation`,
+`Capabilities=image`, and `API Key Env=OPENAI_API_KEY`. OpenAI may require
+account or organization verification for GPT Image models.
+
+The current workbook's `IG4` row is treated as an image-editing prompt but has
+no source image. The runner skips it until `Input Material` contains a local
+source image path.
 
 ## Run and auto-score
 

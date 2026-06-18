@@ -141,7 +141,7 @@ final class RunnerViewModel: ObservableObject {
     @Published var modelSpreadsheetURL: URL? = AppPaths.defaultModelSpreadsheetURL
     @Published var outputBaseURL: URL = AppPaths.defaultOutputBaseURL
     @Published var pythonPath: String = AppPaths.defaultPythonPath
-    @Published var includeImages = true
+    @Published var includeImages = false
     @Published var dryRun = false
     @Published var maxTokens = 1000
     @Published var openRouterAPIKey: String = ProcessInfo.processInfo.environment["OPENROUTER_API_KEY"] ?? ""

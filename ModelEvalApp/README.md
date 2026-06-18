@@ -41,11 +41,24 @@ Inputs:
 - Prompt spreadsheet: first sheet with `TESTID`, `Prompt`, and optional `Additional source information`.
 - Model spreadsheet: first sheet with `Model ID`, plus optional `OpenRouter Model ID`, `Model Name`, `Provider`, `Capabilities`, and `Enabled`.
 - API key: cloud providers need authentication. For the default text route, paste one OpenRouter key into the app.
+- Image generation: off by default. Turn on Image Generation and paste an
+  OpenAI API key to run the bundled `gpt-image-2` image model row.
+
+If your model spreadsheet contains only ChatGPT/OpenAI text rows and no
+explicit provider settings, the runner uses direct OpenAI and only needs the
+OpenAI key. Mixed-provider sheets keep blank text providers on OpenRouter.
 
 Use Dry Run to validate both spreadsheets without making API calls or needing a key.
 
 If OpenRouter returns HTTP 402 saying the request requires more credits or fewer
-`max_tokens`, lower the app's Max Tokens value. The default is `1000`.
+`max_tokens`, lower the app's Max Tokens value. The same app setting is sent as
+`max_completion_tokens` for direct OpenAI text models. The default is `1000`.
+Direct OpenAI text requests omit custom `temperature` by default because some
+newer OpenAI models only accept the provider default.
+
+If OpenAI returns HTTP 429, your account hit a rate, usage, or budget limit.
+The runner now shows the provider's message and skips the rest of that model
+after three rate-limit failures so the run can move on.
 
 If OpenRouter returns HTTP 400 saying a model is not valid, add an
 `OpenRouter Model ID` column with the exact slug from `https://openrouter.ai/models`.

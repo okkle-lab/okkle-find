@@ -11,7 +11,9 @@
     "openai": {
       "type": "openai_compatible",
       "base_url": "https://api.openai.com/v1",
-      "api_key_env": "OPENAI_API_KEY"
+      "api_key_env": "OPENAI_API_KEY",
+      "max_tokens_param": "max_completion_tokens",
+      "supports_custom_temperature": false
     },
     "openai_images": {
       "type": "openai_image_generation",
@@ -50,9 +52,9 @@
     },
     {
       "key": "image_01",
-      "name": "Replace with image model",
+      "name": "GPT Image 2",
       "provider": "openai_images",
-      "model": "image-model-id",
+      "model": "gpt-image-2",
       "capabilities": ["image"],
       "enabled": false
     }

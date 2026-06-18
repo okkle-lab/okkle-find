@@ -13,6 +13,12 @@ breaking changes).
 - Added a SwiftUI macOS app for running evaluations with drag-and-drop
   spreadsheets, bundled default workbooks, standard edit shortcuts, image-test
   support, and a larger launch window.
+- Added a bundled `gpt-image-2` model row for OpenAI Image API evaluations,
+  with image generation off by default in the app to avoid accidental spend.
+- Improved provider rate-limit handling so HTTP 429 responses include the
+  provider message and repeated rate limits skip the rest of the current model.
+- Direct OpenAI text runs now use OpenAI-compatible request parameters and omit
+  custom temperature by default for models that only accept the provider default.
 - Added a macOS packaging script that bundles the Python runner, default
   spreadsheets, app icon, version metadata, ad-hoc signing, and versioned zip
   output.
