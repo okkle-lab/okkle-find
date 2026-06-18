@@ -1,0 +1,67 @@
+{
+  "providers": {
+    "openrouter": {
+      "type": "openai_compatible",
+      "base_url": "https://openrouter.ai/api/v1",
+      "api_key_env": "OPENROUTER_API_KEY",
+      "extra_headers": {
+        "X-Title": "AI Finder Model Evaluation"
+      }
+    },
+    "openai": {
+      "type": "openai_compatible",
+      "base_url": "https://api.openai.com/v1",
+      "api_key_env": "OPENAI_API_KEY"
+    },
+    "openai_images": {
+      "type": "openai_image_generation",
+      "base_url": "https://api.openai.com/v1",
+      "api_key_env": "OPENAI_API_KEY",
+      "request": {
+        "image_count": 1,
+        "size": "1024x1024",
+        "timeout_seconds": 180
+      }
+    }
+  },
+  "request": {
+    "temperature": 0.2,
+    "max_tokens": 1800,
+    "timeout_seconds": 120,
+    "retries": 2,
+    "sleep_seconds": 0.5
+  },
+  "models": [
+    {
+      "key": "model_01",
+      "name": "Replace with model name",
+      "provider": "openrouter",
+      "model": "provider/model-id",
+      "capabilities": ["text"],
+      "enabled": true
+    },
+    {
+      "key": "model_02",
+      "name": "Replace with another model",
+      "provider": "openrouter",
+      "model": "provider/another-model-id",
+      "capabilities": ["text"],
+      "enabled": false
+    },
+    {
+      "key": "image_01",
+      "name": "Replace with image model",
+      "provider": "openai_images",
+      "model": "image-model-id",
+      "capabilities": ["image"],
+      "enabled": false
+    }
+  ],
+  "judge": {
+    "key": "judge",
+    "name": "Optional judge model",
+    "provider": "openrouter",
+    "model": "provider/judge-model-id",
+    "enabled": false
+  }
+}

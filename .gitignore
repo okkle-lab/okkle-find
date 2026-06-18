@@ -31,6 +31,16 @@
 
 /public/assets
 
+# Local model-evaluation run outputs.
+/outputs/
+
+# Python helper scripts.
+__pycache__/
+
+# Swift Package Manager.
+.build/
+/ModelEvalApp/dist/
+
 # Ignore master key for decrypting credentials and more.
 /config/master.key
 
