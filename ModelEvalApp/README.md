@@ -20,7 +20,7 @@ the app, so users do not need to install `openpyxl` or use Terminal.
 
 Default spreadsheets:
 
-- `Defaults/Model Test Prompts for Automation.xlsx`
+- `Defaults/Model_Test_Prompts_for_Automation.xlsx`
 - `Defaults/AI_model_variants.xlsx`
 
 The app preselects these files on launch. Replace the files in `Defaults/` and
@@ -54,7 +54,7 @@ Use Dry Run to validate both spreadsheets without making API calls or needing a 
 
 If OpenRouter returns HTTP 402 saying the request requires more credits or fewer
 `max_tokens`, lower the app's Max Tokens value. The same app setting is sent as
-`max_completion_tokens` for direct OpenAI text models. The default is `1000`.
+`max_completion_tokens` for direct OpenAI text models. The default is `200`.
 Direct OpenAI text requests omit custom `temperature` by default because some
 newer OpenAI models only accept the provider default.
 

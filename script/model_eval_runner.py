@@ -249,7 +249,7 @@ def default_config() -> dict[str, Any]:
         },
         "request": {
             "temperature": 0.2,
-            "max_tokens": 1800,
+            "max_tokens": 200,
             "timeout_seconds": 120,
             "retries": 2,
             "sleep_seconds": 0.5,
@@ -1082,7 +1082,7 @@ def call_openai_compatible(
     payload: dict[str, Any] = {
         "model": model.get("model"),
         "messages": messages,
-        max_tokens_parameter(provider, model): options.get("max_tokens", 1800),
+        max_tokens_parameter(provider, model): options.get("max_tokens", 200),
     }
     if supports_custom_temperature(provider, model):
         payload["temperature"] = options.get("temperature", 0.2)

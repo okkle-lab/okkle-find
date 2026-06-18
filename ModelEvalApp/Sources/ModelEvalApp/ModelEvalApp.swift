@@ -44,7 +44,7 @@ struct ModelEvalApp: App {
 }
 
 private enum AppPaths {
-    static let defaultPromptSpreadsheetName = "Model Test Prompts for Automation.xlsx"
+    static let defaultPromptSpreadsheetName = "Model_Test_Prompts_for_Automation.xlsx"
     static let defaultModelSpreadsheetName = "AI_model_variants.xlsx"
 
     static var developmentRepoRoot: URL {
@@ -144,7 +144,7 @@ final class RunnerViewModel: ObservableObject {
     @Published var includeImages = false
     @Published var dryRun = false
     @Published var parallelProducts = false
-    @Published var maxTokens = 1000
+    @Published var maxTokens = 200
     @Published var openRouterAPIKey: String = ProcessInfo.processInfo.environment["OPENROUTER_API_KEY"] ?? ""
     @Published var openAIAPIKey: String = ProcessInfo.processInfo.environment["OPENAI_API_KEY"] ?? ""
     @Published var isRunning = false

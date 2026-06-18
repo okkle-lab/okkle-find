@@ -255,6 +255,9 @@ cp "${RUNNER_DIST}/model_eval_runner" "${APP_DIR}/Contents/Resources/model_eval_
 cp "${ICON_PATH}" "${APP_DIR}/Contents/Resources/AppIcon.icns"
 if [[ -d "${DEFAULTS_DIR}" ]]; then
   ditto "${DEFAULTS_DIR}" "${APP_DIR}/Contents/Resources/Defaults"
+  find "${APP_DIR}/Contents/Resources/Defaults" \
+    \( -name ".DS_Store" -o -name "~\$*" \) \
+    -delete
 fi
 chmod +x "${APP_DIR}/Contents/MacOS/ModelEvalApp"
 chmod +x "${APP_DIR}/Contents/Resources/model_eval_runner"
