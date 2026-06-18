@@ -231,6 +231,7 @@ def default_config() -> dict[str, Any]:
                 "type": "openai_compatible",
                 "base_url": "https://api.openai.com/v1",
                 "api_key_env": "OPENAI_API_KEY",
+                "max_tokens_param": "max_completion_tokens",
             },
             "openai_images": {
                 "type": "openai_image_generation",
@@ -875,6 +876,17 @@ def merge_request_options(
     return options
 
 
+def max_tokens_parameter(provider: dict[str, Any], model: dict[str, Any]) -> str:
+    configured = clean_text(model.get("max_tokens_param") or provider.get("max_tokens_param"))
+    if configured:
+        return configured
+
+    base_url = str(provider.get("base_url", "")).lower()
+    if "api.openai.com" in base_url:
+        return "max_completion_tokens"
+    return "max_tokens"
+
+
 def api_key_for(provider: dict[str, Any]) -> str:
     env_name = provider.get("api_key_env")
     if not env_name:
@@ -1007,7 +1019,7 @@ def call_openai_compatible(
         "model": model.get("model"),
         "messages": messages,
         "temperature": options.get("temperature", 0.2),
-        "max_tokens": options.get("max_tokens", 1800),
+        max_tokens_parameter(provider, model): options.get("max_tokens", 1800),
     }
     payload.update(provider.get("extra_body", {}))
     payload.update(model.get("extra_body", {}))
