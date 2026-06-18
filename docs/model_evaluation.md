@@ -31,6 +31,15 @@ The packaged app bundles the Python runner and spreadsheet dependencies. Users
 can launch `dist/Model Eval Runner.app` directly, or share
 `dist/Model Eval Runner-mac.zip`.
 
+Packaged builds are published as GitHub Release assets:
+
+- [Model Eval Runner 1.0.0](https://github.com/okkle-lab/AI-Finder/releases/tag/model-eval-runner-v1.0.0)
+- Direct zip: [Model.Eval.Runner-1.0.0-mac.zip](https://github.com/okkle-lab/AI-Finder/releases/download/model-eval-runner-v1.0.0/Model.Eval.Runner-1.0.0-mac.zip)
+
+`ModelEvalApp/dist/` is intentionally ignored by Git because it contains local
+build artifacts. Other computers should download the release zip or rebuild the
+bundle locally with `./package_app.sh`.
+
 Default spreadsheets live in `ModelEvalApp/Defaults/`:
 
 - `Model_Test_Prompts_for_Automation.xlsx`

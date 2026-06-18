@@ -24,6 +24,8 @@ breaking changes).
 - Added a macOS packaging script that bundles the Python runner, default
   spreadsheets, app icon, version metadata, ad-hoc signing, and versioned zip
   output.
+- Documented that Model Eval Runner packaged builds live in GitHub Releases
+  while `ModelEvalApp/dist/` stays ignored as a local build-artifact folder.
 
 ## [0.5.1] — 2026-06-17
 

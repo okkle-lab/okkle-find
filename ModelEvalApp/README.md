@@ -18,6 +18,15 @@ open dist
 This creates `dist/Model Eval Runner.app` with the Python runner bundled inside
 the app, so users do not need to install `openpyxl` or use Terminal.
 
+Download a packaged build:
+
+- [Model Eval Runner 1.0.0](https://github.com/okkle-lab/AI-Finder/releases/tag/model-eval-runner-v1.0.0)
+- Direct zip: [Model.Eval.Runner-1.0.0-mac.zip](https://github.com/okkle-lab/AI-Finder/releases/download/model-eval-runner-v1.0.0/Model.Eval.Runner-1.0.0-mac.zip)
+
+`dist/` is a local packaging output and is intentionally ignored by Git. To use
+the app on another computer, download the release zip or rebuild locally with
+`./package_app.sh`.
+
 Default spreadsheets:
 
 - `Defaults/Model_Test_Prompts_for_Automation.xlsx`
