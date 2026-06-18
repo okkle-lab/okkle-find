@@ -15,6 +15,8 @@ breaking changes).
   support, and a larger launch window.
 - Added a bundled `gpt-image-2` model row for OpenAI Image API evaluations,
   with image generation off by default in the app to avoid accidental spend.
+- Added opt-in product-lane parallelism so different AI products can run at the
+  same time while models inside each product stay in series.
 - Improved provider rate-limit handling so HTTP 429 responses include the
   provider message and repeated rate limits skip the rest of the current model.
 - Direct OpenAI text runs now use OpenAI-compatible request parameters and omit

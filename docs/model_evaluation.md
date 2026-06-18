@@ -55,6 +55,8 @@ Cloud model providers still require an API key. With the default model spreadshe
 Image generation is supported but off by default in the SwiftUI app to avoid
 accidental image spend. Turn on Image Generation and provide `OPENAI_API_KEY`
 to run the bundled `gpt-image-2` row.
+Parallel Products is also off by default. Turn it on to run different product
+lanes at the same time while keeping each lane's models and tests in series.
 
 ## Prompt Spreadsheet
 
@@ -199,6 +201,17 @@ Run only selected models:
 ```bash
 python3 script/model_eval_runner.py --workbook "..." --models-workbook "..." --only-models model_01,model_07
 ```
+
+Run different product lanes concurrently:
+
+```bash
+python3 script/model_eval_runner.py --workbook "..." --models-workbook "..." --parallel-products
+```
+
+For OpenRouter model IDs, the product lane is based on the slug before `/`,
+such as `anthropic/...` or `openai/...`. Direct OpenAI text and image rows share
+the `OpenAI` lane. Use `--product-workers 2` to cap how many lanes run at once.
+Dry runs print the lane plan without making API calls.
 
 Include evidence-review rows if you later want to capture reviewer notes through the same output format:
 

@@ -43,6 +43,8 @@ Inputs:
 - API key: cloud providers need authentication. For the default text route, paste one OpenRouter key into the app.
 - Image generation: off by default. Turn on Image Generation and paste an
   OpenAI API key to run the bundled `gpt-image-2` image model row.
+- Parallel Products: off by default. Turn it on to run different product lanes
+  at the same time while keeping models within each product in series.
 
 If your model spreadsheet contains only ChatGPT/OpenAI text rows and no
 explicit provider settings, the runner uses direct OpenAI and only needs the
