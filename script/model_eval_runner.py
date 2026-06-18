@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+import concurrent.futures
 import csv
 import datetime as dt
 import difflib
@@ -18,6 +19,7 @@ import mimetypes
 import os
 import re
 import sys
+import threading
 import time
 import traceback
 import urllib.error
@@ -247,7 +249,7 @@ def default_config() -> dict[str, Any]:
         },
         "request": {
             "temperature": 0.2,
-            "max_tokens": 1800,
+            "max_tokens": 200,
             "timeout_seconds": 120,
             "retries": 2,
             "sleep_seconds": 0.5,
@@ -693,6 +695,55 @@ def planned_pairs(
     ]
 
 
+def product_lane_key(config: dict[str, Any], model: dict[str, Any]) -> str:
+    provider_key = clean_text(model.get("provider")) or "unknown"
+    provider = provider_for(config, model)
+    base_url = str(provider.get("base_url", "")).lower()
+    model_id = clean_text(model.get("model"))
+
+    if "api.openai.com" in base_url or provider_key in {"openai", "openai_images"}:
+        return "openai"
+    if openrouter_provider(provider) and "/" in model_id:
+        return model_id.split("/", 1)[0]
+    return provider_key
+
+
+def product_lane_label(key: str) -> str:
+    labels = {
+        "anthropic": "Anthropic",
+        "deepseek": "DeepSeek",
+        "google": "Google",
+        "meta-llama": "Meta Llama",
+        "mistralai": "Mistral",
+        "openai": "OpenAI",
+    }
+    return labels.get(key, key)
+
+
+def group_pairs_by_product(
+    config: dict[str, Any],
+    pairs: list[tuple[dict[str, Any], PromptTest]],
+) -> dict[str, list[tuple[dict[str, Any], PromptTest]]]:
+    groups: dict[str, list[tuple[dict[str, Any], PromptTest]]] = {}
+    for model, test in pairs:
+        groups.setdefault(product_lane_key(config, model), []).append((model, test))
+    return groups
+
+
+def product_worker_count(
+    parallel_products: bool,
+    requested_workers: int,
+    lane_count: int,
+) -> int:
+    if not parallel_products:
+        return 1
+    if lane_count <= 1:
+        return 1
+    if requested_workers:
+        return max(1, min(requested_workers, lane_count))
+    return lane_count
+
+
 def unsupported_tests(
     config: dict[str, Any],
     models: list[dict[str, Any]],
@@ -1031,7 +1082,7 @@ def call_openai_compatible(
     payload: dict[str, Any] = {
         "model": model.get("model"),
         "messages": messages,
-        max_tokens_parameter(provider, model): options.get("max_tokens", 1800),
+        max_tokens_parameter(provider, model): options.get("max_tokens", 200),
     }
     if supports_custom_temperature(provider, model):
         payload["temperature"] = options.get("temperature", 0.2)
@@ -1702,6 +1753,30 @@ def print_plan(
     print(f"Total API calls for selected model/test pairs: {len(planned_pairs(config, models, tests))}")
 
 
+def print_parallel_plan(
+    config: dict[str, Any],
+    pairs: list[tuple[dict[str, Any], PromptTest]],
+    parallel_products: bool,
+    requested_workers: int,
+) -> None:
+    groups = group_pairs_by_product(config, pairs)
+    workers = product_worker_count(parallel_products, requested_workers, len(groups))
+    mode = "parallel" if parallel_products and workers > 1 else "serial"
+    print(f"Product lanes: {len(groups)} ({mode}; workers: {workers})")
+    for lane, lane_pairs in groups.items():
+        model_keys = []
+        seen_models: set[str] = set()
+        for model, _test in lane_pairs:
+            model_key = clean_text(model.get("key"))
+            if model_key and model_key not in seen_models:
+                seen_models.add(model_key)
+                model_keys.append(model_key)
+        print(
+            f"  - {product_lane_label(lane)}: "
+            f"{len(model_keys)} model(s), {len(lane_pairs)} call(s)"
+        )
+
+
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--workbook", required=True, help="Path to the source .xlsx prompt workbook.")
@@ -1742,6 +1817,23 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--parallel-products",
+        action="store_true",
+        help=(
+            "Run different product/provider lanes concurrently while keeping each "
+            "lane's models and tests in series."
+        ),
+    )
+    parser.add_argument(
+        "--product-workers",
+        type=int,
+        default=0,
+        help=(
+            "Maximum concurrent product lanes when --parallel-products is set. "
+            "Use 0 to allow one worker per product lane."
+        ),
+    )
+    parser.add_argument(
         "--verbose-errors",
         action="store_true",
         help="Print full tracebacks for failed model calls.",
@@ -1779,6 +1871,8 @@ def main(argv: list[str]) -> int:
         raise ValueError("--excel-every must be 0 or greater.")
     if args.rate_limit_skip_after < 0:
         raise ValueError("--rate-limit-skip-after must be 0 or greater.")
+    if args.product_workers < 0:
+        raise ValueError("--product-workers must be 0 or greater.")
 
     models = enabled_models(config, args.only_models)
     tests = read_prompt_library(
@@ -1792,6 +1886,7 @@ def main(argv: list[str]) -> int:
 
     if args.dry_run:
         print_plan(config, selected_tests, skipped, models)
+        print_parallel_plan(config, pairs, args.parallel_products, args.product_workers)
         return 0
     if not models:
         raise ValueError("No enabled models found in the config.")
@@ -1807,6 +1902,7 @@ def main(argv: list[str]) -> int:
         raise ValueError("Set judge.enabled=true in the config before using --score.")
 
     print_plan(config, selected_tests, skipped, models)
+    print_parallel_plan(config, pairs, args.parallel_products, args.product_workers)
 
     output_dir = make_output_dir(requested_output_dir)
     run_id = output_dir.name
@@ -1826,104 +1922,171 @@ def main(argv: list[str]) -> int:
         )
     }
     all_rows = list(existing_rows)
+    pair_order = {
+        (clean_text(model.get("key")), test.test_id): index
+        for index, (model, test) in enumerate(pairs)
+    }
+
+    def ordered_rows() -> list[dict[str, Any]]:
+        return sorted(
+            all_rows,
+            key=lambda row: (
+                pair_order.get(
+                    (clean_text(row.get("model_key")), clean_text(row.get("test_id"))),
+                    len(pair_order),
+                ),
+                clean_text(row.get("timestamp")),
+            ),
+        )
+
     sleep_seconds = float(config.get("request", {}).get("sleep_seconds", 0.5))
     if args.excel_every:
-        write_live_results_workbook(live_xlsx_path, all_rows, skipped)
+        write_live_results_workbook(live_xlsx_path, ordered_rows(), skipped)
 
     total = len(pairs)
     done_count = len(completed)
-    rate_limit_errors_by_model: dict[str, int] = {}
-    rate_limited_models: set[str] = set()
-    for model, test in pairs:
-        provider = model.get("provider", "")
-        key = (model.get("key"), test.test_id)
-        if key in completed:
-            print(f"Skipping existing {key[0]} / {key[1]}")
-            continue
-        if model.get("key") in rate_limited_models:
-            print(f"Skipping rate-limited {key[0]} / {key[1]}")
-            continue
+    progress_lock = threading.Lock()
+    output_lock = threading.Lock()
+    judge_lock = threading.Lock()
 
-        done_count += 1
-        print(f"[{done_count}/{total}] {model.get('key')} -> {test.test_id}", flush=True)
+    def next_progress() -> int:
+        nonlocal done_count
+        with progress_lock:
+            done_count += 1
+            return done_count
+
+    def persist_row(row: dict[str, Any]) -> None:
+        with output_lock:
+            append_jsonl(jsonl_path, row)
+            all_rows.append(row)
+            if args.excel_every and len(all_rows) % args.excel_every == 0:
+                write_live_results_workbook(live_xlsx_path, ordered_rows(), skipped)
+
+    def run_pair(model: dict[str, Any], test: PromptTest) -> dict[str, Any]:
+        provider = model.get("provider", "")
         started = time.monotonic()
-        try:
-            if is_image_test(test):
-                response, output_files, output_urls, usage = call_image_model(
-                    config, model, test, output_dir
-                )
-                row = result_row(
-                    run_id=run_id,
-                    model=model,
-                    test=test,
-                    provider=provider,
-                    output_type="image",
-                    response=response,
-                    output_files=output_files,
-                    output_urls=output_urls,
-                    latency_seconds=time.monotonic() - started,
-                    usage=usage,
-                )
-            else:
-                response, usage = call_openai_compatible(config, model, create_messages(test))
-                score = None
-                reasoning = ""
-                if args.score:
-                    score, reasoning = score_response(config, judge, test, response)
-                row = result_row(
-                    run_id=run_id,
-                    model=model,
-                    test=test,
-                    provider=provider,
-                    response=response,
-                    score=score,
-                    reasoning=reasoning,
-                    latency_seconds=time.monotonic() - started,
-                    usage=usage,
-                )
-        except Exception as exc:  # pragma: no cover - depends on remote APIs
-            if isinstance(exc, RateLimitError):
-                model_key = clean_text(model.get("key"))
-                rate_limit_errors_by_model[model_key] = rate_limit_errors_by_model.get(model_key, 0) + 1
-                if (
-                    args.rate_limit_skip_after
-                    and rate_limit_errors_by_model[model_key] >= args.rate_limit_skip_after
-                ):
-                    rate_limited_models.add(model_key)
-            row = result_row(
+        if is_image_test(test):
+            response, output_files, output_urls, usage = call_image_model(
+                config, model, test, output_dir
+            )
+            return result_row(
                 run_id=run_id,
                 model=model,
                 test=test,
                 provider=provider,
-                output_type="image" if is_image_test(test) else "text",
+                output_type="image",
+                response=response,
+                output_files=output_files,
+                output_urls=output_urls,
                 latency_seconds=time.monotonic() - started,
-                error=f"{type(exc).__name__}: {exc}",
+                usage=usage,
             )
-            if args.verbose_errors:
-                print(traceback.format_exc(), file=sys.stderr)
-            else:
-                print(f"  error: {row['error']}", file=sys.stderr)
-            if model.get("key") in rate_limited_models:
-                print(
-                    "  rate limit: skipping remaining tests for "
-                    f"{model.get('key')} after {args.rate_limit_skip_after} rate-limit errors",
-                    file=sys.stderr,
+
+        response, usage = call_openai_compatible(config, model, create_messages(test))
+        score = None
+        reasoning = ""
+        if args.score:
+            with judge_lock:
+                score, reasoning = score_response(config, judge, test, response)
+        return result_row(
+            run_id=run_id,
+            model=model,
+            test=test,
+            provider=provider,
+            response=response,
+            score=score,
+            reasoning=reasoning,
+            latency_seconds=time.monotonic() - started,
+            usage=usage,
+        )
+
+    def run_lane(
+        lane: str,
+        lane_pairs: list[tuple[dict[str, Any], PromptTest]],
+    ) -> None:
+        rate_limit_errors_by_model: dict[str, int] = {}
+        rate_limited_models: set[str] = set()
+        lane_label = product_lane_label(lane)
+        show_lane = args.parallel_products and len(product_groups) > 1
+
+        for model, test in lane_pairs:
+            provider = model.get("provider", "")
+            model_key = clean_text(model.get("key"))
+            key = (model_key, test.test_id)
+            if key in completed:
+                print(f"Skipping existing {key[0]} / {key[1]}")
+                continue
+            if model_key in rate_limited_models:
+                print(f"Skipping rate-limited {key[0]} / {key[1]}")
+                continue
+
+            current = next_progress()
+            lane_prefix = f"[{lane_label}] " if show_lane else ""
+            print(f"[{current}/{total}] {lane_prefix}{model_key} -> {test.test_id}", flush=True)
+            started = time.monotonic()
+            try:
+                row = run_pair(model, test)
+            except Exception as exc:  # pragma: no cover - depends on remote APIs
+                if isinstance(exc, RateLimitError):
+                    rate_limit_errors_by_model[model_key] = (
+                        rate_limit_errors_by_model.get(model_key, 0) + 1
+                    )
+                    if (
+                        args.rate_limit_skip_after
+                        and rate_limit_errors_by_model[model_key] >= args.rate_limit_skip_after
+                    ):
+                        rate_limited_models.add(model_key)
+                row = result_row(
+                    run_id=run_id,
+                    model=model,
+                    test=test,
+                    provider=provider,
+                    output_type="image" if is_image_test(test) else "text",
+                    latency_seconds=time.monotonic() - started,
+                    error=f"{type(exc).__name__}: {exc}",
                 )
+                if args.verbose_errors:
+                    print(traceback.format_exc(), file=sys.stderr)
+                else:
+                    print(f"  error: {row['error']}", file=sys.stderr)
+                if model_key in rate_limited_models:
+                    print(
+                        "  rate limit: skipping remaining tests for "
+                        f"{model_key} after {args.rate_limit_skip_after} rate-limit errors",
+                        file=sys.stderr,
+                    )
 
-        append_jsonl(jsonl_path, row)
-        all_rows.append(row)
-        if args.excel_every and len(all_rows) % args.excel_every == 0:
-            write_live_results_workbook(live_xlsx_path, all_rows, skipped)
-        if sleep_seconds:
-            time.sleep(sleep_seconds)
+            persist_row(row)
+            if sleep_seconds:
+                time.sleep(sleep_seconds)
 
+    product_groups = group_pairs_by_product(config, pairs)
+    workers = product_worker_count(args.parallel_products, args.product_workers, len(product_groups))
+    if workers > 1:
+        print(f"Running product lanes in parallel with {workers} workers.", flush=True)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as executor:
+            future_to_lane = {
+                executor.submit(run_lane, lane, lane_pairs): lane
+                for lane, lane_pairs in product_groups.items()
+            }
+            for future in concurrent.futures.as_completed(future_to_lane):
+                lane = future_to_lane[future]
+                try:
+                    future.result()
+                except Exception as exc:
+                    raise RuntimeError(f"Product lane {product_lane_label(lane)} failed.") from exc
+    else:
+        for lane, lane_pairs in product_groups.items():
+            run_lane(lane, lane_pairs)
+
+    final_rows = ordered_rows()
     if args.excel_every:
-        write_live_results_workbook(live_xlsx_path, all_rows, skipped)
-    write_results_csv(output_dir / "responses.csv", all_rows)
+        write_live_results_workbook(live_xlsx_path, final_rows, skipped)
+    write_results_csv(output_dir / "responses.csv", final_rows)
     write_results_workbook(
         source_workbook=workbook_path,
         output_path=output_dir / "model_test_results.xlsx",
-        rows=all_rows,
+        rows=final_rows,
         skipped=skipped,
     )
 

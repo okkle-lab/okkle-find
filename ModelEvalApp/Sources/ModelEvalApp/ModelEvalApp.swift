@@ -44,7 +44,7 @@ struct ModelEvalApp: App {
 }
 
 private enum AppPaths {
-    static let defaultPromptSpreadsheetName = "Model Test Prompts for Automation.xlsx"
+    static let defaultPromptSpreadsheetName = "Model_Test_Prompts_for_Automation.xlsx"
     static let defaultModelSpreadsheetName = "AI_model_variants.xlsx"
 
     static var developmentRepoRoot: URL {
@@ -143,7 +143,8 @@ final class RunnerViewModel: ObservableObject {
     @Published var pythonPath: String = AppPaths.defaultPythonPath
     @Published var includeImages = false
     @Published var dryRun = false
-    @Published var maxTokens = 1000
+    @Published var parallelProducts = false
+    @Published var maxTokens = 200
     @Published var openRouterAPIKey: String = ProcessInfo.processInfo.environment["OPENROUTER_API_KEY"] ?? ""
     @Published var openAIAPIKey: String = ProcessInfo.processInfo.environment["OPENAI_API_KEY"] ?? ""
     @Published var isRunning = false
@@ -220,6 +221,9 @@ final class RunnerViewModel: ObservableObject {
         }
         if dryRun {
             arguments.append("--dry-run")
+        }
+        if parallelProducts {
+            arguments.append("--parallel-products")
         }
         runner.arguments = arguments
         runner.environment = processEnvironment()
@@ -392,6 +396,9 @@ struct ContentView: View {
             }
             Toggle(isOn: $viewModel.includeImages) {
                 Label("Image Generation", systemImage: "photo")
+            }
+            Toggle(isOn: $viewModel.parallelProducts) {
+                Label("Parallel Products", systemImage: "arrow.triangle.branch")
             }
             HStack {
                 Label("Max Tokens", systemImage: "text.word.spacing")

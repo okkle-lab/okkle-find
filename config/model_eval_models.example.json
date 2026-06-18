@@ -28,7 +28,7 @@
   },
   "request": {
     "temperature": 0.2,
-    "max_tokens": 1800,
+    "max_tokens": 200,
     "timeout_seconds": 120,
     "retries": 2,
     "sleep_seconds": 0.5
