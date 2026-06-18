@@ -153,6 +153,10 @@ class CreditLimitError(RuntimeError):
     """Provider says the account/key cannot afford the requested call."""
 
 
+class RateLimitError(RuntimeError):
+    """Provider rejected the request because a rate or usage limit was hit."""
+
+
 def clean_text(value: Any) -> str:
     if value is None:
         return ""
@@ -893,6 +897,52 @@ def build_headers(provider: dict[str, Any], model: dict[str, Any]) -> dict[str, 
     return headers
 
 
+def compact_http_error_body(body: str) -> str:
+    try:
+        parsed = json.loads(body)
+    except json.JSONDecodeError:
+        return body.strip()
+
+    error = parsed.get("error") if isinstance(parsed, dict) else None
+    if isinstance(error, dict):
+        message = clean_text(error.get("message"))
+        code = clean_text(error.get("code"))
+        error_type = clean_text(error.get("type"))
+        details = [part for part in [message, f"code={code}" if code else "", f"type={error_type}" if error_type else ""] if part]
+        return "; ".join(details) or body.strip()
+    return body.strip()
+
+
+def retry_delay_seconds(exc: urllib.error.HTTPError, attempt: int) -> float:
+    headers = exc.headers
+    for name in ("retry-after-ms", "Retry-After-Ms"):
+        value = clean_text(headers.get(name))
+        if value:
+            try:
+                return max(0.0, float(value) / 1000.0)
+            except ValueError:
+                pass
+
+    for name in ("retry-after", "Retry-After"):
+        value = clean_text(headers.get(name))
+        if value:
+            try:
+                return max(0.0, float(value))
+            except ValueError:
+                pass
+
+    return min(30.0, float(2**attempt))
+
+
+def http_error(exc: urllib.error.HTTPError, body: str) -> RuntimeError:
+    message = f"HTTP {exc.code}: {compact_http_error_body(body)}"
+    if exc.code == 429:
+        return RateLimitError(message)
+    if exc.code == 402:
+        return CreditLimitError(message)
+    return RuntimeError(message)
+
+
 def post_json(
     provider: dict[str, Any],
     model: dict[str, Any],
@@ -914,21 +964,26 @@ def post_json(
     last_error: Exception | None = None
 
     for attempt in range(retries + 1):
+        retry_delay = min(8.0, float(2**attempt))
         try:
             with urllib.request.urlopen(request, timeout=timeout) as response:
                 body = response.read().decode("utf-8")
             return json.loads(body)
         except urllib.error.HTTPError as exc:
-            last_error = exc
             body = exc.read().decode("utf-8", errors="replace")
+            last_error = http_error(exc, body)
+            if exc.code == 429:
+                retry_delay = retry_delay_seconds(exc, attempt)
             if exc.code < 500 and exc.code != 429:
-                raise RuntimeError(f"HTTP {exc.code}: {body}") from exc
+                raise last_error from exc
         except (urllib.error.URLError, TimeoutError) as exc:
             last_error = exc
 
         if attempt < retries:
-            time.sleep(min(8, 2**attempt))
+            time.sleep(retry_delay)
 
+    if isinstance(last_error, (CreditLimitError, RateLimitError)):
+        raise last_error
     raise RuntimeError(f"API request failed after retries: {last_error}") from last_error
 
 
@@ -1116,21 +1171,26 @@ def post_multipart(
     last_error: Exception | None = None
 
     for attempt in range(retries + 1):
+        retry_delay = min(8.0, float(2**attempt))
         try:
             with urllib.request.urlopen(request, timeout=timeout) as response:
                 response_body = response.read().decode("utf-8")
             return json.loads(response_body)
         except urllib.error.HTTPError as exc:
-            last_error = exc
             response_body = exc.read().decode("utf-8", errors="replace")
+            last_error = http_error(exc, response_body)
+            if exc.code == 429:
+                retry_delay = retry_delay_seconds(exc, attempt)
             if exc.code < 500 and exc.code != 429:
-                raise RuntimeError(f"HTTP {exc.code}: {response_body}") from exc
+                raise last_error from exc
         except (urllib.error.URLError, TimeoutError) as exc:
             last_error = exc
 
         if attempt < retries:
-            time.sleep(min(8, 2**attempt))
+            time.sleep(retry_delay)
 
+    if isinstance(last_error, (CreditLimitError, RateLimitError)):
+        raise last_error
     raise RuntimeError(f"API request failed after retries: {last_error}") from last_error
 
 
@@ -1647,6 +1707,15 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--include-evidence", action="store_true", help="Include evidence/privacy/security rows.")
     parser.add_argument("--include-manual-review", action="store_true", help="Include manual reviewer rows.")
     parser.add_argument(
+        "--rate-limit-skip-after",
+        type=int,
+        default=3,
+        help=(
+            "Skip remaining tests for a model after this many rate-limit errors. "
+            "Use 0 to keep trying every selected pair."
+        ),
+    )
+    parser.add_argument(
         "--verbose-errors",
         action="store_true",
         help="Print full tracebacks for failed model calls.",
@@ -1682,6 +1751,8 @@ def main(argv: list[str]) -> int:
         config.setdefault("request", {})["max_tokens"] = args.max_tokens
     if args.excel_every < 0:
         raise ValueError("--excel-every must be 0 or greater.")
+    if args.rate_limit_skip_after < 0:
+        raise ValueError("--rate-limit-skip-after must be 0 or greater.")
 
     models = enabled_models(config, args.only_models)
     tests = read_prompt_library(
@@ -1735,11 +1806,16 @@ def main(argv: list[str]) -> int:
 
     total = len(pairs)
     done_count = len(completed)
+    rate_limit_errors_by_model: dict[str, int] = {}
+    rate_limited_models: set[str] = set()
     for model, test in pairs:
         provider = model.get("provider", "")
         key = (model.get("key"), test.test_id)
         if key in completed:
             print(f"Skipping existing {key[0]} / {key[1]}")
+            continue
+        if model.get("key") in rate_limited_models:
+            print(f"Skipping rate-limited {key[0]} / {key[1]}")
             continue
 
         done_count += 1
@@ -1780,6 +1856,14 @@ def main(argv: list[str]) -> int:
                     usage=usage,
                 )
         except Exception as exc:  # pragma: no cover - depends on remote APIs
+            if isinstance(exc, RateLimitError):
+                model_key = clean_text(model.get("key"))
+                rate_limit_errors_by_model[model_key] = rate_limit_errors_by_model.get(model_key, 0) + 1
+                if (
+                    args.rate_limit_skip_after
+                    and rate_limit_errors_by_model[model_key] >= args.rate_limit_skip_after
+                ):
+                    rate_limited_models.add(model_key)
             row = result_row(
                 run_id=run_id,
                 model=model,
@@ -1793,6 +1877,12 @@ def main(argv: list[str]) -> int:
                 print(traceback.format_exc(), file=sys.stderr)
             else:
                 print(f"  error: {row['error']}", file=sys.stderr)
+            if model.get("key") in rate_limited_models:
+                print(
+                    "  rate limit: skipping remaining tests for "
+                    f"{model.get('key')} after {args.rate_limit_skip_after} rate-limit errors",
+                    file=sys.stderr,
+                )
 
         append_jsonl(jsonl_path, row)
         all_rows.append(row)

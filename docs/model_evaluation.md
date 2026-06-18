@@ -114,6 +114,13 @@ If OpenRouter returns HTTP 402 saying a request requires more credits or fewer
 `max_tokens`, lower the SwiftUI app's Max Tokens value or pass `--max-tokens`
 on the CLI. The app defaults to `1000`.
 
+If OpenAI or another provider returns HTTP 429, the account has hit a rate,
+usage, or budget limit. The runner preserves the provider's error message,
+honours retry headers when present, and skips the rest of a model after three
+rate-limit failures by default. Use `--rate-limit-skip-after 0` to keep trying
+every selected pair, or lower `--max-tokens` / test fewer prompts while
+checking account limits.
+
 If OpenRouter returns HTTP 400 saying a model is not valid, the spreadsheet is
 using a catalogue/internal model ID rather than an OpenRouter slug. Add an
 `OpenRouter Model ID` column with the exact slug from `https://openrouter.ai/models`.

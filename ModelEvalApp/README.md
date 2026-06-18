@@ -53,6 +53,10 @@ Use Dry Run to validate both spreadsheets without making API calls or needing a 
 If OpenRouter returns HTTP 402 saying the request requires more credits or fewer
 `max_tokens`, lower the app's Max Tokens value. The default is `1000`.
 
+If OpenAI returns HTTP 429, your account hit a rate, usage, or budget limit.
+The runner now shows the provider's message and skips the rest of that model
+after three rate-limit failures so the run can move on.
+
 If OpenRouter returns HTTP 400 saying a model is not valid, add an
 `OpenRouter Model ID` column with the exact slug from `https://openrouter.ai/models`.
 For example, use `anthropic/claude-opus-4.8` instead of `claude-opus-4-8`.

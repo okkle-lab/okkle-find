@@ -15,6 +15,8 @@ breaking changes).
   support, and a larger launch window.
 - Added a bundled `gpt-image-2` model row for OpenAI Image API evaluations,
   with image generation off by default in the app to avoid accidental spend.
+- Improved provider rate-limit handling so HTTP 429 responses include the
+  provider message and repeated rate limits skip the rest of the current model.
 - Added a macOS packaging script that bundles the Python runner, default
   spreadsheets, app icon, version metadata, ad-hoc signing, and versioned zip
   output.
