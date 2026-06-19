@@ -10,6 +10,9 @@ breaking changes).
 ### Added
 - Added an automated model-evaluation runner for prompt/model spreadsheets,
   with resumable JSONL, CSV, live Excel output, and a final results workbook.
+- Added a prompt-output grading runner and SwiftUI macOS app that take a test
+  output workbook, grading model workbook, and prompt rubric workbook, then
+  write live and final Excel grading results.
 - Added a SwiftUI macOS app for running evaluations with drag-and-drop
   spreadsheets, bundled default workbooks, standard edit shortcuts, image-test
   support, and a larger launch window.
