@@ -48,7 +48,7 @@
   <div class="tile-grid">
     <% @categories.each do |category| %>
       <%= link_to search_path(category: category.slug), class: "tile" do %>
-        <span class="tile-icon" style="color: <%= tool_monogram_color(category.display_name) %>"><%= icon(category.icon.presence || "sparkles", size: 22) %></span>
+        <span class="tile-icon" style="--icon-tint: <%= tool_monogram_color(category.display_name) %>"><%= icon(category.icon.presence || "sparkles", size: 22) %></span>
         <span class="tile-name"><%= category.display_name %></span>
         <span class="tile-sub"><%= category.subtitle %></span>
       <% end %>
