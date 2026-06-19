@@ -18,6 +18,12 @@ Rails.application.routes.draw do
   resources :events, only: :create
   resources :posts, only: [:index, :show], path: "blog"
 
+  namespace :admin do
+    resources :posts, only: %i[index new create edit update]
+    get "fetch_url",  to: "posts#fetch_url"
+    post "fetch_news", to: "posts#fetch_news"
+  end
+
   # Defines the root path route ("/")
   root "pages#home"
 end

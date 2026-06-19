@@ -300,4 +300,25 @@ module ApplicationHelper
 
     "rgb(#{rgb.join(", ")})"
   end
+
+  def source_favicon_url(source_url)
+    return nil if source_url.blank?
+    host = URI.parse(source_url).host
+    return nil unless host
+    "https://www.google.com/s2/favicons?domain=#{host}&sz=32"
+  rescue URI::InvalidURIError
+    nil
+  end
+
+  POST_TYPE_COLORS = {
+    "practical_update" => "#1d4ed8",
+    "hype_check"       => "#92400e",
+    "score_update"     => "#6d28d9",
+    "roundup"          => "#065f46",
+    "general"          => "#4b5563"
+  }.freeze
+
+  def post_type_color(post_type)
+    POST_TYPE_COLORS.fetch(post_type.to_s, "#4b5563")
+  end
 end

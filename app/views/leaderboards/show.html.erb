@@ -2,20 +2,34 @@
 
 <section class="page-head">
   <%= link_to "← all leaderboards", leaderboards_path, class: "back-link" %>
-  <h1 class="page-title"><%= @category_name %> leaderboard</h1>
-  <p class="page-sub">Ranked by the weighted <%= @category_name.downcase %> score across our judged tests.</p>
+  <div class="lb-show-head">
+    <div class="lb-show-icon" style="--icon-tint: <%= tool_monogram_color(@category_name) %>">
+      <%= icon(@category_icon.presence || "sparkles", size: 26) %>
+    </div>
+    <div>
+      <h1 class="page-title" style="margin:0"><%= @category_name %></h1>
+      <% if @category_desc.present? %>
+        <p class="page-sub" style="margin:0.3rem 0 0"><%= @category_desc %></p>
+      <% end %>
+    </div>
+  </div>
 </section>
 
 <% if @ranked.empty? %>
-  <div class="empty"><p class="empty-head">No scores yet for this category.</p><p>Testing is in progress — check back soon.</p></div>
+  <div class="empty">
+    <p class="empty-head">No scores yet for this category.</p>
+    <p>Testing is in progress — check back soon.</p>
+  </div>
 <% else %>
   <ol class="lb-board">
     <% @ranked.each_with_index do |(tool, score), i| %>
-      <li class="lb-row">
+      <li class="lb-row<%= ' lb-row-podium' if i < 3 %>">
         <span class="lb-rank <%= "lb-rank-top" if i < 3 %>"><%= i + 1 %></span>
         <div class="lb-row-main">
-          <%= link_to tool.name, tool_path(tool, dim: nil), class: "lb-row-name" %>
-          <% if tool.provider.present? %><span class="lb-row-prov">by <%= tool.provider %></span><% end %>
+          <%= link_to tool.name, tool_path(tool), class: "lb-row-name" %>
+          <% if tool.provider.present? %>
+            <span class="lb-row-prov">by <%= tool.provider %></span>
+          <% end %>
         </div>
         <div class="lb-row-score">
           <%= colored_score(score, css_class: "lb-row-num") %>

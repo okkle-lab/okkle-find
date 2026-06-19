@@ -85,15 +85,23 @@
     </div>
     <div class="news-grid">
       <% @recent_posts.each_with_index do |post, i| %>
-        <%= link_to post_path(post), class: "news-card#{' news-card-lead' if i.zero?}" do %>
-          <span class="news-kicker">
-            <span class="news-dot"></span>
-            <% if post.published_at %><%= post.published_at.strftime("%-d %b %Y") %><% end %>
-            <% if post.source_name.present? %><span class="news-source">via <%= post.source_name %></span><% end %>
+        <% is_lead = i.zero? %>
+        <%= link_to post_path(post), class: "news-card#{' news-card-lead' if is_lead}" do %>
+          <span class="nc-img<%= ' nc-img--empty' unless post.image_url.present? %>"<%= post.image_url.blank? ? " style=\"background:#{post_type_color(post.post_type)}18\"".html_safe : "" %>>
+            <% if post.image_url.present? %>
+              <img src="<%= post.image_url %>" alt="" loading="lazy">
+            <% end %>
           </span>
-          <span class="news-title"><%= post.title %></span>
-          <% if post.excerpt.present? %><span class="news-excerpt"><%= truncate(post.excerpt, length: i.zero? ? 160 : 90) %></span><% end %>
-          <span class="news-readmore">Read <%= icon("external-link", size: 13) %></span>
+          <span class="nc-body">
+            <span class="nc-kicker">
+              <% if post.source_name.present? %><span class="nc-source"><%= post.source_name %></span><% end %>
+              <% if post.published_at %><span class="nc-date"><%= post.published_at.strftime("%-d %b") %></span><% end %>
+            </span>
+            <span class="nc-title"><%= post.title %></span>
+            <% if post.excerpt.present? %>
+              <span class="nc-excerpt"><%= truncate(post.excerpt, length: is_lead ? 150 : 85) %></span>
+            <% end %>
+          </span>
         <% end %>
       <% end %>
     </div>

@@ -1,0 +1,106 @@
+<div class="admin-url-fetch">
+  <label class="admin-label">Fetch from URL</label>
+  <div class="admin-url-row">
+    <input type="url" id="fetch_url_input" placeholder="Paste article URL…" class="admin-input" style="flex:1">
+    <button type="button" id="fetch_url_btn" class="visit-btn">Fetch</button>
+  </div>
+  <p id="fetch_status" class="admin-hint"></p>
+</div>
+
+<%= form_with model: [:admin, post], class: "admin-form" do |f| %>
+  <% if post.errors.any? %>
+    <div class="admin-errors">
+      <% post.errors.full_messages.each do |msg| %><p><%= msg %></p><% end %>
+    </div>
+  <% end %>
+
+  <div class="admin-field">
+    <label class="admin-label">Post type</label>
+    <%= f.select :post_type, Post.post_types.keys.map { |k| [Post::POST_TYPE_LABELS[k], k] }, {}, class: "admin-input", id: "post_type_select" %>
+  </div>
+
+  <div class="admin-field" id="verdict_field" style="display:none">
+    <label class="admin-label">Verdict <span class="admin-hint">(hype checks only)</span></label>
+    <%= f.text_field :verdict, placeholder: "e.g. Mostly hype / Genuinely useful / Mixed", class: "admin-input", id: "verdict_input" %>
+  </div>
+
+  <div class="admin-field">
+    <label class="admin-label">Title</label>
+    <%= f.text_field :title, class: "admin-input", id: "post_title" %>
+  </div>
+
+  <div class="admin-field">
+    <label class="admin-label">Slug <span class="admin-hint">(auto-generated if blank)</span></label>
+    <%= f.text_field :slug, class: "admin-input" %>
+  </div>
+
+  <div class="admin-field">
+    <label class="admin-label">Excerpt / editorial angle <span class="admin-hint">(shown on index — your take, not the original)</span></label>
+    <%= f.text_area :excerpt, rows: 3, class: "admin-input", id: "post_excerpt" %>
+  </div>
+
+  <div class="admin-field">
+    <label class="admin-label">Body <span class="admin-hint">(optional longer editorial)</span></label>
+    <%= f.text_area :body, rows: 8, class: "admin-input" %>
+  </div>
+
+  <div class="admin-field-row">
+    <div class="admin-field">
+      <label class="admin-label">Source name</label>
+      <%= f.text_field :source_name, class: "admin-input", id: "post_source_name" %>
+    </div>
+    <div class="admin-field">
+      <label class="admin-label">Source URL</label>
+      <%= f.text_field :source_url, class: "admin-input", id: "post_source_url" %>
+    </div>
+  </div>
+
+  <div class="admin-field">
+    <label class="admin-label">Image URL <span class="admin-hint">(auto-filled from og:image — replace if needed)</span></label>
+    <%= f.url_field :image_url, class: "admin-input", id: "post_image_url" %>
+  </div>
+
+  <div class="admin-field">
+    <label class="admin-label">Linked tool <span class="admin-hint">(for score updates and practical updates)</span></label>
+    <%= f.select :tool_id, [["— none —", ""]] + @tools.map { |t| [t.name, t.id] }, {}, class: "admin-input" %>
+  </div>
+
+  <div class="admin-field">
+    <label class="admin-label">Publish date <span class="admin-hint">(leave blank to keep as draft)</span></label>
+    <%= f.datetime_local_field :published_at, class: "admin-input", value: post.published_at&.strftime("%Y-%m-%dT%H:%M") %>
+  </div>
+
+  <%= f.submit post.new_record? ? "Save post" : "Update post", class: "visit-btn" %>
+<% end %>
+
+<script>
+(function() {
+  const typeSelect = document.getElementById('post_type_select');
+  const verdictField = document.getElementById('verdict_field');
+
+  function toggleVerdict() {
+    verdictField.style.display = typeSelect.value === 'hype_check' ? 'block' : 'none';
+  }
+  typeSelect.addEventListener('change', toggleVerdict);
+  toggleVerdict();
+
+  document.getElementById('fetch_url_btn').addEventListener('click', function() {
+    const url = document.getElementById('fetch_url_input').value.trim();
+    if (!url) return;
+    const status = document.getElementById('fetch_status');
+    status.textContent = 'Fetching…';
+    fetch('/admin/fetch_url?url=' + encodeURIComponent(url))
+      .then(r => r.json())
+      .then(data => {
+        if (data.error) { status.textContent = 'Error: ' + data.error; return; }
+        if (data.title)       document.getElementById('post_title').value = data.title;
+        if (data.description) document.getElementById('post_excerpt').value = data.description;
+        if (data.site_name)   document.getElementById('post_source_name').value = data.site_name;
+        if (url)              document.getElementById('post_source_url').value = url;
+        if (data.image_url)   document.getElementById('post_image_url').value = data.image_url;
+        status.textContent = 'Filled in from ' + (data.site_name || 'source') + '. Edit before publishing.';
+      })
+      .catch(() => { status.textContent = 'Could not fetch — fill in manually.'; });
+  });
+})();
+</script>

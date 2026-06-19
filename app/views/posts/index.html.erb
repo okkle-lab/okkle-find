@@ -1,27 +1,119 @@
 <% content_for :title, "Latest in AI — AI Finder" %>
 
-<section class="results-head">
-  <%= link_to "← home", root_path, class: "back-link" %>
-  <h1 class="results-title">Latest in AI</h1>
-  <p class="interpretation">Plain-English notes on new releases and what actually changed for everyday users.</p>
+<section class="news-page-head">
+  <h1 class="news-page-title">Latest in AI</h1>
+  <p class="news-page-sub">We only cover things that change what you should do or use — filtered for people who work, not people who follow the AI news cycle.</p>
 </section>
 
 <% if @posts.any? %>
-  <div class="posts-magazine">
-    <% @posts.each_with_index do |post, i| %>
-      <%= link_to post_path(post), class: "pmag-card#{' pmag-card-lead' if i.zero?}" do %>
-        <span class="pmag-kicker">
-          <span class="pmag-dot"></span>
-          <% if post.published_at %><%= post.published_at.strftime("%-d %b %Y") %><% end %>
-          <% if post.source_name.present? %><span class="pmag-source">via <%= post.source_name %></span><% end %>
-        </span>
-        <span class="pmag-title"><%= post.title %></span>
-        <% if post.excerpt.present? %>
-          <span class="pmag-excerpt"><%= truncate(post.excerpt, length: i.zero? ? 220 : 110) %></span>
+  <div class="news-feed">
+
+    <%# Lead story — first post, full-width hero %>
+    <% lead = @posts.first %>
+    <%= link_to post_path(lead), class: "nf-lead" do %>
+      <div class="nf-lead-img">
+        <% if lead.image_url.present? %>
+          <img src="<%= lead.image_url %>" alt="" loading="lazy">
+        <% else %>
+          <div class="nf-img-placeholder" style="background: <%= post_type_color(lead.post_type) %>22"></div>
         <% end %>
-        <span class="pmag-read">Read <%= icon("external-link", size: 13) %></span>
-      <% end %>
+      </div>
+      <div class="nf-lead-body">
+        <div class="nf-meta">
+          <span class="ptype-chip ptype-<%= lead.post_type %>"><%= lead.type_label %></span>
+          <% if lead.source_name.present? %>
+            <span class="nf-source">
+              <% if lead.source_url.present? && (fav = source_favicon_url(lead.source_url)) %>
+                <img src="<%= fav %>" class="nf-favicon" alt="" loading="lazy">
+              <% end %>
+              <%= lead.source_name %>
+            </span>
+          <% end %>
+          <% if lead.published_at %><span class="nf-date"><%= lead.published_at.strftime("%-d %b") %></span><% end %>
+        </div>
+        <h2 class="nf-lead-title"><%= lead.title %></h2>
+        <% if lead.hype_check? && lead.verdict.present? %>
+          <span class="nf-verdict"><%= icon("check-circle", size: 14) %> <%= lead.verdict %></span>
+        <% end %>
+        <% if lead.excerpt.present? %>
+          <p class="nf-lead-excerpt"><%= truncate(lead.excerpt, length: 200) %></p>
+        <% end %>
+      </div>
     <% end %>
+
+    <%# Secondary grid — posts 2-4 %>
+    <% secondary = @posts[1..3] %>
+    <% if secondary.any? %>
+      <div class="nf-grid">
+        <% secondary.each do |post| %>
+          <%= link_to post_path(post), class: "nf-card" do %>
+            <div class="nf-card-img">
+              <% if post.image_url.present? %>
+                <img src="<%= post.image_url %>" alt="" loading="lazy">
+              <% else %>
+                <div class="nf-img-placeholder" style="background: <%= post_type_color(post.post_type) %>22"></div>
+              <% end %>
+            </div>
+            <div class="nf-card-body">
+              <div class="nf-meta">
+                <span class="ptype-chip ptype-<%= post.post_type %>"><%= post.type_label %></span>
+                <% if post.published_at %><span class="nf-date"><%= post.published_at.strftime("%-d %b") %></span><% end %>
+              </div>
+              <h3 class="nf-card-title"><%= post.title %></h3>
+              <% if post.hype_check? && post.verdict.present? %>
+                <span class="nf-verdict"><%= icon("check-circle", size: 12) %> <%= post.verdict %></span>
+              <% end %>
+              <% if post.source_name.present? %>
+                <span class="nf-source nf-source-foot">
+                  <% if post.source_url.present? && (fav = source_favicon_url(post.source_url)) %>
+                    <img src="<%= fav %>" class="nf-favicon" alt="" loading="lazy">
+                  <% end %>
+                  <%= post.source_name %>
+                </span>
+              <% end %>
+            </div>
+          <% end %>
+        <% end %>
+      </div>
+    <% end %>
+
+    <%# Compact list — posts 5+ %>
+    <% rest = @posts[4..] %>
+    <% if rest&.any? %>
+      <div class="nf-divider"><span>More stories</span></div>
+      <div class="nf-list">
+        <% rest.each do |post| %>
+          <%= link_to post_path(post), class: "nf-row" do %>
+            <div class="nf-row-thumb">
+              <% if post.image_url.present? %>
+                <img src="<%= post.image_url %>" alt="" loading="lazy">
+              <% else %>
+                <div class="nf-img-placeholder" style="background: <%= post_type_color(post.post_type) %>22"></div>
+              <% end %>
+            </div>
+            <div class="nf-row-body">
+              <div class="nf-meta">
+                <span class="ptype-chip ptype-<%= post.post_type %>"><%= post.type_label %></span>
+                <% if post.source_name.present? %>
+                  <span class="nf-source">
+                    <% if post.source_url.present? && (fav = source_favicon_url(post.source_url)) %>
+                      <img src="<%= fav %>" class="nf-favicon" alt="" loading="lazy">
+                    <% end %>
+                    <%= post.source_name %>
+                  </span>
+                <% end %>
+                <% if post.published_at %><span class="nf-date"><%= post.published_at.strftime("%-d %b") %></span><% end %>
+              </div>
+              <h3 class="nf-row-title"><%= post.title %></h3>
+              <% if post.hype_check? && post.verdict.present? %>
+                <span class="nf-verdict"><%= icon("check-circle", size: 12) %> <%= post.verdict %></span>
+              <% end %>
+            </div>
+          <% end %>
+        <% end %>
+      </div>
+    <% end %>
+
   </div>
 <% else %>
   <p class="interpretation">No posts yet — check back soon.</p>

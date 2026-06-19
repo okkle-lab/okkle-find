@@ -3,8 +3,7 @@ class LeaderboardsController < ApplicationController
   def index
     @categories = Rubric::CATEGORIES.map do |name, config|
       ranked = ranked_tools(name, config[:fields].keys)
-      cat_model = Category.find_by(slug: config[:key])
-      { name:, key: config[:key], icon: cat_model&.icon, leader: ranked.first }
+      { name:, key: config[:key], icon: config[:icon], description: config[:description], leader: ranked.first }
     end
   end
 
@@ -14,9 +13,11 @@ class LeaderboardsController < ApplicationController
     return redirect_to(leaderboards_path) if entry.nil?
 
     @category_name, config = entry
-    @category_key = config[:key]
-    @fields = config[:fields].keys
-    @ranked = ranked_tools(@category_name, @fields)
+    @category_key  = config[:key]
+    @category_icon = config[:icon]
+    @category_desc = config[:description]
+    @fields        = config[:fields].keys
+    @ranked        = ranked_tools(@category_name, @fields)
   end
 
   private

@@ -1,21 +1,45 @@
 <% content_for :title, "#{@post.title} — AI Finder" %>
 
 <article class="post">
-  <%= link_to "← all posts", posts_path, class: "back-link" %>
-  <h1 class="post-detail-title"><%= @post.title %></h1>
-  <p class="post-meta">
-    <% if @post.published_at %><span class="post-date"><%= @post.published_at.strftime("%-d %b %Y") %></span><% end %>
-    <% if @post.source_name.present? %>
-      <span class="post-source-tag">
-        via
-        <% if @post.source_url.present? %>
-          <%= link_to @post.source_name, @post.source_url, target: "_blank", rel: "noopener" %>
-        <% else %>
-          <%= @post.source_name %>
-        <% end %>
-      </span>
+  <%= link_to "← News", posts_path, class: "back-link" %>
+
+  <% if @post.image_url.present? %>
+    <div class="post-hero">
+      <img src="<%= @post.image_url %>" alt="" loading="lazy">
+    </div>
+  <% end %>
+
+  <header class="post-head">
+    <div class="post-meta">
+      <span class="ptype-chip ptype-<%= @post.post_type %>"><%= @post.type_label %></span>
+      <% if @post.source_name.present? %>
+        <span class="nf-source">
+          <% if @post.source_url.present? && (fav = source_favicon_url(@post.source_url)) %>
+            <img src="<%= fav %>" class="nf-favicon" alt="" loading="lazy">
+          <% end %>
+          <% if @post.source_url.present? %>
+            <%= link_to @post.source_name, @post.source_url, target: "_blank", rel: "noopener" %>
+          <% else %>
+            <%= @post.source_name %>
+          <% end %>
+        </span>
+      <% end %>
+      <% if @post.published_at %><span class="post-date"><%= @post.published_at.strftime("%-d %b %Y") %></span><% end %>
+    </div>
+
+    <h1 class="post-detail-title"><%= @post.title %></h1>
+
+    <% if @post.hype_check? && @post.verdict.present? %>
+      <div class="post-verdict">
+        <%= icon("check-circle", size: 16) %>
+        <span>Verdict: <strong><%= @post.verdict %></strong></span>
+      </div>
     <% end %>
-  </p>
+
+    <% if @post.tool.present? %>
+      <%= link_to "See #{@post.tool.name} in our scores →", tool_path(@post.tool), class: "post-tool-btn" %>
+    <% end %>
+  </header>
 
   <div class="post-body">
     <% if @post.body.present? %>
@@ -25,5 +49,7 @@
     <% end %>
   </div>
 
-  <p class="post-cta"><%= link_to "Find a tool for this →", root_path %></p>
+  <footer class="post-foot">
+    <p class="post-cta"><%= link_to "Find a tool for this →", root_path %></p>
+  </footer>
 </article>

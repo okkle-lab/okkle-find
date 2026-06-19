@@ -1,0 +1,33 @@
+<% content_for :title, "News admin — AI Finder" %>
+<section class="page-head">
+  <h1 class="page-title">News posts</h1>
+  <div style="display:flex;gap:.75rem;align-items:center">
+    <%= button_to "Fetch from RSS", admin_fetch_news_path, method: :post, class: "visit-btn", style: "background:var(--accent-muted,#6d28d9)", data: { confirm: "This will pull from 8 RSS feeds and use Claude to filter. Continue?" } %>
+    <%= link_to "Add post", new_admin_post_path, class: "visit-btn" %>
+  </div>
+</section>
+
+<% if notice.present? %>
+  <p class="admin-notice"><%= notice %></p>
+<% end %>
+
+<table class="admin-table">
+  <thead>
+    <tr>
+      <th>Title</th>
+      <th>Type</th>
+      <th>Published</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <% @posts.each do |post| %>
+      <tr>
+        <td><%= post.title %></td>
+        <td><span class="ptype-chip ptype-<%= post.post_type %>"><%= post.type_label %></span></td>
+        <td><%= post.published_at ? post.published_at.strftime("%-d %b %Y") : "Draft" %></td>
+        <td><%= link_to "Edit", edit_admin_post_path(post) %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>

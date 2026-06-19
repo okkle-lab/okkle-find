@@ -2,32 +2,31 @@
 
 <section class="page-head">
   <p class="hero-eyebrow">Leaderboards</p>
-  <h1 class="page-title">Who's best, by task</h1>
-  <p class="page-sub">Every category, ranked from our cross-judged tests. Pick a task to see the full board.</p>
+  <h1 class="page-title">Best AI tool, by task</h1>
+  <p class="page-sub">Ten categories, each scored across our judged tests. Click any to see the full ranking.</p>
 </section>
 
 <div class="lb-grid">
   <% @categories.each do |cat| %>
     <%= link_to leaderboard_path(cat[:key]), class: "lb-card" do %>
-      <div class="lb-card-icon" style="--icon-tint: <%= tool_monogram_color(cat[:name]) %>">
-        <%= icon(cat[:icon].presence || "sparkles", size: 26) %>
-      </div>
-      <div class="lb-card-head">
+      <div class="lb-card-top">
+        <div class="lb-card-icon" style="--icon-tint: <%= tool_monogram_color(cat[:name]) %>">
+          <%= icon(cat[:icon].presence || "sparkles", size: 22) %>
+        </div>
         <span class="lb-card-name"><%= cat[:name] %></span>
+      </div>
+
+      <p class="lb-card-desc"><%= cat[:description] %></p>
+
+      <div class="lb-card-foot">
         <% if cat[:leader] %>
+          <span class="lb-rank-badge">#1</span>
+          <span class="lb-card-leader-name"><%= cat[:leader][0].name %></span>
           <%= colored_score(cat[:leader][1], css_class: "lb-card-score") %>
         <% else %>
-          <span class="score-none">—</span>
+          <span class="lb-card-empty">Scores rolling out</span>
         <% end %>
       </div>
-      <% if cat[:leader] %>
-        <p class="lb-card-leader">
-          <span class="lb-rank-badge">#1</span>
-          <%= cat[:leader][0].name %>
-        </p>
-      <% else %>
-        <p class="lb-card-leader lb-card-empty">Scores rolling out</p>
-      <% end %>
     <% end %>
   <% end %>
 </div>

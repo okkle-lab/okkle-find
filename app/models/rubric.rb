@@ -4,6 +4,8 @@ class Rubric
   CATEGORIES = {
     "Writing" => {
       key: "writing",
+      icon: "pencil",
+      description: "Drafting emails, posts and reports — how well it writes from a brief, edits your work, and how little prompting it needs.",
       fields: {
         write_edit_score: 0.50,
         summarisation_score: 0.30,
@@ -12,6 +14,8 @@ class Rubric
     },
     "Research" => {
       key: "research",
+      icon: "search",
+      description: "Finding and synthesising information — fact-checking accuracy, source quality, and how often it makes things up.",
       fields: {
         research_fact_checking_score: 0.35,
         source_quality_score: 0.25,
@@ -21,6 +25,8 @@ class Rubric
     },
     "Coding" => {
       key: "coding",
+      icon: "code",
+      description: "Writing, fixing and running code — accuracy on real tasks, debugging ability, and autonomous multi-file editing.",
       fields: {
         coding_speed_score: 0.25,
         coding_accuracy_score: 0.35,
@@ -30,6 +36,8 @@ class Rubric
     },
     "Accuracy & trustworthiness" => {
       key: "accuracy",
+      icon: "file-text",
+      description: "How reliably correct the answers are — hallucination rate, logical reasoning quality, and consistency across repeated runs.",
       fields: {
         hallucination_resistance_score: 0.30,
         source_quality_score: 0.20,
@@ -39,6 +47,8 @@ class Rubric
     },
     "Ease of use" => {
       key: "ease_of_use",
+      icon: "bolt",
+      description: "How much effort it takes to get a good result — interface quality, how simple your prompts need to be, and learning curve.",
       fields: {
         prompt_effort_score: 0.40,
         interface_score: 0.40,
@@ -47,6 +57,8 @@ class Rubric
     },
     "Image generation" => {
       key: "image",
+      icon: "photo",
+      description: "Creating images from text prompts — visual quality, how closely it follows your description, and text rendering inside images.",
       fields: {
         image_quality_score: 0.35,
         prompt_adherence_score: 0.25,
@@ -56,6 +68,8 @@ class Rubric
     },
     "Meetings" => {
       key: "meetings",
+      icon: "microphone",
+      description: "Recording, transcribing and summarising meetings — accuracy of transcripts, quality of summaries, and action-item extraction.",
       fields: {
         transcription_score: 0.35,
         meeting_summary_score: 0.35,
@@ -65,6 +79,8 @@ class Rubric
     },
     "Privacy & data safety" => {
       key: "privacy",
+      icon: "shield-lock",
+      description: "What happens to your data — how long it's retained, whether it's used for training, and what security certifications the provider holds.",
       fields: {
         data_retention_score: 0.30,
         training_on_user_data_score: 0.30,
@@ -74,6 +90,8 @@ class Rubric
     },
     "Enterprise" => {
       key: "enterprise",
+      icon: "building",
+      description: "Admin and deployment features — SSO, audit logs, role-based access, flexible hosting options, and SLA-backed support.",
       fields: {
         enterprise_controls_score: 0.35,
         security_certifications_score: 0.25,
@@ -83,6 +101,8 @@ class Rubric
     },
     "Translation" => {
       key: "translation",
+      icon: "language",
+      description: "Converting text between languages — how accurate the output is across language pairs and how fast results come back.",
       fields: {
         translation_accuracy_score: 0.70,
         translation_speed_score: 0.30

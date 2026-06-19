@@ -12,7 +12,7 @@
   <% @topics.each do |slug, topic| %>
     <%= link_to learn_topic_path(slug), class: "lesson lesson-link" do %>
       <div class="lesson-head">
-        <span class="lesson-ic"><%= icon(topic[:icon], size: 22) %></span>
+        <span class="lesson-ic" style="background: <%= tool_monogram_color(topic[:title]) %>18; color: <%= tool_monogram_color(topic[:title]) %>"><%= icon(topic[:icon], size: 20) %></span>
         <h3 class="lesson-title"><%= topic[:title] %></h3>
       </div>
       <p class="lesson-body"><%= topic[:summary] %></p>

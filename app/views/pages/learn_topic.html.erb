@@ -4,15 +4,28 @@
   <%= link_to "← all lessons", learn_path, class: "back-link" %>
 
   <header class="article-head">
-    <span class="article-ic" style="color: <%= tool_monogram_color(@topic[:title]) %>"><%= icon(@topic[:icon], size: 30) %></span>
-    <h1 class="page-title"><%= @topic[:title] %></h1>
-    <p class="page-sub"><%= @topic[:summary] %></p>
+    <span class="article-ic-wrap" style="background: <%= tool_monogram_color(@topic[:title]) %>18; color: <%= tool_monogram_color(@topic[:title]) %>"><%= icon(@topic[:icon], size: 26) %></span>
+    <div class="article-head-text">
+      <h1 class="page-title"><%= @topic[:title] %></h1>
+      <p class="article-summary"><%= @topic[:summary] %></p>
+    </div>
   </header>
 
-  <% @topic[:sections].each do |section| %>
-    <section class="article-section">
+  <% section_mods = %w[article-section--good article-section--caution article-section--tips] %>
+  <% @topic[:sections].each_with_index do |section, i| %>
+    <section class="article-section <%= section_mods[i] %>">
+      <span class="article-section-num">0<%= i + 1 %></span>
       <h2 class="article-h2"><%= section[:heading] %></h2>
-      <p class="article-body"><%= section[:body] %></p>
+      <% if section[:body] %>
+        <p class="article-body"><%= section[:body] %></p>
+      <% end %>
+      <% if section[:bullets]&.any? %>
+        <ul class="article-bullets">
+          <% section[:bullets].each do |bullet| %>
+            <li><%= bullet %></li>
+          <% end %>
+        </ul>
+      <% end %>
     </section>
   <% end %>
 
@@ -26,7 +39,7 @@
     </div>
   <% end %>
 
-  <section class="article-section">
+  <section class="article-section article-section--related">
     <h2 class="article-h2">Related articles</h2>
     <p class="article-related-empty">Hand-picked reading on this topic will appear here.</p>
   </section>

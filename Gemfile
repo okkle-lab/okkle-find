@@ -41,6 +41,9 @@ gem "bootsnap", require: false
 # CSV moves out of Ruby's default gems in 3.5; used by the catalogue importer.
 gem "csv"
 
+# RSS/Atom parser for the news aggregator (no longer a default gem in Ruby 3+).
+gem "rss"
+
 # Official Anthropic SDK — powers the LLM need-parser (NeedParser service).
 gem "anthropic", "~> 1.0"
 

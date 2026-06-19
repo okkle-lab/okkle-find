@@ -1,0 +1,6 @@
+<% content_for :title, "New post — Admin" %>
+<section class="page-head">
+  <h1 class="page-title">New post</h1>
+  <%= link_to "← all posts", admin_posts_path %>
+</section>
+<%= render "form", post: @post %>
