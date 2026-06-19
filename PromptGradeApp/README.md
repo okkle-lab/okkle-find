@@ -38,11 +38,13 @@ Default spreadsheets:
 
 - `Defaults/AI_model_variants.xlsx`
 - `Defaults/Model_Testing_Rubric.xlsx`
+- `Defaults/model_variants.csv`
 
 This folder is intentionally separate from `ModelEvalApp/Defaults/`, so the
 grading app can use a smaller, cheaper judge-model lineup without changing the
 model testing app. The app preselects the bundled grading model workbook and
-rubric workbook on launch.
+rubric workbook on launch. The bundled `model_variants.csv` is used only as
+metadata for the generated website upload CSV.
 
 Useful rubric columns:
 
@@ -71,15 +73,32 @@ Output:
 
 - `grades.xlsx` live Excel grading results, refreshed while the run is active
 - `prompt_output_grades.xlsx` with the source workbook plus `Grade Summary`,
-  `Model Scores`, `Grades`, and `Skipped Outputs`
+  `Model Scores`, `Results`, `Consensus`, `AI Scores`, `Grades`, and
+  `Skipped Outputs`
 - `grades.jsonl`
 - `grades.csv`
+- `db_upload/model_variants_db_upload.csv` when the website
+  `db/seeds/model_variants.csv` file is available
+- `db_upload/model_variant_score_audit.csv` explaining which test IDs fed each
+  website score column
 
 When run from Swift Package Manager, the app creates a timestamped output folder
 under `AI-Finder/outputs/prompt_grades/` unless another folder is selected. When
 run from the packaged `.app`, the default output folder is
 `~/Documents/Prompt Output Grader/outputs/prompt_grades/`.
 
-The `Model Scores` sheet is the second sheet in the generated workbook. It
-shows one row per tested model, per-grader average columns, and a final
-numerical `Model Score` that averages the grader averages.
+The `Consensus` sheet averages judge scores for each `Test ID` and model,
+excluding self-judging by default. The `Results` sheet then applies the
+per-test weights from `Scoring Guide`, applies category weights from the
+`Weights` sheet for the overall score, and ranks the tested models. Use
+`--include-self-judging` if you need to keep self-judge rows in those
+calculations.
+
+For website uploads, the generated `model_variants_db_upload.csv` preserves the
+existing seed metadata and writes rounded whole-number scores because
+`script/validate_catalogue.rb` requires model variant scores to be integers
+from 1 to 10. When the app can see this repository it passes
+`--update-website-seed`, so `db/seeds/model_variants.csv` is updated directly;
+then run `bin/rails db:seed` to apply those scores locally. When the repo is
+not available, the app still writes the upload CSV under `db_upload/` using the
+bundled seed metadata.

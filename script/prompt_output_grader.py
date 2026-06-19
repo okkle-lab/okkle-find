@@ -14,6 +14,7 @@ import threading
 import time
 import traceback
 from dataclasses import dataclass
+from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -56,7 +57,22 @@ from model_eval_runner import (
 
 DEFAULT_MAX_TOKENS = 800
 RESULT_SHEET_NAMES = {"Run Summary", "Run Results", "Skipped Tests"}
-GRADE_SHEET_NAMES = {"Grade Summary", "Model Scores", "Grades", "Skipped Outputs"}
+GRADE_SHEET_NAMES = {
+    "Grade Summary",
+    "Model Scores",
+    "AI Scores",
+    "Consensus",
+    "Results",
+    "Grades",
+    "Skipped Outputs",
+}
+PREFERRED_RUBRIC_SHEET_NAMES = (
+    "Scoring Guide",
+    "Rubric",
+    "Rubric v3",
+    "Model Testing Rubric",
+)
+PREFERRED_WEIGHT_SHEET_NAMES = ("Weights", "Category Weights")
 
 RESULT_HEADER_ALIASES = {
     "source_run_id": ["run_id", "Run ID", "Source Run ID"],
@@ -146,6 +162,11 @@ RUBRIC_HEADER_ALIASES = {
     "enabled": ["Enabled", "Run", "Include"],
 }
 
+CATEGORY_WEIGHT_HEADER_ALIASES = {
+    "category": ["Category", "Score Category"],
+    "weight": ["Category Weight", "Weight", "Overall Weight"],
+}
+
 GRADE_COLUMNS = [
     "grading_run_id",
     "timestamp",
@@ -183,6 +204,49 @@ GRADE_COLUMNS = [
     "usage",
     "error",
 ]
+
+WEBSITE_DIRECT_FIELD_TEST_IDS = {
+    "write_edit_score": ["W1"],
+    "score_write_edit": ["W1"],
+    "summarisation_score": ["W2"],
+    "score_summarization": ["W2"],
+    "research_fact_checking_score": ["R1"],
+    "score_research_fact_check": ["R1"],
+    "source_quality_score": ["R2", "A&2"],
+    "score_source_quality": ["R2", "A&2"],
+    "hallucination_resistance_score": ["R3", "A&1"],
+    "score_hallucination_resistance": ["R3", "A&1"],
+    "deep_research_score": ["R4"],
+    "coding_speed_score": ["C1"],
+    "score_coding_speed": ["C1"],
+    "coding_accuracy_score": ["C2"],
+    "debugging_score": ["C3"],
+    "agentic_coding_score": ["C4"],
+    "consistency_score": ["A&3"],
+    "score_consistency": ["A&3"],
+    "reasoning_score": ["A&4"],
+    "score_logic": ["A&4"],
+    "image_quality_score": ["IG1"],
+    "prompt_adherence_score": ["IG2"],
+    "text_rendering_score": ["IG3"],
+    "image_editing_score": ["IG4"],
+    "transcription_score": ["M1"],
+    "score_meetings_transcription": ["M1"],
+    "meeting_summary_score": ["M2"],
+    "follow_up_score": ["M3"],
+    "translation_accuracy_score": ["T1"],
+    "score_translation_accuracy": ["T1"],
+    "translation_speed_score": ["T2"],
+    "score_translation_speed": ["T2"],
+}
+
+WEBSITE_COMPOSITE_FIELD_TEST_IDS = {
+    "score_text_generation": ["W1", "W2", "W3"],
+    "score_email_writing": ["W1"],
+    "score_coding": ["C1", "C2", "C3", "C4"],
+    "score_image_generation": ["IG1", "IG2", "IG3", "IG4"],
+    "score_accuracy": ["A&1", "A&2", "A&3", "A&4"],
+}
 
 
 @dataclass(frozen=True)
@@ -241,6 +305,8 @@ class RubricContext:
     score_min: float
     score_max: float
     weight: float
+    category: str
+    criterion: str
     prompt: str
     input_material: str
     matched: bool
@@ -283,6 +349,74 @@ def parse_weight_with_fallback(value: Any, fallback: float) -> float:
 
 def normalize_key(value: str) -> str:
     return clean_text(value).strip().lower()
+
+
+def canonical_identity(value: Any) -> set[str]:
+    text = clean_text(value).lower()
+    if not text:
+        return set()
+
+    identities = {re.sub(r"[^a-z0-9]+", "", text)}
+    if "/" in text:
+        identities.add(re.sub(r"[^a-z0-9]+", "", text.rsplit("/", 1)[-1]))
+    return {identity for identity in identities if identity}
+
+
+def grader_identities(grader: dict[str, Any]) -> set[str]:
+    identities: set[str] = set()
+    for field in ("key", "name", "model"):
+        identities.update(canonical_identity(grader.get(field)))
+    return identities
+
+
+def output_identities(output: TestOutput) -> set[str]:
+    identities: set[str] = set()
+    for value in (
+        output.source_model_key,
+        output.source_model_name,
+        output.source_provider_model,
+    ):
+        identities.update(canonical_identity(value))
+    return identities
+
+
+def row_grader_identities(row: dict[str, Any]) -> set[str]:
+    identities: set[str] = set()
+    for field in ("grader_model_key", "grader_model_name", "grader_provider_model"):
+        identities.update(canonical_identity(row.get(field)))
+    return identities
+
+
+def row_source_identities(row: dict[str, Any]) -> set[str]:
+    identities: set[str] = set()
+    for field in ("source_model_key", "source_model_name", "source_provider_model"):
+        identities.update(canonical_identity(row.get(field)))
+    return identities
+
+
+def is_self_judge(grader: dict[str, Any], output: TestOutput) -> bool:
+    return bool(grader_identities(grader) & output_identities(output))
+
+
+def is_self_judge_row(row: dict[str, Any]) -> bool:
+    return bool(row_grader_identities(row) & row_source_identities(row))
+
+
+def category_weight_for(category: str, category_weights: dict[str, float]) -> float:
+    if not category:
+        return 1.0
+    if category in category_weights:
+        return category_weights[category]
+    normalized = normalize_key(category)
+    for weighted_category, weight in category_weights.items():
+        if normalize_key(weighted_category) == normalized:
+            return weight
+    return 1.0
+
+
+def round_half_up(value: float) -> int:
+    rounded = int(Decimal(str(value)).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+    return min(10, max(1, rounded))
 
 
 def extract_json_object(text: str) -> dict[str, Any]:
@@ -328,6 +462,68 @@ def find_rubric_header_row(ws: Any) -> tuple[int, dict[str, int]]:
             "The rubric workbook needs either a Rubric/Scoring Guidance column "
             "or a score-band layout with a What it measures column."
         ) from exc
+
+
+def rubric_sheet_and_header(
+    wb: Any,
+    requested_name: str | None,
+) -> tuple[Any, int, dict[str, int]]:
+    if requested_name:
+        ws = selected_sheet(wb, requested_name, wb.sheetnames[0])
+        header_row, columns = find_rubric_header_row(ws)
+        return ws, header_row, columns
+
+    candidates: list[Any] = []
+    for sheet_name in PREFERRED_RUBRIC_SHEET_NAMES:
+        if sheet_name in wb.sheetnames:
+            candidates.append(wb[sheet_name])
+    candidates.extend(ws for ws in wb.worksheets if ws not in candidates)
+
+    for ws in candidates:
+        if ws.title in RESULT_SHEET_NAMES or ws.title in GRADE_SHEET_NAMES:
+            continue
+        try:
+            header_row, columns = find_rubric_header_row(ws)
+            return ws, header_row, columns
+        except ValueError:
+            continue
+
+    raise ValueError(
+        "The rubric workbook needs a sheet with a header row containing "
+        "Test ID plus either Rubric/Scoring Guidance or What it measures."
+    )
+
+
+def read_category_weights(workbook_path: Path) -> dict[str, float]:
+    wb = load_workbook(workbook_path, data_only=True)
+    candidates: list[Any] = []
+    for sheet_name in PREFERRED_WEIGHT_SHEET_NAMES:
+        if sheet_name in wb.sheetnames:
+            candidates.append(wb[sheet_name])
+    candidates.extend(ws for ws in wb.worksheets if ws not in candidates)
+
+    for ws in candidates:
+        try:
+            header_row, columns = find_header_row(
+                ws,
+                CATEGORY_WEIGHT_HEADER_ALIASES,
+                {"category", "weight"},
+            )
+        except ValueError:
+            continue
+
+        weights: dict[str, float] = {}
+        for row_number in range(header_row + 1, ws.max_row + 1):
+            category = clean_text(cell_value(ws, row_number, columns, "category"))
+            if not category:
+                continue
+            if normalize_key(category) in {"total", "overall", "grand total"}:
+                continue
+            weights[category] = parse_weight(cell_value(ws, row_number, columns, "weight"))
+        if weights:
+            return weights
+
+    return {}
 
 
 def composed_rubric_text(ws: Any, row_number: int, columns: dict[str, int]) -> str:
@@ -495,13 +691,13 @@ def read_outputs(
 
 def read_rubric(workbook_path: Path, sheet_name: str | None) -> list[RubricEntry]:
     wb = load_workbook(workbook_path, data_only=True)
-    ws = selected_sheet(wb, sheet_name, wb.sheetnames[0])
     try:
-        header_row, columns = find_rubric_header_row(ws)
+        ws, header_row, columns = rubric_sheet_and_header(wb, sheet_name)
     except ValueError as exc:
         raise ValueError(
-            "The rubric workbook needs a header row with a Rubric, Scoring Rubric, "
-            "Scoring Guidance, Grading Instructions, or What it measures column."
+            "The rubric workbook needs a sheet with a header row containing "
+            "a Rubric, Scoring Rubric, Scoring Guidance, Grading Instructions, "
+            "or What it measures column."
         ) from exc
 
     entries: list[RubricEntry] = []
@@ -579,6 +775,8 @@ def rubric_context(output: TestOutput, entries: list[RubricEntry]) -> RubricCont
             score_min=1.0,
             score_max=10.0,
             weight=output.weight,
+            category=output.category,
+            criterion=output.criterion,
             prompt=output.prompt,
             input_material=output.input_material,
             matched=False,
@@ -606,6 +804,8 @@ def rubric_context(output: TestOutput, entries: list[RubricEntry]) -> RubricCont
         score_min=first.score_min,
         score_max=first.score_max,
         weight=first.weight if first.weight != 1.0 else output.weight,
+        category=first.category or output.category,
+        criterion=first.criterion or output.criterion,
         prompt=prompt,
         input_material=input_material,
         matched=True,
@@ -625,6 +825,7 @@ def planned_pairs(
     outputs: list[TestOutput],
     rubric_entries: list[RubricEntry],
     allow_missing_rubric: bool,
+    include_self_judging: bool,
 ) -> tuple[list[tuple[dict[str, Any], TestOutput]], list[SkippedOutput]]:
     pairs: list[tuple[dict[str, Any], TestOutput]] = []
     skipped: list[SkippedOutput] = []
@@ -641,6 +842,8 @@ def planned_pairs(
             )
             continue
         for model in models:
+            if not include_self_judging and is_self_judge(model, output):
+                continue
             pairs.append((model, output))
     return pairs, skipped
 
@@ -769,8 +972,8 @@ def result_row(
         "source_provider": output.source_provider,
         "source_provider_model": output.source_provider_model,
         "test_id": output.test_id,
-        "category": output.category,
-        "criterion": output.criterion,
+        "category": context.category,
+        "criterion": context.criterion,
         "weight": context.weight,
         "grader_model_key": grader.get("key", ""),
         "grader_model_name": grader.get("name", grader.get("key", "")),
@@ -827,6 +1030,17 @@ def make_output_dir(base: Path | None) -> Path:
     output_dir = Path("outputs") / "prompt_grades" / stamp
     output_dir.mkdir(parents=True, exist_ok=True)
     return output_dir
+
+
+def default_website_seed_csv() -> Path | None:
+    candidates = [
+        Path.cwd() / "db/seeds/model_variants.csv",
+        Path(__file__).resolve().parents[1] / "db/seeds/model_variants.csv",
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    return None
 
 
 def write_grades_csv(path: Path, rows: list[dict[str, Any]]) -> None:
@@ -982,15 +1196,236 @@ def summarize_model_scores(rows: list[dict[str, Any]]) -> tuple[list[str], list[
     return grader_keys, summaries
 
 
+def source_model_infos(
+    outputs: Iterable[TestOutput],
+    rows: Iterable[dict[str, Any]],
+) -> list[dict[str, str]]:
+    infos: dict[str, dict[str, str]] = {}
+
+    def add_info(
+        key: Any,
+        name: Any = "",
+        provider: Any = "",
+        provider_model: Any = "",
+    ) -> None:
+        model_key = clean_text(key)
+        if not model_key:
+            return
+        existing = infos.setdefault(
+            model_key,
+            {
+                "key": model_key,
+                "name": clean_text(name) or model_key,
+                "provider": clean_text(provider),
+                "provider_model": clean_text(provider_model),
+            },
+        )
+        if clean_text(name):
+            existing["name"] = clean_text(name)
+        if clean_text(provider):
+            existing["provider"] = clean_text(provider)
+        if clean_text(provider_model):
+            existing["provider_model"] = clean_text(provider_model)
+
+    for output in outputs:
+        add_info(
+            output.source_model_key,
+            output.source_model_name,
+            output.source_provider,
+            output.source_provider_model,
+        )
+    for row in rows:
+        add_info(
+            row.get("source_model_key"),
+            row.get("source_model_name"),
+            row.get("source_provider"),
+            row.get("source_provider_model"),
+        )
+    return list(infos.values())
+
+
+def rubric_test_infos(rubric_entries: list[RubricEntry], rows: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
+    tests: dict[str, dict[str, Any]] = {}
+    for entry in rubric_entries:
+        test_id = clean_text(entry.test_id)
+        if not test_id or test_id in tests:
+            continue
+        tests[test_id] = {
+            "test_id": test_id,
+            "category": entry.category,
+            "criterion": entry.criterion,
+            "weight": entry.weight,
+        }
+
+    for row in rows:
+        test_id = clean_text(row.get("test_id"))
+        if not test_id or test_id in tests:
+            continue
+        try:
+            weight = float(row.get("weight") or 1.0)
+        except (TypeError, ValueError):
+            weight = 1.0
+        tests[test_id] = {
+            "test_id": test_id,
+            "category": clean_text(row.get("category")),
+            "criterion": clean_text(row.get("criterion")),
+            "weight": weight,
+        }
+    return list(tests.values())
+
+
+def category_order(
+    rubric_entries: list[RubricEntry],
+    category_weights: dict[str, float],
+    rows: Iterable[dict[str, Any]],
+) -> list[str]:
+    ordered: list[str] = []
+
+    def add(category: Any) -> None:
+        value = clean_text(category)
+        if value and value not in ordered:
+            ordered.append(value)
+
+    for category in category_weights:
+        add(category)
+    for entry in rubric_entries:
+        add(entry.category)
+    if not ordered:
+        for row in rows:
+            add(row.get("category"))
+    return ordered
+
+
+def consensus_scores(
+    rows: Iterable[dict[str, Any]],
+    include_self_judging: bool = False,
+) -> dict[tuple[str, str], float]:
+    grouped: dict[tuple[str, str], list[float]] = {}
+    for row in rows:
+        if not include_self_judging and is_self_judge_row(row):
+            continue
+        score = numeric_score(row)
+        if score is None:
+            continue
+        model_key = clean_text(row.get("source_model_key"))
+        test_id = clean_text(row.get("test_id"))
+        if not model_key or not test_id:
+            continue
+        grouped.setdefault((model_key, test_id), []).append(score)
+    return {key: sum(scores) / len(scores) for key, scores in grouped.items() if scores}
+
+
+def weighted_average_values(values: Iterable[tuple[float | None, float]]) -> float | None:
+    pairs = [
+        (score, weight)
+        for score, weight in values
+        if score is not None and weight not in (None, 0)
+    ]
+    if not pairs:
+        return None
+    weight_total = sum(weight for _score, weight in pairs)
+    if not weight_total:
+        return None
+    return sum(score * weight for score, weight in pairs) / weight_total
+
+
+def weighted_test_average(
+    model_key: str,
+    tests: Iterable[dict[str, Any]],
+    consensus: dict[tuple[str, str], float],
+) -> float | None:
+    return weighted_average_values(
+        (
+            consensus.get((model_key, clean_text(test.get("test_id")))),
+            float(test.get("weight") or 1.0),
+        )
+        for test in tests
+    )
+
+
+def weighted_results(
+    model_infos: list[dict[str, str]],
+    test_infos: list[dict[str, Any]],
+    categories: list[str],
+    category_weights: dict[str, float],
+    consensus: dict[tuple[str, str], float],
+) -> list[dict[str, Any]]:
+    results: list[dict[str, Any]] = []
+    tests_by_category = {
+        category: [
+            test
+            for test in test_infos
+            if normalize_key(clean_text(test.get("category"))) == normalize_key(category)
+        ]
+        for category in categories
+    }
+
+    for model in model_infos:
+        model_key = model["key"]
+        category_scores = {
+            category: weighted_test_average(model_key, tests, consensus)
+            for category, tests in tests_by_category.items()
+        }
+        overall = weighted_average_values(
+            (
+                score,
+                category_weight_for(category, category_weights),
+            )
+            for category, score in category_scores.items()
+        )
+        results.append(
+            {
+                "model_key": model_key,
+                "model_name": model["name"],
+                "category_scores": category_scores,
+                "overall": overall,
+                "rank": "",
+            }
+        )
+
+    for result in results:
+        overall = result["overall"]
+        if overall is None:
+            continue
+        result["rank"] = 1 + sum(
+            1
+            for other in results
+            if other["overall"] is not None and other["overall"] > overall
+        )
+    return results
+
+
+def rounded_score(value: float | None) -> float | str:
+    return round(value, 4) if value is not None else ""
+
+
+def text_preview(value: Any, limit: int = 500) -> str:
+    text = clean_text(value)
+    if len(text) <= limit:
+        return text
+    return text[:limit].rstrip() + "..."
+
+
 def populate_grade_sheets(
     wb: Any,
     rows: list[dict[str, Any]],
     skipped: list[SkippedOutput],
+    rubric_entries: list[RubricEntry] | None = None,
+    category_weights: dict[str, float] | None = None,
+    outputs: list[TestOutput] | None = None,
+    include_self_judging: bool = False,
 ) -> None:
+    rubric_entries = rubric_entries or []
+    category_weights = category_weights or {}
+    outputs = outputs or []
+
     summary_ws = wb.create_sheet("Grade Summary", 0)
     model_scores_ws = wb.create_sheet("Model Scores", 1)
-    grades_ws = wb.create_sheet("Grades", 2)
-    skipped_ws = wb.create_sheet("Skipped Outputs", 3)
+    results_ws = wb.create_sheet("Results", 2)
+    consensus_ws = wb.create_sheet("Consensus", 3)
+    ai_scores_ws = wb.create_sheet("AI Scores", 4)
+    grades_ws = wb.create_sheet("Grades", 5)
+    skipped_ws = wb.create_sheet("Skipped Outputs", 6)
 
     summary_ws.append(
         [
@@ -1058,6 +1493,96 @@ def populate_grade_sheets(
             ]
         )
 
+    model_infos = source_model_infos(outputs, rows)
+    test_infos = rubric_test_infos(rubric_entries, rows)
+    categories = category_order(rubric_entries, category_weights, rows)
+    consensus = consensus_scores(rows, include_self_judging=include_self_judging)
+    result_rows = weighted_results(
+        model_infos=model_infos,
+        test_infos=test_infos,
+        categories=categories,
+        category_weights=category_weights,
+        consensus=consensus,
+    )
+
+    results_ws.append(
+        [
+            "Model Key",
+            "Model",
+            *categories,
+            "Overall",
+            "Rank",
+        ]
+    )
+    for result in sorted(
+        result_rows,
+        key=lambda row: (
+            row["rank"] if row["rank"] != "" else 10_000,
+            row["model_name"],
+        ),
+    ):
+        results_ws.append(
+            [
+                result["model_key"],
+                result["model_name"],
+                *[
+                    rounded_score(result["category_scores"].get(category))
+                    for category in categories
+                ],
+                rounded_score(result["overall"]),
+                result["rank"],
+            ]
+        )
+
+    consensus_ws.append(
+        [
+            "Test ID",
+            "Category",
+            "Criterion",
+            "Weight",
+            *[model["name"] for model in model_infos],
+        ]
+    )
+    for test in test_infos:
+        consensus_ws.append(
+            [
+                test["test_id"],
+                test["category"],
+                test["criterion"],
+                test["weight"],
+                *[
+                    rounded_score(consensus.get((model["key"], test["test_id"])))
+                    for model in model_infos
+                ],
+            ]
+        )
+
+    ai_scores_ws.append(
+        [
+            "Test ID",
+            "Model Evaluated",
+            "Judge (AI)",
+            "Output (auto)",
+            "Score (1-10)",
+            "Self-judge?",
+            "Rationale",
+            "Date",
+        ]
+    )
+    for row in rows:
+        ai_scores_ws.append(
+            [
+                row.get("test_id", ""),
+                row.get("source_model_name") or row.get("source_model_key", ""),
+                row.get("grader_model_name") or row.get("grader_model_key", ""),
+                text_preview(row.get("source_response")),
+                row.get("score", ""),
+                "yes" if is_self_judge_row(row) else "",
+                row.get("reasoning", ""),
+                clean_text(row.get("timestamp"))[:10],
+            ]
+        )
+
     grades_ws.append(GRADE_COLUMNS)
     for row in rows:
         grades_ws.append(
@@ -1078,7 +1603,15 @@ def populate_grade_sheets(
             ]
         )
 
-    for ws in [summary_ws, model_scores_ws, grades_ws, skipped_ws]:
+    for ws in [
+        summary_ws,
+        model_scores_ws,
+        results_ws,
+        consensus_ws,
+        ai_scores_ws,
+        grades_ws,
+        skipped_ws,
+    ]:
         style_header(ws)
         for row in ws.iter_rows():
             for cell in row:
@@ -1102,6 +1635,30 @@ def populate_grade_sheets(
             9: 10,
             **{index: 18 for index in range(10, 10 + len(grader_keys))},
         },
+    )
+    set_widths(
+        results_ws,
+        {
+            1: 18,
+            2: 28,
+            **{index: 18 for index in range(3, 3 + len(categories))},
+            3 + len(categories): 12,
+            4 + len(categories): 10,
+        },
+    )
+    set_widths(
+        consensus_ws,
+        {
+            1: 12,
+            2: 24,
+            3: 28,
+            4: 10,
+            **{index: 18 for index in range(5, 5 + len(model_infos))},
+        },
+    )
+    set_widths(
+        ai_scores_ws,
+        {1: 12, 2: 28, 3: 28, 4: 80, 5: 12, 6: 12, 7: 48, 8: 14},
     )
     set_widths(
         grades_ws,
@@ -1150,11 +1707,23 @@ def write_live_grades_workbook(
     output_path: Path,
     rows: list[dict[str, Any]],
     skipped: list[SkippedOutput],
+    rubric_entries: list[RubricEntry],
+    category_weights: dict[str, float],
+    outputs: list[TestOutput],
+    include_self_judging: bool,
 ) -> None:
     wb = Workbook()
     default_sheet = wb.active
     wb.remove(default_sheet)
-    populate_grade_sheets(wb, rows, skipped)
+    populate_grade_sheets(
+        wb,
+        rows,
+        skipped,
+        rubric_entries=rubric_entries,
+        category_weights=category_weights,
+        outputs=outputs,
+        include_self_judging=include_self_judging,
+    )
     save_workbook_atomic(wb, output_path)
 
 
@@ -1163,13 +1732,161 @@ def write_augmented_grades_workbook(
     output_path: Path,
     rows: list[dict[str, Any]],
     skipped: list[SkippedOutput],
+    rubric_entries: list[RubricEntry],
+    category_weights: dict[str, float],
+    outputs: list[TestOutput],
+    include_self_judging: bool,
 ) -> None:
     wb = load_workbook(source_workbook)
     for sheet_name in GRADE_SHEET_NAMES:
         if sheet_name in wb.sheetnames:
             del wb[sheet_name]
-    populate_grade_sheets(wb, rows, skipped)
+    populate_grade_sheets(
+        wb,
+        rows,
+        skipped,
+        rubric_entries=rubric_entries,
+        category_weights=category_weights,
+        outputs=outputs,
+        include_self_judging=include_self_judging,
+    )
     save_workbook_atomic(wb, output_path)
+
+
+def read_csv_dicts(path: Path) -> tuple[list[str], list[dict[str, str]]]:
+    with path.open(newline="", encoding="utf-8-sig") as handle:
+        reader = csv.DictReader(handle)
+        return list(reader.fieldnames or []), [dict(row) for row in reader]
+
+
+def write_csv_dicts(path: Path, headers: list[str], rows: list[dict[str, Any]]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=headers, extrasaction="ignore")
+        writer.writeheader()
+        for row in rows:
+            writer.writerow({header: row.get(header, "") for header in headers})
+
+
+def normalized_name(value: Any) -> str:
+    return re.sub(r"[^a-z0-9]+", "", clean_text(value).lower())
+
+
+def website_field_tests(headers: list[str]) -> dict[str, list[str]]:
+    mapping: dict[str, list[str]] = {}
+    for source in (WEBSITE_DIRECT_FIELD_TEST_IDS, WEBSITE_COMPOSITE_FIELD_TEST_IDS):
+        for field, test_ids in source.items():
+            if field in headers:
+                mapping[field] = list(test_ids)
+    return mapping
+
+
+def weighted_consensus_for_tests(
+    model_key: str,
+    test_ids: list[str],
+    test_info_by_id: dict[str, dict[str, Any]],
+    consensus: dict[tuple[str, str], float],
+) -> tuple[float | None, list[str]]:
+    values: list[tuple[float | None, float]] = []
+    used_tests: list[str] = []
+    for test_id in test_ids:
+        score = consensus.get((model_key, test_id))
+        if score is None:
+            continue
+        weight = float(test_info_by_id.get(test_id, {}).get("weight") or 1.0)
+        values.append((score, weight))
+        used_tests.append(test_id)
+    return weighted_average_values(values), used_tests
+
+
+def write_website_upload_files(
+    seed_csv_path: Path,
+    upload_csv_path: Path,
+    audit_csv_path: Path,
+    rows: list[dict[str, Any]],
+    rubric_entries: list[RubricEntry],
+    outputs: list[TestOutput],
+    include_self_judging: bool,
+) -> tuple[int, int]:
+    headers, seed_rows = read_csv_dicts(seed_csv_path)
+    output_rows = [dict(row) for row in seed_rows]
+    model_infos = source_model_infos(outputs, rows)
+    test_infos = rubric_test_infos(rubric_entries, rows)
+    test_info_by_id = {clean_text(test["test_id"]): test for test in test_infos}
+    consensus = consensus_scores(rows, include_self_judging=include_self_judging)
+    field_tests = website_field_tests(headers)
+
+    sources_by_key = {model["key"]: model for model in model_infos}
+    sources_by_name: dict[str, list[dict[str, str]]] = {}
+    for model in model_infos:
+        sources_by_name.setdefault(normalized_name(model["name"]), []).append(model)
+
+    matched = 0
+    updated = 0
+    audit_rows: list[dict[str, Any]] = []
+
+    for seed_row in output_rows:
+        model_id = clean_text(seed_row.get("model_id_string"))
+        source = sources_by_key.get(model_id)
+        if not source:
+            name_matches = sources_by_name.get(normalized_name(seed_row.get("name")), [])
+            if len(name_matches) == 1:
+                source = name_matches[0]
+                if not model_id:
+                    seed_row["model_id_string"] = source["key"]
+        if not source:
+            continue
+
+        matched += 1
+        row_updated = False
+        for field, test_ids in field_tests.items():
+            value, used_tests = weighted_consensus_for_tests(
+                source["key"],
+                test_ids,
+                test_info_by_id,
+                consensus,
+            )
+            if value is None:
+                continue
+            previous_value = seed_row.get(field, "")
+            db_value = str(round_half_up(value))
+            seed_row[field] = db_value
+            row_updated = True
+            audit_rows.append(
+                {
+                    "source_model_key": source["key"],
+                    "source_model_name": source["name"],
+                    "tool_name": seed_row.get("tool_name", ""),
+                    "variant_name": seed_row.get("name", ""),
+                    "db_field": field,
+                    "mapped_test_ids": ", ".join(test_ids),
+                    "used_test_ids": ", ".join(used_tests),
+                    "raw_weighted_average": round(value, 4),
+                    "db_value": db_value,
+                    "previous_value": previous_value,
+                }
+            )
+        if row_updated:
+            updated += 1
+
+    write_csv_dicts(upload_csv_path, headers, output_rows)
+    write_csv_dicts(
+        audit_csv_path,
+        [
+            "source_model_key",
+            "source_model_name",
+            "tool_name",
+            "variant_name",
+            "db_field",
+            "mapped_test_ids",
+            "used_test_ids",
+            "raw_weighted_average",
+            "db_value",
+            "previous_value",
+        ],
+        audit_rows,
+    )
+    return matched, updated
 
 
 def selected_output_keys(outputs: Iterable[TestOutput]) -> dict[str, int]:
@@ -1194,9 +1911,11 @@ def print_plan(
     outputs: list[TestOutput],
     skipped: list[SkippedOutput],
     rubric_entries: list[RubricEntry],
+    category_weights: dict[str, float],
     pairs: list[tuple[dict[str, Any], TestOutput]],
     parallel_products: bool,
     requested_workers: int,
+    include_self_judging: bool,
 ) -> None:
     print(f"Grading models enabled: {len(models)}")
     for model in models:
@@ -1214,6 +1933,18 @@ def print_plan(
         print(f"  - {source}: {count}")
 
     print(f"Rubric rows: {len(rubric_entries)}")
+    print(f"Category weights: {len(category_weights)}")
+    for category, weight in category_weights.items():
+        print(f"  - {category}: {weight:g}")
+    if not include_self_judging:
+        planned_without_self = len(pairs)
+        planned_with_self = 0
+        for output in outputs:
+            if not rubric_context(output, rubric_entries).matched:
+                continue
+            planned_with_self += len(models)
+        skipped_self = planned_with_self - planned_without_self
+        print(f"Self-judging calls excluded: {max(0, skipped_self)}")
     missing_rubric = [
         output for output in outputs if not rubric_context(output, rubric_entries).matched
     ]
@@ -1285,6 +2016,30 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         help="Grade rows without a matching rubric using generic guidance instead of skipping them.",
     )
     parser.add_argument(
+        "--include-self-judging",
+        action="store_true",
+        help="Allow a grader model to score its own output. Defaults to excluding self-judging.",
+    )
+    parser.add_argument(
+        "--website-seed-csv",
+        help=(
+            "Existing website db/seeds/model_variants.csv to use as metadata. "
+            "Defaults to db/seeds/model_variants.csv when the script can find it."
+        ),
+    )
+    parser.add_argument(
+        "--website-upload-csv",
+        help=(
+            "Where to write the website-ready model_variants CSV. Defaults to "
+            "<output-dir>/db_upload/model_variants_db_upload.csv when a seed CSV is available."
+        ),
+    )
+    parser.add_argument(
+        "--update-website-seed",
+        action="store_true",
+        help="Overwrite --website-seed-csv with the generated website upload CSV after grading.",
+    )
+    parser.add_argument(
         "--rate-limit-skip-after",
         type=int,
         default=3,
@@ -1322,6 +2077,12 @@ def main(argv: list[str]) -> int:
     models_workbook = Path(args.models_workbook).expanduser()
     rubric_workbook = Path(args.rubric_workbook).expanduser()
     requested_output_dir = Path(args.output_dir).expanduser() if args.output_dir else None
+    requested_website_seed_csv = (
+        Path(args.website_seed_csv).expanduser() if args.website_seed_csv else None
+    )
+    requested_website_upload_csv = (
+        Path(args.website_upload_csv).expanduser() if args.website_upload_csv else None
+    )
 
     config = read_model_workbook(models_workbook, default_config())
     config.setdefault("request", {})["max_tokens"] = args.max_tokens
@@ -1339,11 +2100,13 @@ def main(argv: list[str]) -> int:
         limit=args.limit,
     )
     rubric_entries = read_rubric(rubric_workbook, args.rubric_sheet)
+    category_weights = read_category_weights(rubric_workbook)
     pairs, rubric_skipped = planned_pairs(
         models=models,
         outputs=outputs,
         rubric_entries=rubric_entries,
         allow_missing_rubric=args.allow_missing_rubric,
+        include_self_judging=args.include_self_judging,
     )
     skipped.extend(rubric_skipped)
 
@@ -1353,9 +2116,11 @@ def main(argv: list[str]) -> int:
         outputs=outputs,
         skipped=skipped,
         rubric_entries=rubric_entries,
+        category_weights=category_weights,
         pairs=pairs,
         parallel_products=args.parallel_products,
         requested_workers=args.product_workers,
+        include_self_judging=args.include_self_judging,
     )
 
     if args.dry_run:
@@ -1400,7 +2165,15 @@ def main(argv: list[str]) -> int:
         )
 
     if args.excel_every:
-        write_live_grades_workbook(live_xlsx_path, ordered_rows(), skipped)
+        write_live_grades_workbook(
+            live_xlsx_path,
+            ordered_rows(),
+            skipped,
+            rubric_entries,
+            category_weights,
+            outputs,
+            args.include_self_judging,
+        )
 
     total = len(pairs)
     done_count = len(completed)
@@ -1418,7 +2191,15 @@ def main(argv: list[str]) -> int:
             append_jsonl(jsonl_path, row)
             all_rows.append(row)
             if args.excel_every and len(all_rows) % args.excel_every == 0:
-                write_live_grades_workbook(live_xlsx_path, ordered_rows(), skipped)
+                write_live_grades_workbook(
+                    live_xlsx_path,
+                    ordered_rows(),
+                    skipped,
+                    rubric_entries,
+                    category_weights,
+                    outputs,
+                    args.include_self_judging,
+                )
 
     def run_pair(grader: dict[str, Any], output: TestOutput) -> dict[str, Any]:
         context = rubric_context(output, rubric_entries)
@@ -1522,14 +2303,52 @@ def main(argv: list[str]) -> int:
 
     final_rows = ordered_rows()
     if args.excel_every:
-        write_live_grades_workbook(live_xlsx_path, final_rows, skipped)
+        write_live_grades_workbook(
+            live_xlsx_path,
+            final_rows,
+            skipped,
+            rubric_entries,
+            category_weights,
+            outputs,
+            args.include_self_judging,
+        )
     write_grades_csv(output_dir / "grades.csv", final_rows)
     write_augmented_grades_workbook(
         source_workbook=results_workbook,
         output_path=output_dir / "prompt_output_grades.xlsx",
         rows=final_rows,
         skipped=skipped,
+        rubric_entries=rubric_entries,
+        category_weights=category_weights,
+        outputs=outputs,
+        include_self_judging=args.include_self_judging,
     )
+
+    website_seed_csv = requested_website_seed_csv or default_website_seed_csv()
+    website_upload_csv = requested_website_upload_csv
+    if website_seed_csv:
+        if not website_seed_csv.exists():
+            raise ValueError(f"Website seed CSV not found: {website_seed_csv}")
+        if not website_upload_csv:
+            website_upload_csv = output_dir / "db_upload" / "model_variants_db_upload.csv"
+        website_audit_csv = website_upload_csv.parent / "model_variant_score_audit.csv"
+        matched, updated = write_website_upload_files(
+            seed_csv_path=website_seed_csv,
+            upload_csv_path=website_upload_csv,
+            audit_csv_path=website_audit_csv,
+            rows=final_rows,
+            rubric_entries=rubric_entries,
+            outputs=outputs,
+            include_self_judging=args.include_self_judging,
+        )
+        print(f"Wrote {website_upload_csv}")
+        print(f"Wrote {website_audit_csv}")
+        print(f"Website seed rows matched: {matched}; updated: {updated}")
+        if args.update_website_seed:
+            website_seed_csv.write_text(website_upload_csv.read_text(encoding="utf-8"), encoding="utf-8")
+            print(f"Updated {website_seed_csv}")
+    elif args.update_website_seed or requested_website_upload_csv:
+        raise ValueError("Provide --website-seed-csv to generate or update a website seed CSV.")
 
     print(f"Wrote {jsonl_path}")
     print(f"Wrote {live_xlsx_path}")

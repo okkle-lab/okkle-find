@@ -46,6 +46,7 @@ struct PromptGradeApp: App {
 private enum AppPaths {
     static let defaultModelSpreadsheetName = "AI_model_variants.xlsx"
     static let defaultRubricWorkbookName = "Model_Testing_Rubric.xlsx"
+    static let defaultWebsiteSeedCSVName = "model_variants.csv"
 
     static var developmentRepoRoot: URL {
         var url = URL(fileURLWithPath: #filePath)
@@ -77,6 +78,21 @@ private enum AppPaths {
 
     static var defaultRubricWorkbookURL: URL? {
         defaultSpreadsheetURL(named: defaultRubricWorkbookName)
+    }
+
+    static var defaultWebsiteSeedCSVURL: URL? {
+        let developmentSeed = developmentRepoRoot.appendingPathComponent("db/seeds/model_variants.csv")
+        if FileManager.default.fileExists(atPath: developmentSeed.path) {
+            return developmentSeed
+        }
+
+        if let bundledDefaultsDirectoryURL {
+            let url = bundledDefaultsDirectoryURL.appendingPathComponent(defaultWebsiteSeedCSVName)
+            if FileManager.default.fileExists(atPath: url.path) {
+                return url
+            }
+        }
+        return nil
     }
 
     static var defaultOutputBaseURL: URL {
@@ -212,6 +228,13 @@ final class GraderViewModel: ObservableObject {
             "--output-dir", outputURL.path,
             "--max-tokens", "\(maxTokens)"
         ]
+
+        if let websiteSeedCSVURL = AppPaths.defaultWebsiteSeedCSVURL {
+            arguments.append(contentsOf: ["--website-seed-csv", websiteSeedCSVURL.path])
+            if websiteSeedCSVURL.standardizedFileURL.path.hasPrefix(AppPaths.developmentRepoRoot.standardizedFileURL.path) {
+                arguments.append("--update-website-seed")
+            }
+        }
 
         if let bundledRunnerURL = AppPaths.bundledRunnerURL {
             runner.executableURL = bundledRunnerURL
