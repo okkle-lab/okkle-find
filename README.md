@@ -42,11 +42,13 @@ Browse tiles skip the LLM entirely — a tile already *is* a structured filter.
 
 Requires Ruby 3.3.x and PostgreSQL.
 
-The easiest path on macOS is to double-click `Launch AI Finder.command`. The
-launcher checks rbenv, uses any installed Ruby 3.3.x if the exact patch version
-is missing, installs the locked Bundler version, prepares the database, repairs
-older local development schemas after taking a backup, and opens
-<http://localhost:3000>.
+The easiest path on macOS is to double-click `Launch AI Finder.command`. On
+Windows, double-click `Launch AI Finder.bat`. The launcher checks dependencies,
+prepares the database, starts the Rails server, and opens
+<http://localhost:3000>. The macOS launcher also checks rbenv, uses any
+installed Ruby 3.3.x if the exact patch version is missing, installs the locked
+Bundler version, and repairs older local development schemas after taking a
+backup.
 
 For terminal setup with rbenv, install the pinned patch version once:
 
