@@ -26,12 +26,30 @@
 
 <section class="home-section">
   <h2 class="panel-title">Browse by task</h2>
+  <% tile_chips = {
+    "write-things"   => ["drafting", "summarisation", "editing"],
+    "chat-assistant" => ["accuracy", "depth", "trustworthiness"],
+    "code"           => ["speed", "accuracy", "debugging", "agentic"],
+    "summarize"      => ["faithfulness", "format control", "length"],
+    "research"       => ["citations", "hallucination resistance", "depth"],
+    "audio-to-text"  => ["accuracy", "speaker detection", "summaries"],
+    "translate"      => ["accuracy", "nuance", "speed"]
+  } %>
   <div class="tile-grid">
     <% @categories.each do |category| %>
       <%= link_to search_path(category: category.slug), class: "tile" do %>
-        <span class="tile-icon" style="--icon-tint: <%= tool_monogram_color(category.display_name) %>"><%= icon(category.icon.presence || "sparkles", size: 22) %></span>
-        <span class="tile-name"><%= category.display_name %></span>
+        <span class="tile-head">
+          <span class="tile-icon" style="--icon-tint: <%= tool_monogram_color(category.display_name) %>"><%= icon(category.icon.presence || "sparkles", size: 18) %></span>
+          <span class="tile-name"><%= category.display_name %></span>
+        </span>
         <span class="tile-sub"><%= category.subtitle %></span>
+        <% if (chips = tile_chips[category.slug]).present? %>
+          <span class="tile-chips">
+            <% chips.each do |chip| %>
+              <span class="tile-chip"><%= chip %></span>
+            <% end %>
+          </span>
+        <% end %>
       <% end %>
     <% end %>
   </div>

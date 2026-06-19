@@ -199,11 +199,11 @@ a:hover { text-decoration: underline; }
 .browse-title { text-align: center; color: var(--muted); font-weight: 500; font-size: 1rem; }
 .tile-grid {
   display: grid; gap: 0.75rem; margin-top: 1rem;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
 }
 .tile {
-  display: flex; flex-direction: column; gap: 0.2rem;
-  padding: 1rem; border: 1px solid var(--line); border-radius: 12px;
+  display: flex; flex-direction: column; gap: 0;
+  padding: 1rem 1.1rem; border: 1px solid var(--line); border-radius: 14px;
   background: var(--card-surface); color: var(--ink);
   box-shadow: var(--card-shadow);
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
@@ -217,9 +217,15 @@ a:hover { text-decoration: underline; }
     0 0 34px var(--hover-shadow-c),
     0 3px 8px rgba(26, 26, 46, 0.035);
 }
-.tile-icon { display: block; margin-bottom: 0.35rem; color: var(--icon-tint); }
-.tile-name { font-weight: 700; text-transform: capitalize; }
-.tile-sub { color: var(--muted); font-size: 0.85rem; }
+.tile-head { display: flex; align-items: center; gap: 0.45rem; margin-bottom: 0.45rem; }
+.tile-icon { display: flex; align-items: center; color: var(--icon-tint); flex-shrink: 0; }
+.tile-name { font-weight: 700; font-size: 0.95rem; }
+.tile-sub { color: var(--muted); font-size: 0.82rem; line-height: 1.5; margin-bottom: 0.65rem; }
+.tile-chips { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: auto; }
+.tile-chip {
+  font-size: 0.7rem; color: var(--muted); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 5px; padding: 0.15rem 0.45rem;
+}
 
 /* ---- blog / latest ---- */
 .blog-preview { margin-top: 3rem; }
