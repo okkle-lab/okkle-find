@@ -48,6 +48,19 @@ class ToolMatcherTest < ActiveSupport::TestCase
     assert_equal [match], result.tools
   end
 
+  test "category searches use score-derived membership" do
+    research_match = Tool.create!(name: "Research Score No Static Tag", status: "live")
+    research_match.model_variants.create!(name: "v1", research_fact_checking_score: 9)
+    not_research = Tool.create!(name: "Coding Only", status: "live")
+    not_research.model_variants.create!(name: "v1", coding_speed_score: 10, coding_accuracy_score: 10)
+
+    result = ToolMatcher.call(ParsedNeed.from_category("research"), count: 5)
+
+    assert_includes result.tools, research_match
+    refute_includes result.tools, not_research
+    assert_equal 1, result.pool_size
+  end
+
   test "hard filters still constrain product name searches" do
     cloud = Tool.create!(name: "LocalFlagNeedle", status: "live", runs_locally: false)
     Tool.create!(name: "Local Alternative Name Search", status: "live", runs_locally: true)

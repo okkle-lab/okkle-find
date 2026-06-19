@@ -23,4 +23,18 @@ class CompareCandidatesTest < ActiveSupport::TestCase
 
     assert candidates.catalogue?
   end
+
+  test "catalogue suggestions use score-derived categories" do
+    current = Tool.create!(name: "Current Research", status: "live")
+    current.model_variants.create!(name: "v1", research_fact_checking_score: 9)
+    similar = Tool.create!(name: "Similar Research", status: "live")
+    similar.model_variants.create!(name: "v1", source_quality_score: 8)
+    other = Tool.create!(name: "Other Coding", status: "live")
+    other.model_variants.create!(name: "v1", coding_speed_score: 9)
+
+    candidates = CompareCandidates.for(current, search_context: SearchContext.new)
+
+    assert_equal [similar], candidates.similar_tools
+    assert_includes candidates.other_tools, other
+  end
 end

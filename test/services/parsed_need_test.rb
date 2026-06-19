@@ -25,6 +25,13 @@ class ParsedNeedTest < ActiveSupport::TestCase
     assert_equal "research", need.priority_dimension
   end
 
+  test "infers research intent from researching wording" do
+    need = ParsedNeed.from_keywords("best researching models")
+
+    assert_includes need.categories, "research"
+    assert_equal "research", need.priority_dimension
+  end
+
   test "infers privacy intent from data safety queries" do
     need = ParsedNeed.from_keywords("I need something private that does not keep my data")
 

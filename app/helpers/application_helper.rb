@@ -33,6 +33,10 @@ module ApplicationHelper
     content_tag(:span, score_number(value), class: css_class, style: "color: #{score_color(value)}")
   end
 
+  def search_card_score_visible?
+    Rails.configuration.x.search.show_card_score == true
+  end
+
   def yes_no_or_unknown(value)
     return "Unknown" if value.nil?
 

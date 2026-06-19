@@ -1,6 +1,7 @@
 <% search_context = local_assigns.fetch(:search_context, SearchContext.new) %>
 <% dimension = search_context.priority_dimension %>
-<% headline, caption = headline_score(tool, dimension) %>
+<% show_card_score = search_card_score_visible? %>
+<% headline, caption = show_card_score ? headline_score(tool, dimension) : [nil, nil] %>
 <% criteria = dimension ? dimension_criteria(tool, dimension) : [] %>
 <% has_scores = criteria.any? { |_label, score| score.present? } %>
 
@@ -13,10 +14,12 @@
         <% if tool.provider.present? %><span class="card-provider">by <%= tool.provider %></span><% end %>
       </div>
     </div>
-    <div class="score-pill<%= " score-pill-tbd" unless headline %>">
-      <span class="score-pill-num"><%= headline ? score_number(headline) : "—" %></span>
-      <span class="score-pill-cap"><%= caption %></span>
-    </div>
+    <% if show_card_score %>
+      <div class="score-pill<%= " score-pill-tbd" unless headline %>">
+        <span class="score-pill-num"><%= headline ? score_number(headline) : "—" %></span>
+        <span class="score-pill-cap"><%= caption %></span>
+      </div>
+    <% end %>
   </header>
 
   <% if tool.why_this_one.present? %>

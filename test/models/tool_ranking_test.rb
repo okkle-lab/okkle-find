@@ -20,9 +20,12 @@ class ToolRankingTest < ActiveSupport::TestCase
     assert_equal 8.0, coding_tool.rank_score(nil)
   end
 
-  test "rank_score blends the priority dimension 50/50 with the overall verdict" do
-    # (coding 8 + overall 8) / 2
-    assert_equal 8.0, coding_tool.rank_score("coding")
+  test "rank_score with a scored dimension uses that dimension only" do
+    tool = Tool.new(name: "Category First")
+    tool.model_variants.build(name: "v1", write_edit_score: 2, coding_speed_score: 8, coding_accuracy_score: 8)
+
+    assert_operator tool.overall_verdict, :<, 8.0
+    assert_equal 8.0, tool.rank_score("coding")
   end
 
   test "rank_score uses the overall verdict (no baseline blend) for an unscored dimension" do
@@ -38,6 +41,21 @@ class ToolRankingTest < ActiveSupport::TestCase
     assert coding_tool.scored_on?("coding")
     refute coding_tool.scored_on?("translation")
     refute coding_tool.scored_on?(nil)
+  end
+
+  test "score category slugs are derived from mapped score dimensions" do
+    tool = Tool.new(name: "Dynamic Categories")
+    tool.model_variants.build(name: "v1", research_fact_checking_score: 9, source_quality_score: 8)
+
+    assert_includes tool.score_category_slugs, "research"
+    refute_includes tool.score_category_slugs, "code"
+  end
+
+  test "score category slugs require a strong category score" do
+    tool = Tool.new(name: "Measured But Weak")
+    tool.model_variants.build(name: "v1", research_fact_checking_score: 6)
+
+    refute_includes tool.score_category_slugs, "research"
   end
 
   test "priority dimensions are derived from the rubric metadata" do
@@ -135,6 +153,23 @@ class ToolRankingTest < ActiveSupport::TestCase
 
     key = ->(t) { [t.scored_on?("translation") ? 0 : 1, -t.rank_score("translation")] }
     assert_equal [specialist, generalist], [generalist, specialist].sort_by(&key)
+  end
+
+  test "relevance ranking prefers the searched category score over overall score" do
+    category_winner = Tool.new(name: "Category Winner")
+    category_winner.model_variants.build(name: "cw", write_edit_score: 2,
+      research_fact_checking_score: 9, source_quality_score: 9)
+    overall_winner = Tool.new(name: "Overall Winner")
+    overall_winner.model_variants.build(name: "ow", write_edit_score: 10,
+      coding_speed_score: 10, coding_accuracy_score: 10, research_fact_checking_score: 7)
+
+    assert_operator overall_winner.overall_verdict, :>, category_winner.overall_verdict
+    assert_operator category_winner.rank_score("research"), :>, overall_winner.rank_score("research")
+
+    matcher = ToolMatcher.new(ParsedNeed.new(priority_dimension: "research"))
+    ranked = matcher.send(:ranked_by_relevance, [overall_winner, category_winner])
+
+    assert_equal category_winner, ranked.first
   end
 
   test "tool matcher normalizes invalid sorts to relevance" do

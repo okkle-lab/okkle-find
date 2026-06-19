@@ -178,17 +178,37 @@ class Tool < ApplicationRecord
     !dimension_score(priority_dimension).nil?
   end
 
-  # Rank score (1-10). With a priority dimension AND a score on it, this is a
-  # 50/50 blend of that dimension and the overall verdict. Otherwise it's just
-  # the overall verdict — a tool with no score on the dimension is ranked on its
-  # overall (and tiered below scored tools by the matcher), never given a
-  # baseline that would inflate it past tools with a real, lower score.
-  def rank_score(priority_dimension = nil)
-    overall = overall_verdict || RANK_BASELINE
-    specific = dimension_score(priority_dimension)
-    return overall unless specific
+  def score_category_slugs
+    Rubric::BROWSE_CATEGORY_DIMENSIONS.keys.select { |slug| qualifies_for_browse_category?(slug) }
+  end
 
-    (specific + overall) / 2.0
+  def score_categories
+    slugs = score_category_slugs
+    return Category.none if slugs.empty?
+
+    Category.ordered.where(slug: slugs)
+  end
+
+  def qualifies_for_browse_category?(slug)
+    dimension = Rubric.dimension_for_browse_category(slug)
+    return false unless dimension
+
+    dimension_score(dimension).to_f >= Rubric::BROWSE_CATEGORY_MIN_SCORE
+  end
+
+  def sync_score_categories!
+    self.categories = score_categories
+  end
+
+  # Rank score (1-10). With a priority dimension AND a score on it, rank on
+  # that dimension alone. Otherwise use the overall verdict. The matcher tiers
+  # tools scored on the dimension above unscored tools, so a missing score never
+  # masquerades as an average one.
+  def rank_score(priority_dimension = nil)
+    specific = dimension_score(priority_dimension)
+    return specific if specific
+
+    overall_verdict || RANK_BASELINE
   end
 
   def sortable_price

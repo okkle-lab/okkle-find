@@ -26,5 +26,7 @@ module AiFinder
     #
     # config.time_zone = "Central Time (US & Canada)"
     # config.eager_load_paths << Rails.root.join("extras")
+    config.x.search = ActiveSupport::OrderedOptions.new
+    config.x.search.show_card_score = false
   end
 end

@@ -133,21 +133,10 @@ CSV.foreach(csv_path, headers: true) do |row|
   )
   tool.save!
 
-  # Wire up categories. Assigning the full set is idempotent: it adds new
-  # links and removes stale ones without creating duplicates.
-  slugs = row["categories"].to_s.split(",").map(&:strip).reject(&:blank?)
-  cats = slugs.map do |slug|
-    Category.find_or_create_by!(slug: slug) do |c|
-      c.display_name = slug.tr("-", " ")
-    end
-  end
-  tool.categories = cats
-
   imported += 1
 end
 
 puts "Tools: #{Tool.count} (imported/updated #{imported})"
-puts "Tool-category links: #{ToolCategory.count}"
 
 # ---------------------------------------------------------------------------
 # Model variants (individual models under a product, e.g. Claude → Sonnet /
@@ -197,6 +186,12 @@ if File.exist?(variants_path)
 
   puts "Model variants: #{ModelVariant.count} (imported/updated #{variant_count})"
 end
+
+# Keep browse/search categories derived from the current score data. Static CSV
+# category hints can drift; this makes a newly high-scoring model appear in the
+# matching category as soon as seeds are reapplied.
+Tool.includes(:model_variants).find_each(&:sync_score_categories!)
+puts "Tool-category links: #{ToolCategory.count} (score-derived)"
 
 # ---------------------------------------------------------------------------
 # Blog posts (the "Latest in AI" section). Idempotent on :slug.

@@ -84,11 +84,11 @@ class ToolMatcher
       )
     end
 
-    if include_categories && @need.categories.any?
-      scope = scope.joins(:categories).where(categories: { slug: @need.categories }).distinct
-    end
+    return scope unless include_categories && @need.categories.any?
 
-    scope
+    scope.to_a.select do |tool|
+      @need.categories.any? { |slug| tool.qualifies_for_browse_category?(slug) }
+    end
   end
 
   def name_search
@@ -145,11 +145,10 @@ class ToolMatcher
   end
 
   # Tools we've actually scored on the priority dimension come first (so a tool
-  # with no score on it never outranks one that does), then by the 50/50
-  # dimension+overall blend (see Tool#rank_score). Ties break randomly so
-  # equally scored tools still rotate between searches. With no priority
-  # dimension every tool is "unscored" and this is simply an overall-verdict
-  # ranking.
+  # with no score on it never outranks one that does), then by that dimension's
+  # score. Ties break randomly so equally scored tools still rotate between
+  # searches. With no priority dimension every tool is "unscored" and this is
+  # simply an overall-verdict ranking.
   def ranked_by_relevance(tools)
     dimension = @need.priority_dimension
     tools.sort_by { |t| [t.scored_on?(dimension) ? 0 : 1, -t.rank_score(dimension), rand] }

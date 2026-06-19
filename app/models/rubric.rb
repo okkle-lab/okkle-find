@@ -383,9 +383,23 @@ class Rubric
   GATE_FIELDS = DIMENSIONS.values.filter_map { |config| config[:fields] if config[:group] == :gate }.flatten.uniq.freeze
   SCORE_FIELDS = DIMENSIONS.values.flat_map { |config| config[:fields] }.uniq.freeze
   PRIORITY_DIMENSIONS = DIMENSIONS.to_h { |dimension, config| [dimension, config[:fields]] }.freeze
+  BROWSE_CATEGORY_MIN_SCORE = 7.0
+  BROWSE_CATEGORY_DIMENSIONS = {
+    "write-things" => "write_edit",
+    "chat-assistant" => "trustworthiness",
+    "code" => "coding",
+    "summarize" => "summarization",
+    "research" => "research",
+    "audio-to-text" => "meetings",
+    "translate" => "translation"
+  }.freeze
 
   def self.fields_for(dimension)
     Array(PRIORITY_DIMENSIONS[dimension])
+  end
+
+  def self.dimension_for_browse_category(slug)
+    BROWSE_CATEGORY_DIMENSIONS[slug.to_s]
   end
 
   def self.category_for(dimension)

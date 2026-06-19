@@ -12,7 +12,7 @@ class ParsedNeed
     "write-things"   => %w[write writing wrote email emails essay essays blog post posts copy copywriting letter letters message messages draft],
     "code"           => %w[code coding program programming developer develop debug debugging software script scripts app coder],
     "summarize"      => %w[summarise summarize summary summarize summarised summarized tldr condense shorten recap],
-    "research"       => %w[research cite citation citations source sources fact facts study studies references],
+    "research"       => %w[research researching cite citation citations source sources fact facts study studies references],
     "translate"      => %w[translate translation translator translating language languages multilingual],
     "chat-assistant" => %w[chat ask question questions assistant chatbot talk conversation answer answers]
   }.freeze
@@ -25,14 +25,7 @@ class ParsedNeed
 
   # Fallback mapping for the keyword path: category slug => priority dimension.
   # The LLM picks the dimension directly; this just keeps degraded parses useful.
-  CATEGORY_DIMENSION = {
-    "code"         => "coding",
-    "write-things" => "write_edit",
-    "research"     => "research",
-    "summarize"    => "summarization",
-    "translate"    => "translation",
-    "audio-to-text" => "meetings"
-  }.freeze
+  CATEGORY_DIMENSION = Rubric::BROWSE_CATEGORY_DIMENSIONS
 
   attr_reader :raw_query, :task, :must_be_free, :must_be_private, :must_run_locally,
               :budget_ceiling_usd_month, :categories, :keywords, :priority_dimension, :source
