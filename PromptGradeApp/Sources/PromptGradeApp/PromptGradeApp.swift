@@ -163,6 +163,9 @@ final class GraderViewModel: ObservableObject {
     @Published var dryRun = false
     @Published var parallelProducts = false
     @Published var allowMissingRubric = false
+    @Published var skipScoredSourceModels = true
+    @Published var firstGraderOnly = true
+    @Published var scoreOnly = true
     @Published var maxTokens = 800
     @Published var openRouterAPIKey: String = ProcessInfo.processInfo.environment["OPENROUTER_API_KEY"] ?? ""
     @Published var openAIAPIKey: String = ProcessInfo.processInfo.environment["OPENAI_API_KEY"] ?? ""
@@ -253,6 +256,15 @@ final class GraderViewModel: ObservableObject {
         }
         if allowMissingRubric {
             arguments.append("--allow-missing-rubric")
+        }
+        if skipScoredSourceModels {
+            arguments.append("--skip-scored-source-models")
+        }
+        if firstGraderOnly {
+            arguments.append("--first-grader-only")
+        }
+        if scoreOnly {
+            arguments.append("--score-only")
         }
 
         runner.arguments = arguments
@@ -434,6 +446,15 @@ struct ContentView: View {
             }
             Toggle(isOn: $viewModel.allowMissingRubric) {
                 Label("Allow Missing Rubric", systemImage: "exclamationmark.triangle")
+            }
+            Toggle(isOn: $viewModel.skipScoredSourceModels) {
+                Label("Skip Scored Sources", systemImage: "forward.end")
+            }
+            Toggle(isOn: $viewModel.firstGraderOnly) {
+                Label("First Grader Only", systemImage: "person.crop.circle.badge.checkmark")
+            }
+            Toggle(isOn: $viewModel.scoreOnly) {
+                Label("Score Only", systemImage: "number")
             }
             HStack {
                 Label("Max Tokens", systemImage: "text.word.spacing")

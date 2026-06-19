@@ -46,6 +46,7 @@ struct ModelEvalApp: App {
 private enum AppPaths {
     static let defaultPromptSpreadsheetName = "Model_Test_Prompts_for_Automation.xlsx"
     static let defaultModelSpreadsheetName = "AI_model_variants.xlsx"
+    static let defaultWebsiteSeedCSVName = "model_variants.csv"
 
     static var developmentRepoRoot: URL {
         var url = URL(fileURLWithPath: #filePath)
@@ -83,6 +84,17 @@ private enum AppPaths {
 
     static var defaultModelSpreadsheetURL: URL? {
         defaultSpreadsheetURL(named: defaultModelSpreadsheetName)
+    }
+
+    static var defaultWebsiteSeedCSVURL: URL? {
+        let developmentSeed = developmentRepoRoot.appendingPathComponent("db/seeds/model_variants.csv")
+        if FileManager.default.fileExists(atPath: developmentSeed.path) {
+            return developmentSeed
+        }
+
+        guard let defaultsDirectoryURL else { return nil }
+        let bundledSeed = defaultsDirectoryURL.appendingPathComponent(defaultWebsiteSeedCSVName)
+        return FileManager.default.fileExists(atPath: bundledSeed.path) ? bundledSeed : nil
     }
 
     static var defaultOutputBaseURL: URL {
@@ -144,9 +156,11 @@ final class RunnerViewModel: ObservableObject {
     @Published var includeImages = false
     @Published var dryRun = false
     @Published var parallelProducts = false
+    @Published var skipScoredModels = true
     @Published var maxTokens = 1000
     @Published var openRouterAPIKey: String = ProcessInfo.processInfo.environment["OPENROUTER_API_KEY"] ?? ""
     @Published var openAIAPIKey: String = ProcessInfo.processInfo.environment["OPENAI_API_KEY"] ?? ""
+    @Published var githubModelsToken: String = ProcessInfo.processInfo.environment["GITHUB_MODELS_TOKEN"] ?? ""
     @Published var isRunning = false
     @Published var logText = ""
     @Published var lastOutputURL: URL?
@@ -225,6 +239,10 @@ final class RunnerViewModel: ObservableObject {
         if parallelProducts {
             arguments.append("--parallel-products")
         }
+        if skipScoredModels, let websiteSeedCSVURL = AppPaths.defaultWebsiteSeedCSVURL {
+            arguments.append(contentsOf: ["--website-seed-csv", websiteSeedCSVURL.path])
+            arguments.append("--skip-scored-models")
+        }
         runner.arguments = arguments
         runner.environment = processEnvironment()
 
@@ -264,11 +282,15 @@ final class RunnerViewModel: ObservableObject {
         var environment = ProcessInfo.processInfo.environment
         let openRouterKey = openRouterAPIKey.trimmingCharacters(in: .whitespacesAndNewlines)
         let openAIKey = openAIAPIKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        let githubToken = githubModelsToken.trimmingCharacters(in: .whitespacesAndNewlines)
         if !openRouterKey.isEmpty {
             environment["OPENROUTER_API_KEY"] = openRouterKey
         }
         if !openAIKey.isEmpty {
             environment["OPENAI_API_KEY"] = openAIKey
+        }
+        if !githubToken.isEmpty {
+            environment["GITHUB_MODELS_TOKEN"] = githubToken
         }
         return environment
     }
@@ -402,6 +424,9 @@ struct ContentView: View {
             Toggle(isOn: $viewModel.parallelProducts) {
                 Label("Parallel Products", systemImage: "arrow.triangle.branch")
             }
+            Toggle(isOn: $viewModel.skipScoredModels) {
+                Label("Skip Already Scored", systemImage: "forward.end")
+            }
             HStack {
                 Label("Max Tokens", systemImage: "text.word.spacing")
                 Spacer()
@@ -417,6 +442,8 @@ struct ContentView: View {
                 SecureField("OpenRouter API Key", text: $viewModel.openRouterAPIKey)
                     .textFieldStyle(.roundedBorder)
                 SecureField("OpenAI API Key", text: $viewModel.openAIAPIKey)
+                    .textFieldStyle(.roundedBorder)
+                SecureField("GitHub Models Token", text: $viewModel.githubModelsToken)
                     .textFieldStyle(.roundedBorder)
             }
             VStack(alignment: .leading, spacing: 6) {

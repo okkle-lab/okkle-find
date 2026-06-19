@@ -260,6 +260,11 @@ if [[ -d "${DEFAULTS_DIR}" ]]; then
     \( -name ".DS_Store" -o -name "~\$*" \) \
     -delete
 fi
+if [[ -f "${REPO_ROOT}/db/seeds/model_variants.csv" ]]; then
+  mkdir -p "${APP_DIR}/Contents/Resources/Defaults"
+  cp "${REPO_ROOT}/db/seeds/model_variants.csv" \
+    "${APP_DIR}/Contents/Resources/Defaults/model_variants.csv"
+fi
 chmod +x "${APP_DIR}/Contents/MacOS/ModelEvalApp"
 chmod +x "${APP_DIR}/Contents/Resources/model_eval_runner"
 xattr -cr "${APP_DIR}"

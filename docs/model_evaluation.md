@@ -48,6 +48,7 @@ Default spreadsheets live in `ModelEvalApp/Defaults/`:
 
 - `Model_Test_Prompts_for_Automation.xlsx`
 - `AI_model_variants.xlsx`
+- `model_variants.csv`
 
 The SwiftUI app preselects those files on launch. To update the shipped
 defaults, replace the files in `ModelEvalApp/Defaults/` and rerun
@@ -62,14 +63,31 @@ Drop in:
 - a prompt spreadsheet
 - a model spreadsheet
 
-Choose an output folder and press Run. Use Dry Run to validate the spreadsheets without API calls.
+Choose an output folder and press Run. Use Dry Run to validate the spreadsheets
+without API calls. Skip Already Scored is on by default in the app; it uses
+`model_variants.csv` to remove model keys that already have website scores.
 
-Cloud model providers still require an API key. With the default model spreadsheet path, the app expects one OpenRouter key for text models. Image models usually need an OpenAI key unless your model spreadsheet points them somewhere else.
+Cloud model providers still require an API key. With the default model spreadsheet path, the app expects one OpenRouter key for text models. Image models usually need an OpenAI key unless your model spreadsheet points them somewhere else. GitHub Models rows need a GitHub token with `models:read` in `GITHUB_MODELS_TOKEN`.
 Image generation is supported but off by default in the SwiftUI app to avoid
 accidental image spend. Turn on Image Generation and provide `OPENAI_API_KEY`
 to run the bundled `gpt-image-2` row.
+The bundled model workbook also includes disabled coding-product rows for
+Copilot-style alternatives. These rows record strengths and tradeoffs in
+`best_for`, but stay disabled unless you intentionally wire a provider route
+and credential.
 Parallel Products is also off by default. Turn it on to run different product
 lanes at the same time while keeping each lane's models and tests in series.
+
+From the CLI, use the same scored-model filter with:
+
+```bash
+python3 script/model_eval_runner.py \
+  --workbook ModelEvalApp/Defaults/Model_Test_Prompts_for_Automation.xlsx \
+  --models-workbook ModelEvalApp/Defaults/AI_model_variants.xlsx \
+  --website-seed-csv db/seeds/model_variants.csv \
+  --skip-scored-models \
+  --dry-run
+```
 
 ## Prompt Spreadsheet
 
@@ -119,9 +137,16 @@ Set the relevant API key:
 ```bash
 export OPENROUTER_API_KEY="..."
 export OPENAI_API_KEY="..."
+export GITHUB_MODELS_TOKEN="..."
 ```
 
 In the SwiftUI app, paste the same keys into the API key fields instead of exporting them in Terminal.
+
+GitHub Copilot's management REST API is not a general prompt-completion API.
+For automated prompt tests, use GitHub Models inference with
+`Provider=github_models`, `Provider Type=openai_compatible`,
+`Base URL=https://models.github.ai`, `API Key Env=GITHUB_MODELS_TOKEN`, and a
+catalog model ID such as `openai/gpt-4.1`.
 
 If you use a local OpenAI-compatible server that does not require authentication, add a `Provider` value such as `local`, set `Base URL`, and leave `API Key Env` blank in the model spreadsheet.
 

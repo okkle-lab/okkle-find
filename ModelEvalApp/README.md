@@ -31,6 +31,7 @@ Default spreadsheets:
 
 - `Defaults/Model_Test_Prompts_for_Automation.xlsx`
 - `Defaults/AI_model_variants.xlsx`
+- `Defaults/model_variants.csv`
 
 The app preselects these files on launch. Replace the files in `Defaults/` and
 run `./package_app.sh` again to ship updated defaults.
@@ -52,14 +53,29 @@ Inputs:
 - API key: cloud providers need authentication. For the default text route, paste one OpenRouter key into the app.
 - Image generation: off by default. Turn on Image Generation and paste an
   OpenAI API key to run the bundled `gpt-image-2` image model row.
+- GitHub Models / Copilot-style tests: paste a GitHub token with `models:read`
+  into the GitHub Models Token field, then enable a workbook row that uses
+  `Provider=github_models` and a GitHub Models catalog ID such as
+  `openai/gpt-4.1`.
 - Parallel Products: off by default. Turn it on to run different product lanes
   at the same time while keeping models within each product in series.
+- Skip Already Scored: on by default. The runner uses `model_variants.csv` to
+  skip model keys that already have website scores, so routine runs focus on
+  new or unscored models.
+
+The bundled model workbook includes disabled catalogue rows for comparable
+coding products such as GitHub Copilot, Claude Code, OpenAI Codex, Devin
+Desktop, JetBrains Junie, Tabnine, Sourcegraph Amp, and Cursor. Their
+`best_for` notes capture strengths and tradeoffs, while disabled rows avoid
+requiring product-specific credentials during normal benchmark runs.
 
 If your model spreadsheet contains only ChatGPT/OpenAI text rows and no
 explicit provider settings, the runner uses direct OpenAI and only needs the
 OpenAI key. Mixed-provider sheets keep blank text providers on OpenRouter.
 
-Use Dry Run to validate both spreadsheets without making API calls or needing a key.
+Use Dry Run to validate both spreadsheets without making API calls or needing a
+key. With Skip Already Scored on, the dry run also shows which scored models
+were removed from the plan.
 
 If OpenRouter returns HTTP 402 saying the request requires more credits or fewer
 `max_tokens`, lower the app's Max Tokens value. The same app setting is sent as

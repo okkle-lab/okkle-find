@@ -245,6 +245,16 @@ def default_config() -> dict[str, Any]:
                 "max_tokens_param": "max_completion_tokens",
                 "supports_custom_temperature": False,
             },
+            "github_models": {
+                "type": "openai_compatible",
+                "base_url": "https://models.github.ai",
+                "api_key_env": "GITHUB_MODELS_TOKEN",
+                "chat_completions_path": "/inference/chat/completions",
+                "extra_headers": {
+                    "Accept": "application/vnd.github+json",
+                    "X-GitHub-Api-Version": "2026-03-10",
+                },
+            },
             "openai_images": {
                 "type": "openai_image_generation",
                 "base_url": "https://api.openai.com/v1",
@@ -601,6 +611,49 @@ def split_filter(value: str | None) -> set[str]:
     if not value:
         return set()
     return {part.strip() for part in value.split(",") if part.strip()}
+
+
+def website_score_fields(headers: Iterable[str]) -> list[str]:
+    return [
+        header
+        for header in headers
+        if header.startswith("score_") or header.endswith("_score")
+    ]
+
+
+def read_scored_model_keys(seed_csv_path: Path) -> dict[str, list[str]]:
+    with seed_csv_path.open(newline="", encoding="utf-8-sig") as handle:
+        reader = csv.DictReader(handle)
+        headers = reader.fieldnames or []
+        score_fields = website_score_fields(headers)
+        scored: dict[str, list[str]] = {}
+        for row in reader:
+            model_key = clean_text(row.get("model_id_string"))
+            if not model_key:
+                continue
+            populated = [
+                field
+                for field in score_fields
+                if clean_text(row.get(field))
+            ]
+            if populated:
+                scored[model_key] = populated
+        return scored
+
+
+def filter_scored_models(
+    models: list[dict[str, Any]],
+    scored_model_keys: dict[str, list[str]],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    selected: list[dict[str, Any]] = []
+    skipped: list[dict[str, Any]] = []
+    for model in models:
+        model_key = clean_text(model.get("key"))
+        if model_key and model_key in scored_model_keys:
+            skipped.append(model)
+        else:
+            selected.append(model)
+    return selected, skipped
 
 
 def eligible_tests(
@@ -978,6 +1031,8 @@ def supports_custom_temperature(provider: dict[str, Any], model: dict[str, Any])
 def redact_secrets(value: Any) -> str:
     text = "" if value is None else str(value)
     text = re.sub(r"Bearer\s+[^'\"\\\s]+", "Bearer [redacted]", text)
+    text = re.sub(r"github_pat_[A-Za-z0-9_]+", "github_pat_[redacted]", text)
+    text = re.sub(r"gh[opsru]_[A-Za-z0-9_]+", "gh[redacted]", text)
     text = re.sub(r"sk-or-v1-[A-Za-z0-9]+", "sk-or-v1-[redacted]", text)
     text = re.sub(r"sk-proj-[A-Za-z0-9_-]+", "sk-proj-[redacted]", text)
     text = re.sub(r"sk-[A-Za-z0-9][A-Za-z0-9_-]{12,}", "sk-[redacted]", text)
@@ -1744,7 +1799,9 @@ def print_plan(
     tests: list[PromptTest],
     skipped: list[SkippedTest],
     models: list[dict[str, Any]],
+    skipped_scored_models: list[dict[str, Any]] | None = None,
 ) -> None:
+    skipped_scored_models = skipped_scored_models or []
     print(f"Models enabled: {len(models)}")
     for model in models:
         capabilities = ", ".join(sorted(model_capabilities(config, model)))
@@ -1752,6 +1809,10 @@ def print_plan(
             f"  - {model.get('key')}: {model.get('name')} "
             f"({model.get('model')}; {capabilities})"
         )
+    if skipped_scored_models:
+        print(f"Already scored models skipped: {len(skipped_scored_models)}")
+        for model in skipped_scored_models:
+            print(f"  - {model.get('key')}: {model.get('name')}")
     print(f"Automated tests: {len(tests)}")
     by_category: dict[str, int] = {}
     for test in tests:
@@ -1820,6 +1881,15 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--limit", type=int, help="Limit the number of selected prompt tests.")
     parser.add_argument("--only-tests", help="Comma-separated Test IDs, e.g. W1,C1,S2.")
     parser.add_argument("--only-models", help="Comma-separated model keys from the config.")
+    parser.add_argument(
+        "--website-seed-csv",
+        help="Website db/seeds/model_variants.csv used to detect models that already have scores.",
+    )
+    parser.add_argument(
+        "--skip-scored-models",
+        action="store_true",
+        help="Skip model rows whose model_id_string already has at least one website score.",
+    )
     parser.add_argument("--include-image", action="store_true", help="Include image-generation prompts.")
     parser.add_argument("--include-evidence", action="store_true", help="Include evidence/privacy/security rows.")
     parser.add_argument("--include-manual-review", action="store_true", help="Include manual reviewer rows.")
@@ -1870,6 +1940,9 @@ def main(argv: list[str]) -> int:
         Path(args.models_workbook).expanduser() if args.models_workbook else None
     )
     requested_output_dir = Path(args.output_dir).expanduser() if args.output_dir else None
+    requested_website_seed_csv = (
+        Path(args.website_seed_csv).expanduser() if args.website_seed_csv else None
+    )
 
     if config_path:
         config = load_json(config_path)
@@ -1891,6 +1964,14 @@ def main(argv: list[str]) -> int:
         raise ValueError("--product-workers must be 0 or greater.")
 
     models = enabled_models(config, args.only_models)
+    skipped_scored_models: list[dict[str, Any]] = []
+    if args.skip_scored_models:
+        if not requested_website_seed_csv:
+            raise ValueError("--skip-scored-models requires --website-seed-csv.")
+        if not requested_website_seed_csv.exists():
+            raise ValueError(f"Website seed CSV not found: {requested_website_seed_csv}")
+        scored_model_keys = read_scored_model_keys(requested_website_seed_csv)
+        models, skipped_scored_models = filter_scored_models(models, scored_model_keys)
     tests = read_prompt_library(
         workbook_path=workbook_path,
         sheet_name=args.sheet,
@@ -1901,7 +1982,7 @@ def main(argv: list[str]) -> int:
     pairs = planned_pairs(config, models, selected_tests)
 
     if args.dry_run:
-        print_plan(config, selected_tests, skipped, models)
+        print_plan(config, selected_tests, skipped, models, skipped_scored_models)
         print_parallel_plan(config, pairs, args.parallel_products, args.product_workers)
         return 0
     if not models:
@@ -1913,7 +1994,7 @@ def main(argv: list[str]) -> int:
     validate_api_keys(config, pairs)
     validate_openrouter_model_ids(config, pairs)
 
-    print_plan(config, selected_tests, skipped, models)
+    print_plan(config, selected_tests, skipped, models, skipped_scored_models)
     print_parallel_plan(config, pairs, args.parallel_products, args.product_workers)
 
     output_dir = make_output_dir(requested_output_dir)

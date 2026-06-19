@@ -43,8 +43,9 @@ Default spreadsheets:
 This folder is intentionally separate from `ModelEvalApp/Defaults/`, so the
 grading app can use a smaller, cheaper judge-model lineup without changing the
 model testing app. The app preselects the bundled grading model workbook and
-rubric workbook on launch. The bundled `model_variants.csv` is used only as
-metadata for the generated website upload CSV.
+rubric workbook on launch. The bundled `model_variants.csv` is used as score
+metadata for skipping already-scored source models and for the generated
+website upload CSV.
 
 Useful rubric columns:
 
@@ -59,6 +60,7 @@ Useful rubric columns:
 | `TESTID` | No | Matches a row from the source output workbook. |
 | `Category` | No | Used when `TESTID` is blank. |
 | `Criterion` | No | Used with `Category` when `TESTID` is blank. |
+| `Website Field` | No | Rails score field. Rows with this value are the source of truth for `Rubric::CATEGORIES`. |
 | `Prompt` | No | Fallback original prompt if the source workbook does not include one. |
 | `Additional source information` | No | Fallback input material for the judge. |
 | `Minimum Score` | No | Defaults to `1`. |
@@ -66,8 +68,22 @@ Useful rubric columns:
 | `Weight` | No | Used in weighted grade summaries. |
 | `Enabled` | No | Defaults to yes. Use `no` to keep a rubric row but skip it. |
 
+The workbook is the source of truth for website rubric weights. After changing
+`Scoring Guide` website fields/weights or the category keys/weights in
+`Weights`, run:
+
+```bash
+python3 script/sync_rubric_from_excel.py --write
+ruby script/validate_catalogue.rb
+```
+
+Rows with a blank `Website Field` remain grader-only and do not appear in the
+Rails rubric.
+
 Use Dry Run to validate the three spreadsheets without making API calls or
-needing a key.
+needing a key. The app starts in a cheaper routine-grading mode: Skip Scored
+Sources, First Grader Only, and Score Only are on by default. Turn those off
+for a full publication run with all enabled graders and explanation fields.
 
 Output:
 
@@ -102,3 +118,7 @@ from 1 to 10. When the app can see this repository it passes
 then run `bin/rails db:seed` to apply those scores locally. When the repo is
 not available, the app still writes the upload CSV under `db_upload/` using the
 bundled seed metadata.
+
+Skipping already-scored source models does not clear their existing seed
+scores. Only source models that were selected but produced missing or errored
+outputs are treated as unavailable and cleared in the generated upload CSV.

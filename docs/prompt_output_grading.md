@@ -33,7 +33,9 @@ Drop in:
 - a rubric workbook
 
 Choose an output folder and press Grade. Use Dry Run first to validate the
-workbooks without making API calls.
+workbooks without making API calls. The app starts in the cheaper routine mode:
+Skip Scored Sources, First Grader Only, and Score Only are enabled. Turn them
+off for a full publication run.
 
 ## Test Output Workbook
 
@@ -62,7 +64,9 @@ the runner can match on `Category` and `Criterion`, then on `Category`, then on
 a global row where all three are blank.
 
 Optional columns include `Prompt`, `Additional source information`,
-`Minimum Score`, `Maximum Score`, `Weight`, and `Enabled`.
+`Minimum Score`, `Maximum Score`, `Weight`, `Website Field`, and `Enabled`.
+`Website Field` is the Rails score column for rows that should feed
+`Rubric::CATEGORIES`; leave it blank for grader-only categories.
 
 For the model-testing rubric format, the runner combines `What it measures`
 with the score-band columns `1-3 (Poor)`, `4-6 (Adequate)`, `7-8 (Strong)`,
@@ -94,11 +98,26 @@ python3 script/prompt_output_grader.py --results-workbook "..." --models-workboo
 python3 script/prompt_output_grader.py --results-workbook "..." --models-workbook "..." --rubric-workbook "..." --only-source-models gpt-5,claude-opus
 python3 script/prompt_output_grader.py --results-workbook "..." --models-workbook "..." --rubric-workbook "..." --only-models judge-1,judge-2
 python3 script/prompt_output_grader.py --results-workbook "..." --models-workbook "..." --rubric-workbook "..." --parallel-products
+python3 script/prompt_output_grader.py --results-workbook "..." --models-workbook "..." --rubric-workbook "..." --website-seed-csv db/seeds/model_variants.csv --skip-scored-source-models --first-grader-only --score-only
 ```
 
 By default, source outputs without a matching rubric row are skipped. Use
 `--allow-missing-rubric` to grade them with generic output-quality guidance.
+Skipped already-scored source models are preserved in the website seed. Only
+source models with missing or errored outputs are treated as unavailable and
+cleared in the generated upload CSV.
 
 The `Model Scores` sheet is the second sheet in the generated workbook. It
 shows one row per tested/source model, each grader model's average score, and a
 final numerical `Model Score` that averages those grader averages.
+
+## Website rubric sync
+
+`PromptGradeApp/Defaults/Model_Testing_Rubric.xlsx` is the source of truth for
+website rubric weights. After editing its `Scoring Guide` website fields/weights
+or the category keys/weights on `Weights`, update Rails and validate:
+
+```bash
+python3 script/sync_rubric_from_excel.py --write
+ruby script/validate_catalogue.rb
+```

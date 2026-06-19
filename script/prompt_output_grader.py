@@ -43,6 +43,7 @@ from model_eval_runner import (
     product_lane_label,
     product_worker_count,
     read_model_workbook,
+    read_scored_model_keys,
     save_workbook_atomic,
     set_widths,
     split_filter,
@@ -73,6 +74,7 @@ PREFERRED_RUBRIC_SHEET_NAMES = (
     "Model Testing Rubric",
 )
 PREFERRED_WEIGHT_SHEET_NAMES = ("Weights", "Category Weights")
+SCORE_CLEARING_SKIPPED_REASONS = {"missing source output", "source output errored"}
 
 RESULT_HEADER_ALIASES = {
     "source_run_id": ["run_id", "Run ID", "Source Run ID"],
@@ -115,6 +117,7 @@ RUBRIC_HEADER_ALIASES = {
     "test_id": ["TESTID", "Test ID", "TestID", "Prompt ID", "ID"],
     "category": ["Category"],
     "criterion": ["Criterion"],
+    "website_field": ["Website Field", "Rails Field", "Ruby Field", "Score Field", "DB Field"],
     "weight": ["Weight"],
     "prompt": ["Prompt", "Benchmark Prompt", "Original Prompt"],
     "input_material": [
@@ -291,6 +294,7 @@ class RubricEntry:
     test_id: str
     category: str
     criterion: str
+    website_field: str
     weight: float
     prompt: str
     input_material: str
@@ -717,6 +721,7 @@ def read_rubric(workbook_path: Path, sheet_name: str | None) -> list[RubricEntry
                 test_id=clean_text(cell_value(ws, row_number, columns, "test_id")),
                 category=clean_text(cell_value(ws, row_number, columns, "category")),
                 criterion=clean_text(cell_value(ws, row_number, columns, "criterion")),
+                website_field=clean_text(cell_value(ws, row_number, columns, "website_field")),
                 weight=parse_weight(cell_value(ws, row_number, columns, "weight")),
                 prompt=clean_text(cell_value(ws, row_number, columns, "prompt")),
                 input_material=clean_text(cell_value(ws, row_number, columns, "input_material")),
@@ -848,13 +853,37 @@ def planned_pairs(
     return pairs, skipped
 
 
-def grade_messages(output: TestOutput, context: RubricContext) -> list[dict[str, str]]:
+def grade_messages(
+    output: TestOutput,
+    context: RubricContext,
+    score_only: bool = False,
+) -> list[dict[str, str]]:
     prompt = context.prompt or "(not available in the source workbook)"
     input_material = context.input_material or "(none)"
     rubric = context.rubric or (
         "Use a strict 1-10 quality score for prompt adherence, correctness, "
         "completeness, and usefulness."
     )
+    if score_only:
+        response_shape = '{\n  "score": number\n}'
+        response_rules = "- Return only the score JSON. Do not include explanation fields."
+        missing_rule = (
+            "- If the output cannot be evaluated from the available material, "
+            "assign the lowest justified score."
+        )
+    else:
+        response_shape = """{
+  "score": number,
+  "reasoning": "one or two concise sentences",
+  "strengths": "brief note",
+  "issues": "brief note"
+}"""
+        response_rules = "- Keep reasoning, strengths, and issues concise."
+        missing_rule = (
+            "- If the output cannot be evaluated from the available material, "
+            "assign the lowest justified score and explain why."
+        )
+
     user = f"""
 Grade this AI model output using the rubric.
 
@@ -885,18 +914,14 @@ Rubric:
 {rubric}
 
 Return only JSON with:
-{{
-  "score": number,
-  "reasoning": "one or two concise sentences",
-  "strengths": "brief note",
-  "issues": "brief note"
-}}
+{response_shape}
 
 Rules:
 - Judge only the model output above, not the model's reputation.
 - Apply the rubric strictly and use the full score range when warranted.
 - Penalize missing requested facts, unsupported claims, irrelevant content, and refusals when the prompt was answerable.
-- If the output cannot be evaluated from the available material, assign the lowest justified score and explain why.
+{missing_rule}
+{response_rules}
 """.strip()
 
     return [
@@ -932,11 +957,12 @@ def grade_output(
     grader: dict[str, Any],
     output: TestOutput,
     context: RubricContext,
+    score_only: bool = False,
 ) -> tuple[float | None, str, str, str, dict[str, Any]]:
     grader_response, usage = call_openai_compatible(
         config,
         grader,
-        grade_messages(output, context),
+        grade_messages(output, context, score_only=score_only),
     )
     parsed = extract_json_object(grader_response)
     return (
@@ -1772,12 +1798,20 @@ def normalized_name(value: Any) -> str:
     return re.sub(r"[^a-z0-9]+", "", clean_text(value).lower())
 
 
-def website_field_tests(headers: list[str]) -> dict[str, list[str]]:
+def website_field_tests(headers: list[str], rubric_entries: list[RubricEntry]) -> dict[str, list[str]]:
     mapping: dict[str, list[str]] = {}
     for source in (WEBSITE_DIRECT_FIELD_TEST_IDS, WEBSITE_COMPOSITE_FIELD_TEST_IDS):
         for field, test_ids in source.items():
             if field in headers:
                 mapping[field] = list(test_ids)
+    for entry in rubric_entries:
+        field = clean_text(entry.website_field)
+        test_id = clean_text(entry.test_id)
+        if not field or not test_id or field not in headers:
+            continue
+        mapping.setdefault(field, [])
+        if test_id not in mapping[field]:
+            mapping[field].append(test_id)
     return mapping
 
 
@@ -1823,13 +1857,20 @@ def write_website_upload_files(
     test_infos = rubric_test_infos(rubric_entries, rows)
     test_info_by_id = {clean_text(test["test_id"]): test for test in test_infos}
     consensus = consensus_scores(rows, include_self_judging=include_self_judging)
-    field_tests = website_field_tests(headers)
+    field_tests = website_field_tests(headers, rubric_entries)
     score_fields = website_score_fields(headers)
+    preserved_source_keys = {
+        clean_text(skipped_output.source_model_key)
+        for skipped_output in (skipped or [])
+        if clean_text(skipped_output.source_model_key)
+        and skipped_output.reason == "source model already scored"
+    }
     skipped_source_keys = {
         clean_text(skipped_output.source_model_key)
         for skipped_output in (skipped or [])
         if clean_text(skipped_output.source_model_key)
-    }
+        and skipped_output.reason in SCORE_CLEARING_SKIPPED_REASONS
+    } - preserved_source_keys
 
     sources_by_key = {model["key"]: model for model in model_infos}
     sources_by_name: dict[str, list[dict[str, str]]] = {}
@@ -1922,6 +1963,28 @@ def completed_grade_keys(
         if key in selected_keys and (row.get("score") not in (None, "") or row.get("error")):
             completed.add(key)
     return completed
+
+
+def filter_scored_source_outputs(
+    outputs: list[TestOutput],
+    scored_model_keys: dict[str, list[str]],
+) -> tuple[list[TestOutput], list[SkippedOutput]]:
+    selected: list[TestOutput] = []
+    skipped: list[SkippedOutput] = []
+    for output in outputs:
+        source_model_key = clean_text(output.source_model_key)
+        if source_model_key and source_model_key in scored_model_keys:
+            skipped.append(
+                SkippedOutput(
+                    output.row_number,
+                    output.test_id,
+                    output.source_model_key,
+                    "source model already scored",
+                )
+            )
+        else:
+            selected.append(output)
+    return selected, skipped
 
 
 def print_plan(
@@ -2030,6 +2093,16 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--only-source-models", help="Comma-separated source model keys to grade.")
     parser.add_argument("--only-models", help="Comma-separated grader model keys from the model workbook.")
     parser.add_argument(
+        "--first-grader-only",
+        action="store_true",
+        help="Use only the first enabled text-capable grader model after filters.",
+    )
+    parser.add_argument(
+        "--score-only",
+        action="store_true",
+        help="Ask graders to return only a numeric score JSON object.",
+    )
+    parser.add_argument(
         "--allow-missing-rubric",
         action="store_true",
         help="Grade rows without a matching rubric using generic guidance instead of skipping them.",
@@ -2057,6 +2130,11 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         "--update-website-seed",
         action="store_true",
         help="Overwrite --website-seed-csv with the generated website upload CSV after grading.",
+    )
+    parser.add_argument(
+        "--skip-scored-source-models",
+        action="store_true",
+        help="Skip source model outputs whose model_id_string already has website scores.",
     )
     parser.add_argument(
         "--rate-limit-skip-after",
@@ -2106,8 +2184,12 @@ def main(argv: list[str]) -> int:
     config = read_model_workbook(models_workbook, default_config())
     config.setdefault("request", {})["max_tokens"] = args.max_tokens
     models = text_capable_models(config, enabled_models(config, args.only_models))
+    if args.first_grader_only and len(models) > 1:
+        models = models[:1]
     if not models:
         raise ValueError("No enabled text-capable grader models found.")
+
+    website_seed_csv = requested_website_seed_csv or default_website_seed_csv()
 
     only_tests = split_filter(args.only_tests)
     only_source_models = split_filter(args.only_source_models)
@@ -2118,6 +2200,16 @@ def main(argv: list[str]) -> int:
         only_source_models=only_source_models,
         limit=args.limit,
     )
+    if args.skip_scored_source_models:
+        if not website_seed_csv:
+            raise ValueError("--skip-scored-source-models requires --website-seed-csv.")
+        if not website_seed_csv.exists():
+            raise ValueError(f"Website seed CSV not found: {website_seed_csv}")
+        outputs, scored_skipped = filter_scored_source_outputs(
+            outputs,
+            read_scored_model_keys(website_seed_csv),
+        )
+        skipped.extend(scored_skipped)
     rubric_entries = read_rubric(rubric_workbook, args.rubric_sheet)
     category_weights = read_category_weights(rubric_workbook)
     pairs, rubric_skipped = planned_pairs(
@@ -2228,6 +2320,7 @@ def main(argv: list[str]) -> int:
             grader=grader,
             output=output,
             context=context,
+            score_only=args.score_only,
         )
         return result_row(
             grading_run_id=grading_run_id,
@@ -2343,7 +2436,6 @@ def main(argv: list[str]) -> int:
         include_self_judging=args.include_self_judging,
     )
 
-    website_seed_csv = requested_website_seed_csv or default_website_seed_csv()
     website_upload_csv = requested_website_upload_csv
     if website_seed_csv:
         if not website_seed_csv.exists():
