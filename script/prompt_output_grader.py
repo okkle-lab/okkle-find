@@ -14,6 +14,7 @@ import threading
 import time
 import traceback
 import zipfile
+from collections import Counter
 from dataclasses import dataclass
 from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
@@ -2200,6 +2201,11 @@ def print_plan(
     ]
     print(f"Outputs without matching rubric: {len(missing_rubric)}")
     print(f"Skipped outputs: {len(skipped)}")
+    if skipped:
+        print("Skipped output reasons:")
+        reason_counts = Counter(skipped_output.reason for skipped_output in skipped)
+        for reason, count in reason_counts.most_common():
+            print(f"  - {reason}: {count}")
     for skipped_output in skipped[:20]:
         print(
             f"  - row {skipped_output.row_number} "
@@ -2368,6 +2374,8 @@ def main(argv: list[str]) -> int:
         only_source_models=only_source_models,
         limit=args.limit,
     )
+    source_outputs_before_score_skip = len(outputs)
+    scored_skipped: list[SkippedOutput] = []
     if args.skip_scored_source_models:
         if not website_seed_csv:
             raise ValueError("--skip-scored-source-models requires --website-seed-csv.")
@@ -2405,6 +2413,16 @@ def main(argv: list[str]) -> int:
     if args.dry_run:
         return 0
     if not outputs:
+        if (
+            args.skip_scored_source_models
+            and source_outputs_before_score_skip > 0
+            and len(scored_skipped) == source_outputs_before_score_skip
+        ):
+            print(
+                "No unscored source outputs selected. All valid source outputs "
+                "already have website scores, so there is nothing to grade."
+            )
+            return 0
         raise ValueError("No source outputs selected.")
     if not pairs:
         raise ValueError("No grading calls planned. Check rubric coverage and filters.")
