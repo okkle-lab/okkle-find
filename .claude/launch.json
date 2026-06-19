@@ -2,6 +2,6 @@
   "version": "0.0.1",
   "autoPort": true,
   "configurations": [
-    { "name": "ai-finder", "runtimeExecutable": "/Users/motonarishiga/Documents/AI-Finder/bin/preview-server", "runtimeArgs": [], "port": 3000 }
+    { "name": "ai-finder", "runtimeExecutable": "bin/preview-server", "runtimeArgs": [], "port": 3000 }
   ]
 }
