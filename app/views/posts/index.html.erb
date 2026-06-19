@@ -7,14 +7,20 @@
 </section>
 
 <% if @posts.any? %>
-  <div class="post-list">
-    <% @posts.each do |post| %>
-      <article class="post-card">
-        <% if post.published_at %><p class="post-date"><%= post.published_at.strftime("%-d %b %Y") %></p><% end %>
-        <h2 class="post-title"><%= link_to post.title, post_path(post) %></h2>
-        <% if post.excerpt.present? %><p class="post-excerpt"><%= post.excerpt %></p><% end %>
-        <%= link_to "Read more →", post_path(post), class: "post-readmore" %>
-      </article>
+  <div class="posts-magazine">
+    <% @posts.each_with_index do |post, i| %>
+      <%= link_to post_path(post), class: "pmag-card#{' pmag-card-lead' if i.zero?}" do %>
+        <span class="pmag-kicker">
+          <span class="pmag-dot"></span>
+          <% if post.published_at %><%= post.published_at.strftime("%-d %b %Y") %><% end %>
+          <% if post.source_name.present? %><span class="pmag-source">via <%= post.source_name %></span><% end %>
+        </span>
+        <span class="pmag-title"><%= post.title %></span>
+        <% if post.excerpt.present? %>
+          <span class="pmag-excerpt"><%= truncate(post.excerpt, length: i.zero? ? 220 : 110) %></span>
+        <% end %>
+        <span class="pmag-read">Read <%= icon("external-link", size: 13) %></span>
+      <% end %>
     <% end %>
   </div>
 <% else %>

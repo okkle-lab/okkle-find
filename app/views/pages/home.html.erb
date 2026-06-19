@@ -36,3 +36,48 @@
     <% end %>
   </div>
 </section>
+
+<% if @top_rated.any? %>
+  <section class="home-section">
+    <div class="section-head">
+      <h2 class="panel-title">Top rated overall</h2>
+      <%= link_to "Browse all leaderboards →", leaderboards_path, class: "section-all" %>
+    </div>
+    <ol class="top-list">
+      <% @top_rated.each_with_index do |(tool, score), i| %>
+        <%= link_to tool_path(tool), class: "top-row" do %>
+          <span class="top-rank"><%= i + 1 %></span>
+          <%= tool_logo(tool, css_class: "top-logo") %>
+          <span class="top-main">
+            <span class="top-name"><%= tool.name %></span>
+            <% if tool.provider.present? %><span class="top-prov">by <%= tool.provider %></span><% end %>
+          </span>
+          <span class="top-score" style="color: <%= score_color(score) %>"><%= score_number(score) %></span>
+        <% end %>
+      <% end %>
+    </ol>
+  </section>
+<% end %>
+
+<% if @recent_posts.any? %>
+  <section class="home-section">
+    <div class="section-head">
+      <h2 class="panel-title">Latest in AI</h2>
+      <%= link_to "All news →", posts_path, class: "section-all" %>
+    </div>
+    <div class="news-grid">
+      <% @recent_posts.each_with_index do |post, i| %>
+        <%= link_to post_path(post), class: "news-card#{' news-card-lead' if i.zero?}" do %>
+          <span class="news-kicker">
+            <span class="news-dot"></span>
+            <% if post.published_at %><%= post.published_at.strftime("%-d %b %Y") %><% end %>
+            <% if post.source_name.present? %><span class="news-source">via <%= post.source_name %></span><% end %>
+          </span>
+          <span class="news-title"><%= post.title %></span>
+          <% if post.excerpt.present? %><span class="news-excerpt"><%= truncate(post.excerpt, length: i.zero? ? 160 : 90) %></span><% end %>
+          <span class="news-readmore">Read <%= icon("external-link", size: 13) %></span>
+        <% end %>
+      <% end %>
+    </div>
+  </section>
+<% end %>

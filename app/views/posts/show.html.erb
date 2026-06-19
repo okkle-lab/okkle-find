@@ -3,9 +3,19 @@
 <article class="post">
   <%= link_to "← all posts", posts_path, class: "back-link" %>
   <h1 class="post-detail-title"><%= @post.title %></h1>
-  <% if @post.published_at %>
-    <p class="post-date"><%= @post.published_at.strftime("%-d %b %Y") %></p>
-  <% end %>
+  <p class="post-meta">
+    <% if @post.published_at %><span class="post-date"><%= @post.published_at.strftime("%-d %b %Y") %></span><% end %>
+    <% if @post.source_name.present? %>
+      <span class="post-source-tag">
+        via
+        <% if @post.source_url.present? %>
+          <%= link_to @post.source_name, @post.source_url, target: "_blank", rel: "noopener" %>
+        <% else %>
+          <%= @post.source_name %>
+        <% end %>
+      </span>
+    <% end %>
+  </p>
 
   <div class="post-body">
     <% if @post.body.present? %>

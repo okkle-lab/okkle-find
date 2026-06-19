@@ -21,32 +21,34 @@
     <h2 class="specs-title">How we scored this</h2>
     <p class="eval-intro">Cross-judged by 2 independent AI models, tested on real-world tasks. Below is what we tested and why we scored it this way.</p>
 
-    <% if @tool.scored? %>
+    <% breakdown = tool_category_breakdown(@tool) %>
+    <% if breakdown.any? %>
       <div class="eval-grid">
-        <% Rubric::DIMENSIONS.each do |key, dimension| %>
-          <% score = @tool.send("#{key}_score") %>
-          <% next unless score %>
+        <% breakdown.each do |cat| %>
           <div class="eval-card">
             <div class="eval-card-head">
-              <span class="eval-ic"><%= icon(dimension[:icon].presence || "sparkles", size: 20) %></span>
+              <span class="eval-ic" style="--icon-tint: <%= tool_monogram_color(cat[:name]) %>"><%= icon(cat[:icon], size: 20) %></span>
               <div>
-                <h3 class="eval-card-title"><%= dimension[:label] %></h3>
-                <p class="eval-card-desc"><%= Rubric::CRITERION_MEASURES[key.to_sym] %></p>
+                <h3 class="eval-card-title"><%= cat[:name] %></h3>
+                <p class="eval-card-desc"><%= cat[:fields].size %> criteria tested</p>
               </div>
-              <span class="eval-score"><%= colored_score(score) %></span>
+              <span class="eval-score"><%= colored_score(cat[:score]) %></span>
             </div>
             <div class="eval-card-body">
-              <div class="eval-test">
-                <p class="eval-label">What we tested</p>
-                <p class="eval-placeholder">Test prompt and task will appear here as evals complete.</p>
-              </div>
-              <div class="eval-result">
-                <p class="eval-label">The result</p>
-                <p class="eval-placeholder">AI's actual output will appear here.</p>
-              </div>
+              <ul class="eval-criteria">
+                <% category_criteria(@tool, cat[:fields]).each do |label, score, measure| %>
+                  <li class="eval-crit">
+                    <div class="eval-crit-top">
+                      <span class="eval-crit-label"><%= label %></span>
+                      <span class="eval-crit-score"><%= colored_score(score) %></span>
+                    </div>
+                    <p class="eval-crit-measure"><%= measure %></p>
+                  </li>
+                <% end %>
+              </ul>
               <div class="eval-reasoning">
-                <p class="eval-label">Why this score</p>
-                <p class="eval-placeholder">Our scoring reasoning will appear here.</p>
+                <p class="eval-label">What the AI produced &amp; why this score</p>
+                <p class="eval-placeholder">The actual test output and our judges' reasoning will appear here as evaluations complete.</p>
               </div>
             </div>
           </div>
@@ -60,6 +62,40 @@
   </section>
 
   <% variants = @tool.model_variants.ordered %>
+  <% scored_variants = variants.select { |v| breakdown.any? { |c| variant_category_score(v, c[:fields]).present? } } %>
+
+  <% if scored_variants.any? && breakdown.any? %>
+    <section class="specs-block model-compare-block">
+      <h2 class="specs-title">Score by model</h2>
+      <p class="eval-intro">How each individual model variant scores across tested categories.</p>
+      <div class="model-compare-wrap">
+        <table class="model-compare-table">
+          <thead>
+            <tr>
+              <th class="mc-cat-head">Category</th>
+              <% scored_variants.each do |v| %>
+                <th class="mc-model-head"><%= v.name %></th>
+              <% end %>
+            </tr>
+          </thead>
+          <tbody>
+            <% breakdown.each do |cat| %>
+              <tr>
+                <td class="mc-cat">
+                  <span class="mc-cat-ic" style="--icon-tint: <%= tool_monogram_color(cat[:name]) %>"><%= icon(cat[:icon], size: 14) %></span>
+                  <%= cat[:name] %>
+                </td>
+                <% scored_variants.each do |v| %>
+                  <% s = variant_category_score(v, cat[:fields]) %>
+                  <td class="mc-score" style="color: <%= score_color(s) %>"><%= s ? score_number(s) : "—" %></td>
+                <% end %>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  <% end %>
 
   <% if variants.any? %>
     <section class="specs-block models-block">

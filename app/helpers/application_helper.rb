@@ -85,11 +85,44 @@ module ApplicationHelper
     end
   end
 
-  # A drafted editorial "Our take" paragraph, generated from the tool's verdict
-  # data. Sample copy — replace with hand-written commentary per tool later.
+  # Per-category scores for a tool, best-scored first, for the detail-page
+  # breakdown and the review-page eval section. Only categories the tool is
+  # actually scored on are returned (no fabricated zeros).
+  def tool_category_breakdown(tool)
+    icons = Category.pluck(:slug, :icon).to_h
+    Rubric::CATEGORIES.filter_map do |name, config|
+      score = tool.comparison_category_score(config[:fields].keys)
+      next if score.nil?
+
+      {
+        name: name,
+        key: config[:key],
+        score: score.round(1),
+        icon: icons[config[:key]].presence || "sparkles",
+        fields: config[:fields].keys
+      }
+    end.sort_by { |c| -c[:score] }
+  end
+
+  # The sub-criteria inside one category: [label, score, what-it-measures].
+  def category_criteria(tool, fields)
+    fields.map do |field|
+      label = Rubric::SUBCATEGORY_FIELDS.key(field) || field.to_s.humanize
+      score = tool.comparison_category_score([field])
+      [label, score&.round(1), Rubric::CRITERION_MEASURES[field]]
+    end
+  end
+
+  # A drafted editorial "Our take" — a richer multi-paragraph commentary
+  # generated from the tool's verdict data. Sample copy — replace with
+  # hand-written commentary per tool later.
   def tool_verdict_commentary(tool)
     v = tool.overall_verdict
-    return "We haven't finished testing #{tool.name} yet — scores and our full take are on the way." if v.nil?
+    return ["We haven't finished testing #{tool.name} yet — scores and our full take are on the way."] if v.nil?
+
+    breakdown = tool_category_breakdown(tool)
+    top = breakdown.first
+    bottom = breakdown.size > 1 ? breakdown.last : nil
 
     tier =
       if v >= 8.5 then "one of the strongest tools we've tested"
@@ -100,13 +133,59 @@ module ApplicationHelper
 
     best = tool.verdict_best_for.map(&:downcase)
     weak = tool.verdict_not_ideal_for.map(&:downcase)
-    free = tool.verdict_free_tier? ? " A usable free tier lowers the risk of trying it." : " There's no real free tier, so you're committing budget to find out."
 
-    parts = ["At #{score_number(v)}/10 overall, #{tool.name} is #{tier}."]
-    parts << "It earns its place on #{best.to_sentence}, where our cross-judged tests rate it well." if best.any?
-    parts << "The trade-off is #{weak.to_sentence} — go in expecting that." if weak.any?
-    parts << free.strip
-    parts.join(" ")
+    # Paragraph 1 — the headline judgement.
+    p1 = ["At #{score_number(v)}/10 overall, #{tool.name} is #{tier}."]
+    if top
+      p1 << "Its standout is #{top[:name].downcase} (#{score_number(top[:score])}/10), and it earns its place on #{best.to_sentence}, where our cross-judged tests rate it well." if best.any?
+    end
+
+    # Paragraph 2 — the honest trade-offs and who it suits.
+    p2 = []
+    if bottom && bottom[:score] < 7
+      p2 << "Where it slips is #{bottom[:name].downcase} (#{score_number(bottom[:score])}/10)."
+    end
+    p2 << "The trade-off is #{weak.to_sentence} — go in expecting that." if weak.any?
+    p2 << (tool.verdict_free_tier? ? "A usable free tier lowers the risk of trying it for yourself." : "There's no real free tier, so you're committing budget to find out if it fits.")
+    p2 << "It's the kind of tool we'd reach for when #{best.first} matters more than breadth." if best.any?
+
+    [p1.join(" "), p2.join(" ")].reject(&:blank?)
+  end
+
+  # Weighted category score for a single ModelVariant (mirrors Tool#comparison_category_score
+  # but operates directly on the variant's own score columns).
+  def variant_category_score(variant, fields)
+    all_weights = Rubric::CATEGORIES.values.flat_map { |c| c[:fields].to_a }.to_h
+    pairs = fields.filter_map do |field|
+      raw = variant.send(field) rescue nil
+      next if raw.blank?
+      [raw.to_f, all_weights[field] || 1.0]
+    end
+    return nil if pairs.empty?
+    total_w = pairs.sum(&:last)
+    return nil if total_w.zero?
+    (pairs.sum { |s, w| s * w } / total_w).round(1)
+  end
+
+  # Bite-size editorial highlights for the "Our take" panel — strongest area,
+  # weakest area, free tier, and model lineup, all from real scored data.
+  def tool_verdict_highlights(tool)
+    return [] unless tool.scored?
+
+    breakdown = tool_category_breakdown(tool)
+    highlights = []
+
+    if (top = breakdown.first)
+      highlights << { icon: "trend-up", label: "Strongest at", value: "#{top[:name]} · #{score_number(top[:score])}" }
+    end
+    if breakdown.size > 1 && (bottom = breakdown.last) && bottom[:score] < 7.5
+      highlights << { icon: "bolt", label: "Weakest at", value: "#{bottom[:name]} · #{score_number(bottom[:score])}" }
+    end
+    highlights << { icon: "currency-dollar", label: "Free tier", value: tool.verdict_free_tier? ? "Yes" : "No" }
+    if (n = tool.verdict_models_available).to_i.positive?
+      highlights << { icon: "sparkles", label: "Models", value: "#{n} available" }
+    end
+    highlights
   end
 
   # Colour a 1-10 score on a red→green scale: 1 is red, 10 is green.

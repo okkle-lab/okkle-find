@@ -100,6 +100,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_17_010000) do
     t.text "excerpt"
     t.text "body"
     t.datetime "published_at"
+    t.string "source_name"
+    t.string "source_url"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["published_at"], name: "index_posts_on_published_at"

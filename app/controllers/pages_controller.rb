@@ -7,6 +7,13 @@ class PagesController < ApplicationController
       models: ModelVariant.count,
       categories: Rubric::CATEGORIES.size
     }
+
+    @top_rated = Tool.visible.includes(:model_variants).to_a
+      .filter_map { |t| [t, t.overall_verdict] if t.overall_verdict }
+      .sort_by { |_t, v| -v }
+      .first(5)
+
+    @recent_posts = Post.published.recent.limit(3)
   end
 
   def methodology
