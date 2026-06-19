@@ -120,6 +120,9 @@ then run `bin/rails db:seed` to apply those scores locally. When the repo is
 not available, the app still writes the upload CSV under `db_upload/` using the
 bundled seed metadata.
 
-Skipping already-scored source models does not clear their existing seed
-scores. Only source models that were selected but produced missing or errored
-outputs are treated as unavailable and cleared in the generated upload CSV.
+Skipping already-scored source models only skips a model when the existing
+website score fields cover every selected `Test ID` for that model. New rubric
+questions are graded again. Skipped already-scored source models do not clear
+their existing seed scores. Only source models that were selected but produced
+missing or errored outputs are treated as unavailable and cleared in the
+generated upload CSV.

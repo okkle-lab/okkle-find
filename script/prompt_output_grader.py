@@ -2137,12 +2137,31 @@ def completed_grade_keys(
 def filter_scored_source_outputs(
     outputs: list[TestOutput],
     scored_model_keys: dict[str, list[str]],
+    field_tests: dict[str, list[str]],
 ) -> tuple[list[TestOutput], list[SkippedOutput]]:
+    output_test_ids_by_model: dict[str, set[str]] = {}
+    for output in outputs:
+        source_model_key = clean_text(output.source_model_key)
+        test_id = clean_text(output.test_id)
+        if source_model_key and test_id:
+            output_test_ids_by_model.setdefault(source_model_key, set()).add(test_id)
+
+    fully_covered_model_keys: set[str] = set()
+    for source_model_key, selected_test_ids in output_test_ids_by_model.items():
+        scored_fields = scored_model_keys.get(source_model_key, [])
+        covered_test_ids = {
+            test_id
+            for field in scored_fields
+            for test_id in field_tests.get(field, [])
+        }
+        if selected_test_ids and selected_test_ids.issubset(covered_test_ids):
+            fully_covered_model_keys.add(source_model_key)
+
     selected: list[TestOutput] = []
     skipped: list[SkippedOutput] = []
     for output in outputs:
         source_model_key = clean_text(output.source_model_key)
-        if source_model_key and source_model_key in scored_model_keys:
+        if source_model_key and source_model_key in fully_covered_model_keys:
             skipped.append(
                 SkippedOutput(
                     output.row_number,
@@ -2308,7 +2327,10 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument(
         "--skip-scored-source-models",
         action="store_true",
-        help="Skip source model outputs whose model_id_string already has website scores.",
+        help=(
+            "Skip source model outputs only when existing website score fields "
+            "cover every selected Test ID for that source model."
+        ),
     )
     parser.add_argument(
         "--rate-limit-skip-after",
@@ -2374,6 +2396,8 @@ def main(argv: list[str]) -> int:
         only_source_models=only_source_models,
         limit=args.limit,
     )
+    rubric_entries = read_rubric(rubric_workbook, args.rubric_sheet)
+    category_weights = read_category_weights(rubric_workbook)
     source_outputs_before_score_skip = len(outputs)
     scored_skipped: list[SkippedOutput] = []
     if args.skip_scored_source_models:
@@ -2384,10 +2408,9 @@ def main(argv: list[str]) -> int:
         outputs, scored_skipped = filter_scored_source_outputs(
             outputs,
             read_scored_model_keys(website_seed_csv),
+            website_field_tests(read_csv_dicts(website_seed_csv)[0], rubric_entries),
         )
         skipped.extend(scored_skipped)
-    rubric_entries = read_rubric(rubric_workbook, args.rubric_sheet)
-    category_weights = read_category_weights(rubric_workbook)
     pairs, rubric_skipped = planned_pairs(
         models=models,
         outputs=outputs,
