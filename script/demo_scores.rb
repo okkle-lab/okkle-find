@@ -19,7 +19,7 @@ MEETING_FIELDS = %w[meeting_summary_score follow_up_score]
 TEXT_FIELDS = %w[
   write_edit_score summarisation_score research_fact_checking_score source_quality_score
   hallucination_resistance_score deep_research_score coding_speed_score coding_accuracy_score
-  debugging_score agentic_coding_score consistency_score reasoning_score
+  debugging_score agentic_coding_score consistency_score reasoning_score truthful_pushback_score
   translation_accuracy_score translation_speed_score
 ]
 

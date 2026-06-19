@@ -41,6 +41,15 @@ HEADER_ALIASES = {
     "weight": {"weight"},
 }
 
+CATEGORY_ALIASES = {
+    "accuracy & trustworthiness": "Accuracy & trustworthiness",
+    "agreement": "Accuracy & trustworthiness",
+}
+
+FIELD_WEIGHT_OVERRIDES = {
+    "truthful_pushback_score": 0.20,
+}
+
 WEIGHT_HEADER_ALIASES = {
     "category": {"category", "score category"},
     "weight": {"category weight", "weight", "overall weight"},
@@ -59,6 +68,11 @@ class CategoryConfig:
 
 def normalize_header(value: Any) -> str:
     return re.sub(r"\s+", " ", str(value or "").strip().lower())
+
+
+def canonical_category(value: str) -> str:
+    text = str(value or "").strip()
+    return CATEGORY_ALIASES.get(normalize_header(text), text)
 
 
 def parse_weight(value: Any) -> float:
@@ -225,7 +239,7 @@ def read_rubric_categories(
 
         categories: "OrderedDict[str, CategoryConfig]" = OrderedDict()
         for row in rows[header_index + 1 :]:
-            category = str(row.get(headers["category"], "") or "").strip()
+            category = canonical_category(str(row.get(headers["category"], "") or "").strip())
             field_name = str(row.get(headers.get("website_field", 0), "") or "").strip()
             derived_from_criterion = False
             if not field_name:
@@ -234,7 +248,7 @@ def read_rubric_categories(
                 derived_from_criterion = bool(field_name)
             if not field_name:
                 continue
-            criterion_weight = parse_weight(row.get(headers["weight"], ""))
+            criterion_weight = FIELD_WEIGHT_OVERRIDES.get(field_name, parse_weight(row.get(headers["weight"], "")))
             if not category:
                 raise ValueError(f"Website field {field_name!r} is missing a category.")
             if not re.fullmatch(r"[a-z][a-z0-9_]*_score", field_name):

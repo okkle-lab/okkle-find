@@ -63,7 +63,7 @@ VARIANT_HEADERS = %w[
   write_edit_score summarisation_score research_fact_checking_score
   source_quality_score hallucination_resistance_score deep_research_score
   coding_speed_score coding_accuracy_score debugging_score agentic_coding_score
-  consistency_score reasoning_score image_quality_score prompt_adherence_score
+  consistency_score reasoning_score truthful_pushback_score image_quality_score prompt_adherence_score
   text_rendering_score image_editing_score transcription_score meeting_summary_score
   follow_up_score translation_accuracy_score translation_speed_score
 ].freeze
@@ -79,7 +79,7 @@ VARIANT_SCORES = %w[
   write_edit_score summarisation_score research_fact_checking_score
   source_quality_score hallucination_resistance_score deep_research_score
   coding_speed_score coding_accuracy_score debugging_score agentic_coding_score
-  consistency_score reasoning_score image_quality_score prompt_adherence_score
+  consistency_score reasoning_score truthful_pushback_score image_quality_score prompt_adherence_score
   text_rendering_score image_editing_score transcription_score meeting_summary_score
   follow_up_score translation_accuracy_score translation_speed_score
 ].freeze

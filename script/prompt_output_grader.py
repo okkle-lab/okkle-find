@@ -211,6 +211,13 @@ GRADE_COLUMNS = [
     "error",
 ]
 
+ACCURACY_CATEGORY = "Accuracy & Trustworthiness"
+CATEGORY_ROLLUP_ALIASES = {
+    "agreement": ACCURACY_CATEGORY,
+}
+
+AGREEMENT_TEST_IDS = ["AGR1", "AGR2", "AGR3", "AGR4", "AGR5"]
+
 WEBSITE_DIRECT_FIELD_TEST_IDS = {
     "write_edit_score": ["W1"],
     "score_write_edit": ["W1"],
@@ -232,6 +239,7 @@ WEBSITE_DIRECT_FIELD_TEST_IDS = {
     "score_consistency": ["A&3"],
     "reasoning_score": ["A&4"],
     "score_logic": ["A&4"],
+    "truthful_pushback_score": AGREEMENT_TEST_IDS,
     "image_quality_score": ["IG1"],
     "prompt_adherence_score": ["IG2"],
     "text_rendering_score": ["IG3"],
@@ -251,7 +259,7 @@ WEBSITE_COMPOSITE_FIELD_TEST_IDS = {
     "score_email_writing": ["W1"],
     "score_coding": ["C1", "C2", "C3", "C4"],
     "score_image_generation": ["IG1", "IG2", "IG3", "IG4"],
-    "score_accuracy": ["A&1", "A&2", "A&3", "A&4"],
+    "score_accuracy": ["A&1", "A&2", "A&3", "A&4", *AGREEMENT_TEST_IDS],
 }
 
 
@@ -358,6 +366,11 @@ def normalize_key(value: str) -> str:
     return clean_text(value).strip().lower()
 
 
+def scoring_category(category: Any) -> str:
+    value = clean_text(category)
+    return CATEGORY_ROLLUP_ALIASES.get(normalize_key(value), value)
+
+
 def is_xlsx_workbook(path: Path) -> bool:
     return zipfile.is_zipfile(path)
 
@@ -447,6 +460,7 @@ def is_self_judge_row(row: dict[str, Any]) -> bool:
 
 
 def category_weight_for(category: str, category_weights: dict[str, float]) -> float:
+    category = scoring_category(category)
     if not category:
         return 1.0
     if category in category_weights:
@@ -559,6 +573,7 @@ def read_category_weights(workbook_path: Path) -> dict[str, float]:
         weights: dict[str, float] = {}
         for row_number in range(header_row + 1, ws.max_row + 1):
             category = clean_text(cell_value(ws, row_number, columns, "category"))
+            category = scoring_category(category)
             if not category:
                 continue
             if normalize_key(category) in {"total", "overall", "grand total"}:
@@ -888,7 +903,7 @@ def read_rubric(workbook_path: Path, sheet_name: str | None) -> list[RubricEntry
             RubricEntry(
                 row_number=row_number,
                 test_id=clean_text(cell_value(ws, row_number, columns, "test_id")),
-                category=clean_text(cell_value(ws, row_number, columns, "category")),
+                category=scoring_category(cell_value(ws, row_number, columns, "category")),
                 criterion=clean_text(cell_value(ws, row_number, columns, "criterion")),
                 website_field=clean_text(cell_value(ws, row_number, columns, "website_field")),
                 weight=parse_weight(cell_value(ws, row_number, columns, "weight")),
@@ -907,7 +922,7 @@ def read_rubric(workbook_path: Path, sheet_name: str | None) -> list[RubricEntry
 
 def rubric_matches(output: TestOutput, entries: list[RubricEntry]) -> list[RubricEntry]:
     test_id = normalize_key(output.test_id)
-    category = normalize_key(output.category)
+    category = normalize_key(scoring_category(output.category))
     criterion = normalize_key(output.criterion)
 
     exact = [entry for entry in entries if normalize_key(entry.test_id) == test_id]
@@ -949,7 +964,7 @@ def rubric_context(output: TestOutput, entries: list[RubricEntry]) -> RubricCont
             score_min=1.0,
             score_max=10.0,
             weight=output.weight,
-            category=output.category,
+            category=scoring_category(output.category),
             criterion=output.criterion,
             prompt=output.prompt,
             input_material=output.input_material,
@@ -978,7 +993,7 @@ def rubric_context(output: TestOutput, entries: list[RubricEntry]) -> RubricCont
         score_min=first.score_min,
         score_max=first.score_max,
         weight=first.weight if first.weight != 1.0 else output.weight,
-        category=first.category or output.category,
+        category=scoring_category(first.category or output.category),
         criterion=first.criterion or output.criterion,
         prompt=prompt,
         input_material=input_material,
@@ -1447,7 +1462,7 @@ def rubric_test_infos(rubric_entries: list[RubricEntry], rows: Iterable[dict[str
             continue
         tests[test_id] = {
             "test_id": test_id,
-            "category": entry.category,
+            "category": scoring_category(entry.category),
             "criterion": entry.criterion,
             "weight": entry.weight,
         }
@@ -1462,7 +1477,7 @@ def rubric_test_infos(rubric_entries: list[RubricEntry], rows: Iterable[dict[str
             weight = 1.0
         tests[test_id] = {
             "test_id": test_id,
-            "category": clean_text(row.get("category")),
+            "category": scoring_category(row.get("category")),
             "criterion": clean_text(row.get("criterion")),
             "weight": weight,
         }
@@ -1478,6 +1493,7 @@ def category_order(
 
     def add(category: Any) -> None:
         value = clean_text(category)
+        value = scoring_category(value)
         if value and value not in ordered:
             ordered.append(value)
 
@@ -1550,7 +1566,7 @@ def weighted_results(
         category: [
             test
             for test in test_infos
-            if normalize_key(clean_text(test.get("category"))) == normalize_key(category)
+            if normalize_key(scoring_category(test.get("category"))) == normalize_key(scoring_category(category))
         ]
         for category in categories
     }

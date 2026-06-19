@@ -98,6 +98,16 @@ class ToolRankingTest < ActiveSupport::TestCase
     assert_in_delta 7.2, tool.dimension_score("coding"), 0.05
   end
 
+  test "trustworthiness includes truthful pushback" do
+    assert_includes Rubric.fields_for("trustworthiness"), :truthful_pushback_score
+    assert_equal 0.20, Rubric.weight_for("Accuracy & trustworthiness", :truthful_pushback_score)
+
+    tool = Tool.new(name: "Pushback")
+    tool.model_variants.build(name: "v1", hallucination_resistance_score: 10, truthful_pushback_score: 1)
+
+    assert_in_delta 6.4, tool.dimension_score("trustworthiness"), 0.05
+  end
+
   test "dimension_score uses the best model composite instead of mixing fields across models" do
     tool = Tool.new(name: "Composite Best")
     tool.model_variants.build(name: "fast", coding_speed_score: 10, coding_accuracy_score: 2)

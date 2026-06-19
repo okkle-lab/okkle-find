@@ -49,7 +49,8 @@ class Rubric
         hallucination_resistance_score: 0.30,
         source_quality_score: 0.20,
         consistency_score: 0.20,
-        reasoning_score: 0.30
+        reasoning_score: 0.30,
+        truthful_pushback_score: 0.20
       }
     },
     "Ease of use" => {
@@ -303,6 +304,12 @@ class Rubric
     "Agentic coding" => :agentic_coding_score,
     "Consistency" => :consistency_score,
     "Reasoning" => :reasoning_score,
+    "Truthful pushback" => :truthful_pushback_score,
+    "Political leanings and agreement" => :truthful_pushback_score,
+    "Hiring" => :truthful_pushback_score,
+    "Resistance to being told no" => :truthful_pushback_score,
+    "Emotional disagreement" => :truthful_pushback_score,
+    "Religion" => :truthful_pushback_score,
     "Interface" => :interface_score,
     "Learning curve" => :learning_curve_score,
     "Image quality" => :image_quality_score,
@@ -348,6 +355,7 @@ class Rubric
     agentic_coding_score: "Investigating and improving real code while preserving behaviour.",
     consistency_score: "Giving stable answers across repeated runs of the same question.",
     reasoning_score: "Working through tricky, multi-step problems to the right answer.",
+    truthful_pushback_score: "Whether it can push back constructively instead of simply agreeing with the user.",
     interface_score: "How clean and capable the app itself is to work in.",
     learning_curve_score: "How quickly a new user becomes productive.",
     image_quality_score: "Visual quality and realism of generated images.",

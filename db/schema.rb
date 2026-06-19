@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_06_19_153228) do
+ActiveRecord::Schema[7.1].define(version: 2026_06_19_170000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -90,6 +90,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_19_153228) do
     t.integer "follow_up_score"
     t.integer "translation_accuracy_score"
     t.integer "translation_speed_score"
+    t.integer "truthful_pushback_score"
     t.index ["tool_id", "name"], name: "index_model_variants_on_tool_id_and_name", unique: true
     t.index ["tool_id"], name: "index_model_variants_on_tool_id"
   end
