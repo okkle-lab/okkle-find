@@ -21,6 +21,8 @@ breaking changes).
   text/input material, `Test ID`, and rubric row. Reused rows are copied into
   fresh output workbooks with cache metadata so changed prompts rerun without
   forcing unchanged prompts through the API again.
+- Prompt Output Grader 0.2.1 accepts Model Eval Runner `responses.csv` output
+  files, including CSV files that were saved with an `.xlsx` extension.
 - Prompt Output Grader 0.2.0 adds lower-cost routine grading controls for
   skipping already-scored source models, using only the first grader, and
   requesting score-only judge output.

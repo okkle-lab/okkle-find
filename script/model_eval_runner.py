@@ -1973,7 +1973,7 @@ def set_widths(ws: Any, widths: dict[int, int]) -> None:
 
 def save_workbook_atomic(workbook: Any, output_path: Path) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    temp_path = output_path.with_name(f".{output_path.stem}.tmp{output_path.suffix}")
+    temp_path = output_path.with_name(f"{output_path.stem}.tmp{output_path.suffix}")
     workbook.save(temp_path)
     temp_path.replace(output_path)
 

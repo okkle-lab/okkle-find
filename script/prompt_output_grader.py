@@ -13,6 +13,7 @@ import sys
 import threading
 import time
 import traceback
+import zipfile
 from dataclasses import dataclass
 from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
@@ -39,6 +40,7 @@ from model_eval_runner import (
     find_header_row,
     group_pairs_by_product,
     model_capabilities,
+    normalized_header,
     parse_weight,
     product_lane_label,
     product_worker_count,
@@ -355,6 +357,43 @@ def normalize_key(value: str) -> str:
     return clean_text(value).strip().lower()
 
 
+def is_xlsx_workbook(path: Path) -> bool:
+    return zipfile.is_zipfile(path)
+
+
+def find_csv_columns(
+    headers: list[str],
+    aliases: dict[str, list[str]],
+    required_fields: set[str],
+) -> dict[str, str]:
+    normalized_values = {
+        normalized_header(header): header
+        for header in headers
+        if clean_text(header)
+    }
+
+    positions: dict[str, str] = {}
+    for field, field_aliases in aliases.items():
+        for alias in field_aliases:
+            header = normalized_values.get(normalized_header(alias))
+            if header:
+                positions[field] = header
+                break
+
+    missing = sorted(required_fields - positions.keys())
+    if missing:
+        raise ValueError(
+            f"Could not find CSV header columns: {', '.join(missing)}. "
+            f"Found: {', '.join(headers)}"
+        )
+    return positions
+
+
+def csv_value(row: dict[str, str], columns: dict[str, str], field: str) -> Any:
+    header = columns.get(field)
+    return row.get(header, "") if header else ""
+
+
 def canonical_identity(value: Any) -> set[str]:
     text = clean_text(value).lower()
     if not text:
@@ -553,6 +592,9 @@ def composed_rubric_text(ws: Any, row_number: int, columns: dict[str, int]) -> s
 
 
 def read_prompt_lookup(workbook_path: Path) -> dict[str, PromptInfo]:
+    if not is_xlsx_workbook(workbook_path):
+        return read_prompt_lookup_csv(workbook_path)
+
     wb = load_workbook(workbook_path, data_only=True)
     prompts: dict[str, PromptInfo] = {}
 
@@ -588,6 +630,31 @@ def read_prompt_lookup(workbook_path: Path) -> dict[str, PromptInfo]:
     return prompts
 
 
+def read_prompt_lookup_csv(csv_path: Path) -> dict[str, PromptInfo]:
+    headers, rows = read_csv_dicts(csv_path)
+    columns = find_csv_columns(headers, PROMPT_HEADER_ALIASES, {"test_id"})
+    prompts: dict[str, PromptInfo] = {}
+
+    for row in rows:
+        test_id = clean_text(csv_value(row, columns, "test_id"))
+        if not test_id:
+            continue
+        info = PromptInfo(
+            test_id=test_id,
+            category=clean_text(csv_value(row, columns, "category")),
+            criterion=clean_text(csv_value(row, columns, "criterion")),
+            weight=parse_weight_with_fallback(csv_value(row, columns, "weight"), 1.0),
+            eval_method=clean_text(csv_value(row, columns, "eval_method")),
+            prompt=clean_text(csv_value(row, columns, "prompt")),
+            input_material=clean_text(csv_value(row, columns, "input_material")),
+        )
+        existing = prompts.get(test_id)
+        if not existing or info.prompt or info.input_material:
+            prompts[test_id] = info
+
+    return prompts
+
+
 def read_outputs(
     workbook_path: Path,
     sheet_name: str | None,
@@ -595,6 +662,14 @@ def read_outputs(
     only_source_models: set[str],
     limit: int | None,
 ) -> tuple[list[TestOutput], list[SkippedOutput]]:
+    if not is_xlsx_workbook(workbook_path):
+        return read_outputs_csv(
+            csv_path=workbook_path,
+            only_tests=only_tests,
+            only_source_models=only_source_models,
+            limit=limit,
+        )
+
     prompt_lookup = read_prompt_lookup(workbook_path)
     wb = load_workbook(workbook_path, data_only=True)
     ws = selected_sheet(wb, sheet_name, "Run Results")
@@ -672,6 +747,99 @@ def read_outputs(
                 source_reasoning=clean_text(
                     cell_value(ws, row_number, columns, "source_reasoning")
                 ),
+                prompt=prompt_info.prompt,
+                input_material=prompt_info.input_material,
+                error=error,
+            )
+        )
+
+    if limit is not None:
+        skipped.extend(
+            SkippedOutput(
+                row.row_number,
+                row.test_id,
+                row.source_model_key,
+                "outside --limit",
+            )
+            for row in outputs[limit:]
+        )
+        outputs = outputs[:limit]
+
+    return outputs, skipped
+
+
+def read_outputs_csv(
+    csv_path: Path,
+    only_tests: set[str],
+    only_source_models: set[str],
+    limit: int | None,
+) -> tuple[list[TestOutput], list[SkippedOutput]]:
+    headers, rows = read_csv_dicts(csv_path)
+    columns = find_csv_columns(headers, RESULT_HEADER_ALIASES, {"test_id", "source_model_key"})
+    prompt_lookup = read_prompt_lookup_csv(csv_path)
+
+    outputs: list[TestOutput] = []
+    skipped: list[SkippedOutput] = []
+
+    for row_number, row in enumerate(rows, start=2):
+        test_id = clean_text(csv_value(row, columns, "test_id"))
+        source_model_key = clean_text(csv_value(row, columns, "source_model_key"))
+        if not test_id and not source_model_key:
+            continue
+        if only_tests and test_id not in only_tests:
+            continue
+        if only_source_models and source_model_key not in only_source_models:
+            continue
+
+        response = clean_text(csv_value(row, columns, "response"))
+        output_files = clean_text(csv_value(row, columns, "output_files"))
+        output_urls = clean_text(csv_value(row, columns, "output_urls"))
+        error = clean_text(csv_value(row, columns, "error"))
+        if error and not response:
+            skipped.append(
+                SkippedOutput(row_number, test_id, source_model_key, "source output errored")
+            )
+            continue
+        if not response and not output_files and not output_urls:
+            skipped.append(
+                SkippedOutput(row_number, test_id, source_model_key, "missing source output")
+            )
+            continue
+
+        prompt_info = prompt_lookup.get(test_id, PromptInfo(test_id=test_id))
+        source_run_id = clean_text(csv_value(row, columns, "source_run_id"))
+        output_key_parts = [
+            source_run_id or csv_path.stem,
+            str(row_number),
+            source_model_key,
+            test_id,
+        ]
+        outputs.append(
+            TestOutput(
+                row_number=row_number,
+                output_key=":".join(output_key_parts),
+                source_run_id=source_run_id,
+                source_model_key=source_model_key,
+                source_model_name=clean_text(csv_value(row, columns, "source_model_name")),
+                source_provider=clean_text(csv_value(row, columns, "source_provider")),
+                source_provider_model=clean_text(
+                    csv_value(row, columns, "source_provider_model")
+                ),
+                test_id=test_id,
+                category=clean_text(csv_value(row, columns, "category")) or prompt_info.category,
+                criterion=clean_text(csv_value(row, columns, "criterion")) or prompt_info.criterion,
+                weight=parse_weight_with_fallback(
+                    csv_value(row, columns, "weight"),
+                    prompt_info.weight,
+                ),
+                eval_method=clean_text(csv_value(row, columns, "eval_method"))
+                or prompt_info.eval_method,
+                output_type=clean_text(csv_value(row, columns, "output_type")),
+                response=response,
+                output_files=output_files,
+                output_urls=output_urls,
+                source_score=clean_text(csv_value(row, columns, "source_score")),
+                source_reasoning=clean_text(csv_value(row, columns, "source_reasoning")),
                 prompt=prompt_info.prompt,
                 input_material=prompt_info.input_material,
                 error=error,
@@ -2425,16 +2593,27 @@ def main(argv: list[str]) -> int:
             args.include_self_judging,
         )
     write_grades_csv(output_dir / "grades.csv", final_rows)
-    write_augmented_grades_workbook(
-        source_workbook=results_workbook,
-        output_path=output_dir / "prompt_output_grades.xlsx",
-        rows=final_rows,
-        skipped=skipped,
-        rubric_entries=rubric_entries,
-        category_weights=category_weights,
-        outputs=outputs,
-        include_self_judging=args.include_self_judging,
-    )
+    if is_xlsx_workbook(results_workbook):
+        write_augmented_grades_workbook(
+            source_workbook=results_workbook,
+            output_path=output_dir / "prompt_output_grades.xlsx",
+            rows=final_rows,
+            skipped=skipped,
+            rubric_entries=rubric_entries,
+            category_weights=category_weights,
+            outputs=outputs,
+            include_self_judging=args.include_self_judging,
+        )
+    else:
+        write_live_grades_workbook(
+            output_dir / "prompt_output_grades.xlsx",
+            final_rows,
+            skipped,
+            rubric_entries,
+            category_weights,
+            outputs,
+            args.include_self_judging,
+        )
 
     website_upload_csv = requested_website_upload_csv
     if website_seed_csv:

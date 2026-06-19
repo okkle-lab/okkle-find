@@ -374,8 +374,11 @@ struct ContentView: View {
     private var controls: some View {
         VStack(alignment: .leading, spacing: 14) {
             SpreadsheetDropZone(
-                title: "Test Output Workbook",
+                title: "Test Output File",
                 systemImage: "tablecells",
+                allowedExtensions: ["xlsx", "xlsm", "xls", "csv"],
+                placeholder: "Drop .xlsx or .csv",
+                chooserHelp: "Choose test output file",
                 url: $viewModel.resultsWorkbookURL
             )
             SpreadsheetDropZone(
@@ -537,6 +540,9 @@ struct ContentView: View {
 struct SpreadsheetDropZone: View {
     let title: String
     let systemImage: String
+    var allowedExtensions = ["xlsx", "xlsm", "xls"]
+    var placeholder = "Drop .xlsx"
+    var chooserHelp = "Choose workbook"
     @Binding var url: URL?
     @State private var isTargeted = false
 
@@ -551,14 +557,14 @@ struct SpreadsheetDropZone: View {
                 } label: {
                     Image(systemName: "square.and.arrow.down")
                 }
-                .help("Choose workbook")
+                .help(chooserHelp)
             }
             VStack(spacing: 8) {
                 let hasFile = url != nil
                 Image(systemName: hasFile ? "checkmark.circle.fill" : "arrow.down.doc")
                     .font(.system(size: 26, weight: .medium))
                     .foregroundStyle(hasFile ? Color.green : Color.secondary)
-                Text(url?.lastPathComponent ?? "Drop .xlsx")
+                Text(url?.lastPathComponent ?? placeholder)
                     .lineLimit(2)
                     .multilineTextAlignment(.center)
                     .font(url == nil ? .body : .callout)
@@ -607,7 +613,7 @@ struct SpreadsheetDropZone: View {
             } else {
                 droppedURL = item as? URL
             }
-            guard let droppedURL, Self.isSpreadsheet(droppedURL) else { return }
+            guard let droppedURL, isAllowedFile(droppedURL) else { return }
             DispatchQueue.main.async {
                 url = droppedURL
             }
@@ -615,11 +621,11 @@ struct SpreadsheetDropZone: View {
         return true
     }
 
-    private static func isSpreadsheet(_ url: URL) -> Bool {
-        ["xlsx", "xlsm", "xls"].contains(url.pathExtension.lowercased())
+    private func isAllowedFile(_ url: URL) -> Bool {
+        allowedExtensions.contains(url.pathExtension.lowercased())
     }
 
     private func spreadsheetTypes() -> [UTType] {
-        ["xlsx", "xlsm", "xls"].compactMap { UTType(filenameExtension: $0) }
+        allowedExtensions.compactMap { UTType(filenameExtension: $0) }
     }
 }

@@ -20,8 +20,9 @@ inside the app, so users do not need to install `openpyxl` or use Terminal.
 
 Inputs:
 
-- Test output workbook: `model_test_results.xlsx` or `responses.xlsx` from the
-  Model Eval Runner. The grader reads the `Run Results` sheet by default.
+- Test output file: `model_test_results.xlsx`, `responses.xlsx`, or
+  `responses.csv` from the Model Eval Runner. CSV-formatted `responses` files
+  are accepted even when they were saved with an `.xlsx` extension.
 - Grading model spreadsheet: same model-list format used by the Model Eval
   Runner. Text-capable enabled rows become judge models. The app ships with a
   grading-specific default at `PromptGradeApp/Defaults/AI_model_variants.xlsx`
