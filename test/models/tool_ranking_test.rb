@@ -44,6 +44,15 @@ class ToolRankingTest < ActiveSupport::TestCase
     assert_equal Rubric::PRIORITY_DIMENSIONS, Tool::PRIORITY_DIMENSIONS
   end
 
+  test "blank-score catalogue tools are treated as not yet tested" do
+    tool = Tool.new(name: "Untested")
+
+    refute tool.scored?
+    assert_nil tool.overall_verdict
+    assert_empty tool.verdict_best_for
+    assert_empty tool.verdict_not_ideal_for
+  end
+
   test "product overall scores are derived from product rubric fields" do
     tool = Tool.new(name: "Product Scores", prompt_effort_score: 7, interface_score: 8,
       security_certifications_score: 9)

@@ -347,6 +347,7 @@ a:hover { text-decoration: underline; }
 .tag-price { background: #eaf4ee; color: #16713a; border: 1px solid #b6dcc5; }
 .tag-privacy { background: #eef3ff; color: #27408f; border: 1px solid #bcccf6; }
 .tag-ease { background: #f5f6f8; color: #4b5563; border: 1px solid #e5e7eb; }
+.tag-testing { background: #fff7ed; color: #9a3412; border: 1px solid #fed7aa; }
 
 .card-bars {
   display: grid; grid-template-columns: 1fr; gap: 0.5rem 1.4rem;
@@ -622,6 +623,7 @@ a:hover { text-decoration: underline; }
   background: rgba(255, 255, 255, 0.18); color: #fff;
 }
 .band-chip:hover { text-decoration: none; background: rgba(255, 255, 255, 0.28); }
+.band-chip-testing { background: rgba(255, 255, 255, 0.28); font-weight: 800; }
 .detail-band-score { flex-shrink: 0; text-align: center; }
 .dbs-num { display: block; font-size: 2.4rem; font-weight: 800; line-height: 1; }
 .dbs-cap { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.85; }

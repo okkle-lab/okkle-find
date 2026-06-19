@@ -12,9 +12,16 @@
       <% end %>
       <% if @tool.categories.any? %>
         <p class="detail-cats">
+          <% unless @tool.scored? %>
+            <span class="band-chip band-chip-testing">Not yet tested</span>
+          <% end %>
           <% @tool.categories.ordered.each do |c| %>
             <%= link_to c.display_name, search_path(category: c.slug), class: "band-chip" %>
           <% end %>
+        </p>
+      <% elsif !@tool.scored? %>
+        <p class="detail-cats">
+          <span class="band-chip band-chip-testing">Not yet tested</span>
         </p>
       <% end %>
     </div>

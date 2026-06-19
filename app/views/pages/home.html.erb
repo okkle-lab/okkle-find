@@ -55,21 +55,3 @@
     <% end %>
   </div>
 </section>
-
-<% if @recent_posts.any? %>
-  <section class="home-section">
-    <div class="section-head">
-      <h2 class="panel-title">Latest in AI</h2>
-      <%= link_to "All news →", posts_path, class: "section-all" %>
-    </div>
-    <div class="news-list">
-      <% @recent_posts.each do |post| %>
-        <%= link_to post_path(post), class: "news-item" do %>
-          <% if post.published_at %><span class="news-date"><%= post.published_at.strftime("%-d %b") %></span><% end %>
-          <span class="news-title"><%= post.title %></span>
-          <% if post.excerpt.present? %><span class="news-excerpt"><%= truncate(post.excerpt, length: 110) %></span><% end %>
-        <% end %>
-      <% end %>
-    </div>
-  </section>
-<% end %>

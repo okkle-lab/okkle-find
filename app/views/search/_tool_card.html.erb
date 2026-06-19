@@ -24,6 +24,9 @@
   <% end %>
 
   <ul class="card-tags">
+    <% unless tool.scored? %>
+      <li class="tag tag-testing">Not yet tested</li>
+    <% end %>
     <li class="tag tag-price"><%= tool.display_price_label %></li>
     <li class="tag tag-privacy"><%= tool.display_privacy_label %></li>
     <li class="tag tag-ease"><%= tool.display_ease_label %></li>
