@@ -37,7 +37,7 @@ def score_attributes_from(row, fields, model_class)
     attrs[field] =
       if row.headers.include?(key) && row[key].present?
         row[key]
-      elsif row.headers.include?(key) && model_class == ModelVariant
+      elsif row.headers.include?(key)
         nil
       else
         placeholder_score(row, key)
@@ -83,6 +83,19 @@ def stable_number(row, field, modulo)
 end
 
 VALID_RETENTION = Tool.data_retentions.keys.freeze # %w[none optional yes unclear]
+LEGACY_TOOL_SCORE_FIELDS = %i[
+  ease_score
+  privacy_score
+  score_text_generation
+  score_email_writing
+  score_logic
+  score_coding
+  score_image_generation
+  score_accuracy
+  score_prompt_effort
+  score_interface
+  score_security_certifications
+].freeze
 
 csv_path = Rails.root.join("db/seeds/ai_tool_catalogue_text_models.csv")
 abort "Catalogue CSV not found at #{csv_path}" unless File.exist?(csv_path)
@@ -114,6 +127,7 @@ CSV.foreach(csv_path, headers: true) do |row|
     price_label:              row["price_label"].presence,
     ease_label:               row["ease_label"].presence,
     why_this_one:             row["why_this_one"].presence,
+    **LEGACY_TOOL_SCORE_FIELDS.index_with { nil },
     **score_attributes_from(row, Rubric::SCORE_FIELDS, Tool),
     **fact_attributes_from(row, Rubric::FACT_FIELDS, Tool)
   )
@@ -144,7 +158,18 @@ puts "Tool-category links: #{ToolCategory.count}"
 variants_path = Rails.root.join("db/seeds/model_variants.csv")
 if File.exist?(variants_path)
   variant_count = 0
-  CSV.foreach(variants_path, headers: true) do |row|
+  variant_rows = CSV.read(variants_path, headers: true)
+  variant_names_by_tool = Hash.new { |hash, key| hash[key] = [] }
+
+  variant_rows.each do |row|
+    tool_name = row["tool_name"].to_s.strip
+    variant_name = row["name"].to_s.strip
+    next if tool_name.blank? || variant_name.blank?
+
+    variant_names_by_tool[tool_name] << variant_name
+  end
+
+  variant_rows.each do |row|
     tool = Tool.find_by(name: row["tool_name"].to_s.strip)
     next unless tool
 
@@ -162,6 +187,14 @@ if File.exist?(variants_path)
     )
     variant_count += 1
   end
+
+  variant_names_by_tool.each do |tool_name, variant_names|
+    tool = Tool.find_by(name: tool_name)
+    next unless tool
+
+    tool.model_variants.where.not(name: variant_names).destroy_all
+  end
+
   puts "Model variants: #{ModelVariant.count} (imported/updated #{variant_count})"
 end
 

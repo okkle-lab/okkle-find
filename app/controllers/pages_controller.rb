@@ -1,7 +1,6 @@
 class PagesController < ApplicationController
   def home
     @categories = Category.ordered
-    @recent_posts = Post.published.recent.limit(4)
 
     @stats = {
       tools: Tool.visible.count,

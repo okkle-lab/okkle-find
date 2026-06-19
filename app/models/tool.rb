@@ -72,6 +72,10 @@ class Tool < ApplicationRecord
     self_verdict&.round(1)
   end
 
+  def scored?
+    overall_verdict.present?
+  end
+
   def best_model_variant
     model_variants.select(&:scored?).max_by { |variant| variant.verdict || -Float::INFINITY }
   end
@@ -95,11 +99,15 @@ class Tool < ApplicationRecord
   end
 
   def verdict_best_for(limit: 3)
+    return [] unless scored?
+
     scores = verdict_category_scores.slice(*VERDICT_BEST_FOR_CATEGORIES)
     scores.sort_by { |_category, score| -score.to_f }.first(limit).map(&:first)
   end
 
   def verdict_not_ideal_for(limit: 3)
+    return [] unless scored?
+
     weak_categories = verdict_category_scores
       .select { |_category, score| score.to_f < 6.5 }
       .sort_by { |_category, score| score.to_f }

@@ -8,6 +8,9 @@
     <% if @tool.provider.present? %>
       <p class="detail-provider">by <%= @tool.provider %></p>
     <% end %>
+    <% unless @tool.scored? %>
+      <p><span class="tag tag-testing">Not yet tested</span></p>
+    <% end %>
   </header>
 
   <%# The complete score overview — every criterion and the scores assigned %>
