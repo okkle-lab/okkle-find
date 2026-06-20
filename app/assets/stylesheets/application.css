@@ -1411,7 +1411,7 @@ textarea.admin-input { resize: vertical; }
   z-index: 0;
   overflow: visible;
   width: 100vw;
-  margin: -3.75rem calc(50% - 50vw) 3.75rem;
+  margin: -3.75rem calc(50% - 50vw) 2rem;
   padding: 8rem max(1.5rem, calc((100vw - 880px) / 2)) 8rem;
   border: 0;
   border-radius: 0;
@@ -1454,10 +1454,30 @@ textarea.admin-input { resize: vertical; }
   position: relative;
   z-index: 2;
 }
-.tool-detail .detail-band-main .detail-name { color: var(--product-wash-text); }
-.tool-detail .detail-band-main .detail-provider { color: var(--product-wash-muted); }
-.tool-detail .detail-logo { border-color: var(--product-wash-logo-border); }
+.tool-detail .detail-band-main .detail-name {
+  color: var(--product-wash-text);
+  font-size: clamp(3rem, 7vw, 5.75rem);
+  line-height: 0.95;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-wrap: balance;
+}
+.tool-detail .detail-band-main .detail-provider {
+  color: var(--product-wash-muted);
+  font-size: clamp(1.05rem, 1.7vw, 1.45rem);
+  margin-top: 0.55rem;
+}
+.tool-detail .detail-logo {
+  width: clamp(72px, 10vw, 104px);
+  height: clamp(72px, 10vw, 104px);
+  border-radius: clamp(18px, 2.4vw, 26px);
+  font-size: clamp(2rem, 4vw, 3.1rem);
+  border-color: var(--product-wash-logo-border);
+}
 .tool-detail .detail-band-score { color: var(--product-wash-text); }
+.tool-detail .dbs-num { font-size: clamp(3.1rem, 5.5vw, 4.6rem); }
+.tool-detail .dbs-den { font-size: clamp(1.05rem, 1.8vw, 1.35rem); }
+.tool-detail .dbs-cap { font-size: 0.78rem; margin-top: 0.2rem; display: block; }
 .tool-detail .band-chip {
   background: var(--product-wash-chip-bg);
   border: 1px solid var(--product-wash-chip-border);
@@ -1471,6 +1491,14 @@ textarea.admin-input { resize: vertical; }
   background: var(--product-wash-chip-bg);
   border-color: var(--product-wash-chip-border);
   color: var(--product-wash-muted);
+}
+.tool-detail .product-verdict {
+  margin-top: -1rem;
+  margin-bottom: 3.5rem;
+}
+.tool-detail .product-verdict-body {
+  font-size: clamp(1.12rem, 1.55vw, 1.28rem);
+  line-height: 1.55;
 }
 .tool-detail .glance-grid {
   gap: 2rem;
