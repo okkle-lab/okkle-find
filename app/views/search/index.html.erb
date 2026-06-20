@@ -1,10 +1,8 @@
 <section class="results-head">
-  <%= link_to "← new search", root_path, class: "back-link" %>
-
   <div class="results-toolbar">
-    <% if @query.present? %>
-      <h1 class="results-title">“<%= @query %>”</h1>
-    <% else %>
+    <% if @query.blank? && @need.source == "default" %>
+      <h1 class="results-title">Best AI overall</h1>
+    <% elsif @query.blank? %>
       <h1 class="results-title">Tools to <%= @need.categories.first&.tr("-", " ") %></h1>
     <% end %>
 
@@ -37,7 +35,7 @@
   <div class="empty">
     <p class="empty-head">Nothing in our catalogue matches all of that.</p>
     <p>We'd rather show you nothing than pad the list with tools that fail what you asked for.
-       Try removing one requirement, or <%= link_to "start a new search", root_path %>.</p>
+       Try removing one requirement or searching again from the header.</p>
   </div>
 <% else %>
   <% if @result.insufficient? %>

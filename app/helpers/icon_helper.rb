@@ -1,4 +1,36 @@
 module IconHelper
+  BRAND_COLORS = {
+    "chatgpt" => "#10a37f",
+    "claude" => "#d97757",
+    "google gemini" => "#4285f4",
+    "microsoft copilot" => "#0078d4",
+    "perplexity" => "#20a5a6",
+    "github copilot" => "#24292f",
+    "cursor" => "#111827",
+    "whisper" => "#10a37f",
+    "macwhisper" => "#f59e0b",
+    "otter.ai" => "#006cff",
+    "llama" => "#0866ff",
+    "mistral le chat" => "#ff7000",
+    "deepseek" => "#4d6bfe",
+    "ollama" => "#111111",
+    "lm studio" => "#111827",
+    "notebooklm" => "#4285f4",
+    "deepl" => "#0f2b46",
+    "grammarly" => "#15c39a",
+    "poe" => "#5c49d8",
+    "deepgram" => "#13ef93",
+    "cohere command" => "#39594d",
+    "jasper" => "#8b5cf6",
+    "xai grok" => "#111111",
+    "qwen" => "#615ced",
+    "amazon nova" => "#ff9900",
+    "moonshot kimi" => "#111827",
+    "z.ai glm" => "#2b5cff",
+    "minimax" => "#eb5757",
+    "ai21 jamba" => "#4f46e5"
+  }.freeze
+
   # Inline SVG icons (Tabler outline paths) — CSP-safe, no external font.
   # Keys match the names stored on Category#icon plus a few UI icons.
   ICON_PATHS = {
@@ -38,6 +70,11 @@ module IconHelper
     palette[name.to_s.bytes.sum % palette.size]
   end
 
+  def tool_brand_color(tool)
+    name = tool.respond_to?(:name) ? tool.name.to_s : tool.to_s
+    BRAND_COLORS[name.downcase] || tool_monogram_color(name)
+  end
+
   # The tool's real favicon (the official brand mark), via Google's favicon
   # service. Returns nil when there's no website to derive it from.
   def tool_logo_url(tool, size: 128)
@@ -53,7 +90,7 @@ module IconHelper
   # fails to load it hides itself, revealing the monogram underneath.
   def tool_logo(tool, css_class: "tool-logo")
     letter = tool.name.to_s.strip.first.to_s.upcase
-    content_tag(:span, class: css_class, style: "background: #{tool_monogram_color(tool.name)}") do
+    content_tag(:span, class: css_class, style: "background: #{tool_brand_color(tool)}") do
       monogram = content_tag(:span, letter, class: "tool-logo-mono")
       logo = if (url = tool_logo_url(tool))
         tag.img(src: url, alt: "#{tool.name} logo", loading: "lazy", class: "tool-logo-img",

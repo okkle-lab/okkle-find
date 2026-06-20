@@ -1,4 +1,5 @@
 # Structured representation of what the user wants. Produced either by:
+#   - ParsedNeed.overall             — empty search; rank the full catalogue
 #   - ParsedNeed.from_category(slug)  — a browse tile (bypasses the LLM)
 #   - ParsedNeed.from_keywords(text)  — naive keyword parse (also the LLM fallback)
 #   - NeedParser (step 5)             — the LLM, which builds one of these
@@ -26,6 +27,7 @@ class ParsedNeed
   # Fallback mapping for the keyword path: category slug => priority dimension.
   # The LLM picks the dimension directly; this just keeps degraded parses useful.
   CATEGORY_DIMENSION = Rubric::BROWSE_CATEGORY_DIMENSIONS
+  OVERALL_TASK = "overall best AI".freeze
 
   attr_reader :raw_query, :task, :must_be_free, :must_be_private, :must_run_locally,
               :budget_ceiling_usd_month, :categories, :keywords, :priority_dimension, :source
@@ -43,6 +45,10 @@ class ParsedNeed
     @keywords                 = Array(keywords).compact_blank.uniq
     @priority_dimension       = Tool::PRIORITY_DIMENSIONS.key?(priority_dimension.to_s) ? priority_dimension.to_s : nil
     @source                   = source
+  end
+
+  def self.overall(raw_query: nil)
+    new(raw_query: raw_query, task: OVERALL_TASK, source: "default")
   end
 
   # A browse tile is already structured — no parsing needed. The tile's category

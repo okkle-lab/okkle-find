@@ -26,7 +26,7 @@ module ApplicationHelper
     score_number(value) || content_tag(:span, "—", class: "score-none", title: "Not yet rated")
   end
 
-  # A visible 1-10 score coloured by the same red→green scale.
+  # A visible 1-10 score coloured by the same muted grey→teal scale.
   def colored_score(value, css_class: nil)
     return score_or_dash(value) if value.nil?
 
@@ -35,6 +35,10 @@ module ApplicationHelper
 
   def search_card_score_visible?
     Rails.configuration.x.search.show_card_score == true
+  end
+
+  def latest_in_ai_enabled?
+    FeatureFlags.latest_in_ai?
   end
 
   def yes_no_or_unknown(value)
@@ -192,13 +196,18 @@ module ApplicationHelper
     highlights
   end
 
-  # Colour a 1-10 score on a red→green scale: 1 is red, 10 is green.
+  # Colour scores on a calm grey→pastel-teal scale, calibrated to the real
+  # distribution: 5 is neutral, 7 is the midpoint, and 9+ earns full teal.
   def score_color(value)
     return nil if value.nil?
 
     n = value.to_f.clamp(1.0, 10.0)
-    hue = ((n - 1) / 9.0 * 120).round # 0 = red, 120 = green
-    "hsl(#{hue}, 72%, 42%)"
+    ratio = ((n - 5.0) / 4.0).clamp(0.0, 1.0)
+    low = [145, 151, 160]
+    high = [82, 166, 156]
+    rgb = low.zip(high).map { |start, finish| (start + (finish - start) * ratio).round }
+
+    "rgb(#{rgb.join(", ")})"
   end
 
   # Gradient custom properties: the warm brand gradient for the wordmark and

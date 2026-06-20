@@ -5,13 +5,16 @@
   <h1>What do you need AI to do?</h1>
   <p class="hero-sub">Describe it in plain English. We'll show the honest options — and the catch.</p>
 
-  <%= form_with url: search_path, method: :get, class: "search-form" do |f| %>
+  <%= form_with url: search_path, method: :get, class: "search-form", data: { header_search_sentinel: true } do |f| %>
     <%= f.search_field :q,
           placeholder: "e.g. transcribe my interviews privately",
           autofocus: true,
           autocomplete: "off",
           class: "search-input" %>
-    <%= f.submit "Find tools", class: "search-button" %>
+    <%= button_tag type: "submit", class: "search-button" do %>
+      <%= icon("search", size: 18) %>
+      <span>Find</span>
+    <% end %>
   <% end %>
 
   <ul class="hero-hints">
@@ -76,7 +79,7 @@
   </section>
 <% end %>
 
-<% if @recent_posts.any? %>
+<% if latest_in_ai_enabled? && @recent_posts.any? %>
   <section class="home-section">
     <div class="section-head">
       <h2 class="panel-title">Latest in AI</h2>

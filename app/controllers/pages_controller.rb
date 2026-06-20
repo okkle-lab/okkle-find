@@ -13,7 +13,12 @@ class PagesController < ApplicationController
       .sort_by { |_t, v| -v }
       .first(5)
 
-    @recent_posts = Post.published.recent.limit(3)
+    @recent_posts =
+      if FeatureFlags.latest_in_ai?
+        Post.published.recent.limit(3)
+      else
+        Post.none
+      end
   end
 
   def methodology

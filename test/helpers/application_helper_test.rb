@@ -13,4 +13,17 @@ class ApplicationHelperTest < ActionView::TestCase
   ensure
     Rails.configuration.x.search.show_card_score = original
   end
+
+  test "latest in ai flag defaults hidden" do
+    refute latest_in_ai_enabled?
+  end
+
+  test "latest in ai flag can be enabled" do
+    original = Rails.configuration.x.features.latest_in_ai
+    Rails.configuration.x.features.latest_in_ai = true
+
+    assert latest_in_ai_enabled?
+  ensure
+    Rails.configuration.x.features.latest_in_ai = original
+  end
 end

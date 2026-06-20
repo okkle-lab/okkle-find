@@ -1,6 +1,16 @@
 require "test_helper"
 
 class ParsedNeedTest < ActiveSupport::TestCase
+  test "overall need represents an empty search" do
+    need = ParsedNeed.overall
+
+    assert_equal "overall best AI", need.task
+    assert_equal "default", need.source
+    assert_empty need.categories
+    assert_empty need.keywords
+    assert_nil need.priority_dimension
+  end
+
   test "infers coding intent from plain language development queries" do
     need = ParsedNeed.from_keywords("I need help fixing a Python bug")
 

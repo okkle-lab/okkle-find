@@ -10,6 +10,8 @@ class SearchController < ApplicationController
       elsif @query.present?
         # LLM parse (Claude Haiku); falls back to keyword parse on any failure.
         NeedParser.call(@query)
+      else
+        ParsedNeed.overall
       end
 
     return redirect_to(root_path) if @need.nil?

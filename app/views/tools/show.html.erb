@@ -1,9 +1,7 @@
 <% content_for :title, "#{@tool.name} — AI Finder" %>
 
-<article class="detail">
-  <%= link_to "← back", root_path, class: "back-link" %>
-
-  <header class="detail-band" style="--brand: <%= tool_monogram_color(@tool.name) %>">
+<article class="detail tool-detail">
+  <header class="detail-band" style="--brand: <%= tool_brand_color(@tool) %>" data-controller="logo-color">
     <%= tool_logo(@tool, css_class: "detail-logo") %>
     <div class="detail-band-main">
       <h1 class="detail-name"><%= @tool.name %></h1>
@@ -105,8 +103,6 @@
       <p class="cat-breakdown-foot"><%= link_to "See the full criterion-by-criterion review →", review_tool_path(@tool) %></p>
     </section>
   <% end %>
-
-  <%= render "scorecard", tool: @tool, priority_dimension: @priority_dimension %>
 
   <% if @tool.website_url.present? %>
     <p class="detail-visit"><%= link_to "Visit #{@tool.name} →", @tool.website_url, target: "_blank", rel: "noopener", class: "visit-btn",

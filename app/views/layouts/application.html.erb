@@ -5,18 +5,47 @@
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="icon" href="/favicon.ico" sizes="any">
+    <link rel="icon" href="/favicon-512.png" type="image/png" sizes="512x512">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 
     <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
     <%= javascript_importmap_tags %>
   </head>
 
   <body style="<%= page_gradient_style(session[:header_gradient]) %>">
-    <header class="site-header<%= " site-header--home" if content_for?(:home_header) %>">
+    <header class="site-header<%= " site-header--home" if content_for?(:home_header) %>"
+            data-controller="header-search"
+            data-header-search-home-value="<%= content_for?(:home_header) %>">
       <a href="/" class="brand">AI&nbsp;Finder</a>
+      <div class="header-search<%= " header-search--available" unless content_for?(:home_header) %>"
+           data-header-search-target="container">
+        <%= form_with url: search_path,
+              method: :get,
+              class: "header-search-form",
+              data: { action: "submit->header-search#submit" } do |f| %>
+          <%= f.search_field :q,
+                value: params[:q].presence,
+                placeholder: "Search AI tools",
+                autocomplete: "off",
+                class: "header-search-input",
+                data: { header_search_target: "input" } %>
+          <%= button_tag type: "submit",
+                class: "header-search-button",
+                name: nil,
+                title: "Search AI tools",
+                aria: { label: "Search AI tools" } do %>
+            <%= icon("search", size: 18) %>
+          <% end %>
+        <% end %>
+      </div>
       <nav class="site-nav">
         <%= link_to "Leaderboards", leaderboards_path, class: "site-nav-link" %>
         <%= link_to "Learn", learn_path, class: "site-nav-link" %>
-        <%= link_to "News", posts_path, class: "site-nav-link" %>
+        <% if latest_in_ai_enabled? %>
+          <%= link_to "News", posts_path, class: "site-nav-link" %>
+        <% end %>
       </nav>
       <%= link_to "How we score", methodology_path, class: "site-nav-cta" %>
     </header>
