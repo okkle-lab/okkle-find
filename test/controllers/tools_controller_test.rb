@@ -19,9 +19,12 @@ class ToolsControllerTest < ActionDispatch::IntegrationTest
     get tool_path(tool)
 
     assert_response :success
+    assert_select "turbo-frame#tool_scores"
     assert_select ".model-score-tab-active", "All models"
     assert_select ".model-score-tab", "Low Model"
     assert_select ".model-score-tab", "High Model"
+    assert_select "a.model-score-tab[data-turbo-frame='tool_scores']", "Low Model"
+    assert_select ".take-hl-label", false
     assert_select ".cat-bar-name", "Coding"
     assert_select ".cat-bar-score", "9"
 

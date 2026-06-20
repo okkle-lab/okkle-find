@@ -1099,19 +1099,10 @@ textarea.admin-input { resize: vertical; }
 .card-headline { align-items: center; gap: 0.6rem; }
 .card-headline-text { min-width: 0; }
 
-/* ---- product verdict + score highlights ---- */
+/* ---- product verdict ---- */
 .product-verdict { margin: 0 0 3.75rem; max-width: 760px; }
 .product-verdict-body { margin: 0; font-size: 1.08rem; line-height: 1.62; color: var(--ink); }
 .product-verdict-body + .product-verdict-body { margin-top: 0.75rem; }
-.take-highlights {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.6rem;
-  margin: 1.1rem 0 0; padding-top: 1.1rem; border-top: 1px solid #e2e8ff;
-}
-.take-hl { display: flex; align-items: center; gap: 0.5rem; }
-.take-hl-ic { flex-shrink: 0; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 8px; background: #fff; border: 1px solid #e2e8ff; color: var(--score-ink); }
-.take-hl-text { display: flex; flex-direction: column; min-width: 0; }
-.take-hl-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); font-weight: 700; }
-.take-hl-value { font-size: 0.88rem; font-weight: 700; color: var(--ink); }
 
 /* ---- learn article (detail) ---- */
 .learn-article { max-width: 660px; }
@@ -1218,9 +1209,10 @@ textarea.admin-input { resize: vertical; }
 .model-score-tabs {
   display: flex;
   align-items: center;
+  justify-content: center;
   flex-wrap: wrap;
   gap: 0.35rem;
-  margin: 0 0 1.2rem;
+  margin: 0 auto 1.2rem;
   padding: 0.25rem;
   border: 1px solid var(--line);
   border-radius: 999px;
@@ -1250,13 +1242,6 @@ textarea.admin-input { resize: vertical; }
   background: var(--score-pill-bg);
   box-shadow: inset 0 0 0 1px var(--score-pill-line);
 }
-.score-highlights {
-  margin: 0 0 1.15rem;
-  padding: 0 0 1.15rem;
-  border-top: 0;
-  border-bottom: 1px solid var(--line);
-}
-.tool-detail .score-highlights .take-hl-ic,
 .tool-detail .cat-bar-ic {
   color: var(--score-ink);
   border-color: var(--score-pill-line);

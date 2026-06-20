@@ -189,22 +189,6 @@ module ApplicationHelper
     (pairs.sum { |s, w| s * w } / total_w).round(1)
   end
 
-  # Bite-size score highlights for the product page, from real scored data.
-  def tool_verdict_highlights(tool, model_variant: nil)
-    return [] unless tool.scored?
-
-    breakdown = tool_category_breakdown(tool, model_variant:)
-    highlights = []
-
-    if (top = breakdown.first)
-      highlights << { icon: top[:icon], label: "Strongest at", value: "#{top[:display_name]} · #{score_number(top[:score])}" }
-    end
-    if breakdown.size > 1 && (bottom = breakdown.last) && bottom[:score] < 7.5
-      highlights << { icon: bottom[:icon], label: "Weakest at", value: "#{bottom[:display_name]} · #{score_number(bottom[:score])}" }
-    end
-    highlights
-  end
-
   # Colour scores on a calm grey→pastel-teal scale, calibrated to the real
   # distribution: 5 is neutral, 7 is the midpoint, and 9+ earns full teal.
   def score_color(value)
