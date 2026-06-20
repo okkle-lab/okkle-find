@@ -18,7 +18,7 @@
   <% end %>
 
   <ul class="hero-hints">
-    <% ["write code", "free for coding", "most private", "transcribe meetings"].each do |hint| %>
+    <% ["write code", "free for coding", "most private", "transcribe interviews"].each do |hint| %>
       <li><%= link_to hint, search_path(q: hint), class: "hero-hint" %></li>
     <% end %>
   </ul>
@@ -35,7 +35,7 @@
     "code"           => ["speed", "accuracy", "debugging", "agentic"],
     "summarize"      => ["faithfulness", "format control", "length"],
     "research"       => ["citations", "hallucination resistance", "depth"],
-    "audio-to-text"  => ["accuracy", "speaker detection", "summaries"],
+    "audio-to-text"  => ["accuracy", "speaker detection", "privacy"],
     "translate"      => ["accuracy", "nuance", "speed"]
   } %>
   <div class="tile-grid">

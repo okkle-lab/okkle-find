@@ -116,6 +116,14 @@ class ToolRankingTest < ActiveSupport::TestCase
     assert_in_delta 7.2, tool.dimension_score("coding"), 0.05
   end
 
+  test "mixed model and product dimensions require a model-level score" do
+    tool = Tool.new(name: "Meeting Split", integration_score: 10)
+    tool.model_variants.build(name: "empty")
+    tool.model_variants.build(name: "summarizer", meeting_summary_score: 7, follow_up_score: 8)
+
+    assert_in_delta 7.9, tool.dimension_score("meetings"), 0.05
+  end
+
   test "trustworthiness includes truthful pushback" do
     assert_includes Rubric.fields_for("trustworthiness"), :truthful_pushback_score
     assert_equal 0.20, Rubric.weight_for("Accuracy & trustworthiness", :truthful_pushback_score)

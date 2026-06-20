@@ -37,6 +37,7 @@ class Tool < ApplicationRecord
     "Coding",
     "Accuracy & Trustworthiness",
     "Image Generation",
+    "Transcription",
     "Meetings",
     "Translation"
   ].freeze
@@ -47,6 +48,7 @@ class Tool < ApplicationRecord
     "Accuracy & Trustworthiness" => "High-stakes accuracy",
     "Ease of use" => "Beginners",
     "Image Generation" => "Image generation",
+    "Transcription" => "Transcription",
     "Meetings" => "Meetings",
     "Privacy & Data Safety" => "Privacy-sensitive work",
     "Enterprise" => "Enterprise governance",
@@ -130,11 +132,17 @@ class Tool < ApplicationRecord
 
   def comparison_category_score(fields)
     category = Rubric::OVERALL_CATEGORIES.key(fields) if Rubric::OVERALL_CATEGORIES.respond_to?(:key)
-    if (variant = best_model_variant)
-      variant.category_score(fields, extra_scores: rubric_field_values, category:)
-    else
-      category_score(fields, category:)
+    model_fields = model_variant_fields(fields)
+
+    if model_fields.any?
+      return model_variants.filter_map { |variant|
+        next unless variant_scored_for_fields?(variant, fields)
+
+        variant.category_score(fields, extra_scores: rubric_field_values, category:)
+      }.max
     end
+
+    category_score(fields, category:)
   end
 
   # Verdict from the tool's own scores — used when there are no scored
@@ -158,9 +166,17 @@ class Tool < ApplicationRecord
     return nil if fields.empty?
 
     category = Rubric.category_for(priority_dimension)
-    vals = model_variants.filter_map { |variant| variant.category_score(fields, category:) }
-    vals << category_score(fields, category:)
-    vals.compact.max
+    model_fields = model_variant_fields(fields)
+
+    if model_fields.any?
+      return model_variants.filter_map { |variant|
+        next unless variant_scored_for_fields?(variant, fields)
+
+        variant.category_score(fields, extra_scores: rubric_field_values, category:)
+      }.max
+    end
+
+    category_score(fields, category:)
   end
 
   # Best value for a score column across this tool's variants, falling back to
@@ -198,6 +214,17 @@ class Tool < ApplicationRecord
 
   def sync_score_categories!
     self.categories = score_categories
+  end
+
+  def variant_scored_for_fields?(variant, fields)
+    model_fields = model_variant_fields(fields)
+    return true if model_fields.empty?
+
+    model_fields.any? { |field| variant.respond_to?(field) && variant.public_send(field).present? }
+  end
+
+  def model_variant_fields(fields)
+    Array(fields).select { |field| ModelVariant.column_names.include?(field.to_s) }
   end
 
   # Rank score (1-10). With a priority dimension AND a score on it, rank on

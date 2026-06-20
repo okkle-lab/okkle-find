@@ -44,7 +44,8 @@ Requires Ruby 3.3.x and PostgreSQL.
 
 The easiest path on macOS is to double-click `Launch AI Finder.command`. On
 Windows, double-click `Launch AI Finder.bat`. The launcher checks dependencies,
-prepares the database, starts the Rails server, and opens
+prepares the database, reapplies the committed seed data, verifies that
+seed-backed catalogue/model metrics are present, starts the Rails server, and opens
 <http://localhost:3000>. The macOS launcher also checks rbenv, uses any
 installed Ruby 3.3.x if the exact patch version is missing, installs the locked
 Bundler version, and repairs older local development schemas after taking a
@@ -57,7 +58,7 @@ rbenv install "$(cat .ruby-version)"
 rbenv local "$(cat .ruby-version)"
 gem install bundler --conservative
 bundle install
-bin/rails db:prepare   # creates, migrates, and seeds the local database
+bin/rails db:prepare db:seed ai_finder:verify_seed_data
 bin/rails server       # http://localhost:3000
 ```
 

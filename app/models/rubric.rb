@@ -76,16 +76,24 @@ class Rubric
         image_editing_score: 0.20
       }
     },
-    "Meetings" => {
-      key: "meetings",
+    "Transcription" => {
+      key: "transcription",
       icon: "microphone",
-      description: "Recording, transcribing and summarising meetings — accuracy of transcripts, quality of summaries, and action-item extraction.",
+      description: "Turning speech into text — accuracy across speakers, terminology, accents, and imperfect recordings.",
       overall_weight: 1.00,
       fields: {
-        transcription_score: 0.35,
-        meeting_summary_score: 0.35,
-        follow_up_score: 0.20,
-        integration_score: 0.10
+        transcription_score: 1.00
+      }
+    },
+    "Meetings" => {
+      key: "meetings",
+      icon: "message",
+      description: "Making meetings useful after they happen — summaries, follow-up actions, and calendar or workspace handoff.",
+      overall_weight: 1.00,
+      fields: {
+        meeting_summary_score: 0.50,
+        follow_up_score: 0.30,
+        integration_score: 0.20
       }
     },
     "Translation" => {
@@ -195,6 +203,16 @@ class Rubric
       intent_words: %w[image images picture pictures visual visuals generate generation editing edit prompt adherence text rendering],
       intent_phrases: ["image generation", "generate images", "make images", "edit images", "image editing", "text in images"]
     },
+    "transcription" => {
+      label: "Transcription",
+      short_label: "Transcription",
+      fields: CATEGORIES.fetch("Transcription").fetch(:fields).keys,
+      category: "Transcription",
+      level: :model,
+      group: :output,
+      intent_words: %w[transcribe transcription transcript transcripts interview interviews audio voice speech recording recordings dictation subtitle subtitles caption captions podcast],
+      intent_phrases: ["transcribe audio", "transcribe interviews", "interview transcript", "meeting transcript", "transcribe meetings", "speech to text", "speech-to-text"]
+    },
     "meetings" => {
       label: "Meetings",
       short_label: "Meetings",
@@ -202,8 +220,8 @@ class Rubric
       category: "Meetings",
       level: :model,
       group: :output,
-      intent_words: %w[transcribe transcription transcript transcripts interview interviews audio voice recording recordings dictation subtitle subtitles caption captions podcast meeting meetings notes minutes followup follow-up calendar],
-      intent_phrases: ["meeting notes", "transcribe audio", "transcribe interviews", "interview transcript", "meeting minutes", "action items", "meeting bot"]
+      intent_words: %w[meeting meetings notes minutes followup follow-up calendar agenda agendas action actions decisions handoff recap recaps],
+      intent_phrases: ["meeting notes", "meeting summaries", "meeting summary", "meeting minutes", "action items", "follow up", "follow-up", "meeting bot", "summarize meetings", "summarise meetings"]
     },
     "privacy" => {
       label: "Privacy & data safety",
@@ -390,7 +408,7 @@ class Rubric
     "code" => "coding",
     "summarize" => "summarization",
     "research" => "research",
-    "audio-to-text" => "meetings",
+    "audio-to-text" => "transcription",
     "translate" => "translation"
   }.freeze
 

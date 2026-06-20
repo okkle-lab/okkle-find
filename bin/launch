@@ -21,20 +21,20 @@ server_responding() {
   curl -s --max-time 2 -o /dev/null "$URL"
 }
 
+check_database() {
+  echo "== Preparing database =="
+  prepare_database
+  echo "== Applying seed data =="
+  bundle exec rails db:seed
+  echo "== Checking seed-backed DB data =="
+  bundle exec rails ai_finder:verify_seed_data
+}
+
 echo "== AI Finder =="
 echo "Working in: $APP_ROOT"
 
 echo "== Checking dependencies =="
 bundle check >/dev/null 2>&1 || bundle install
-
-if server_responding; then
-  echo "== Server already running on ${URL} =="
-  echo "== Applying seed data =="
-  bundle exec rails db:seed
-  open_browser
-  echo "== Seed data applied; using existing server =="
-  exit 0
-fi
 
 legacy_schema_detected() {
   bundle exec rails runner '
@@ -94,8 +94,15 @@ prepare_database() {
   exit 1
 }
 
-echo "== Preparing database =="
-prepare_database
+if server_responding; then
+  echo "== Server already running on ${URL} =="
+  check_database
+  open_browser
+  echo "== Database checked; using existing server =="
+  exit 0
+fi
+
+check_database
 
 # Once the server is accepting connections, open the browser.
 (

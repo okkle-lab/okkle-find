@@ -34,15 +34,13 @@ if errorlevel 1 (
 call :server_responding
 if not errorlevel 1 (
   echo == Server already running on %URL% ==
-  echo == Applying seed data ==
-  call bundle exec rails db:seed || goto :error
+  call :check_database || goto :error
   start "" "%URL%"
-  echo == Seed data applied; using existing server ==
+  echo == Database checked; using existing server ==
   exit /b 0
 )
 
-echo == Preparing database ==
-call bundle exec rails db:prepare || goto :error
+call :check_database || goto :error
 
 rem Start a quiet background helper that opens the browser after Rails responds.
 start "" /B powershell -NoProfile -ExecutionPolicy Bypass -Command "$url = $env:AI_FINDER_URL; for ($i = 0; $i -lt 60; $i++) { try { Invoke-WebRequest -UseBasicParsing -Uri $url -TimeoutSec 2 | Out-Null; break } catch { Start-Sleep -Seconds 1 } }; Start-Process $url" >NUL 2>NUL
@@ -53,6 +51,15 @@ set "EXIT_CODE=%ERRORLEVEL%"
 echo.
 echo == Server stopped ==
 exit /b %EXIT_CODE%
+
+:check_database
+echo == Preparing database ==
+call bundle exec rails db:prepare || exit /b 1
+echo == Applying seed data ==
+call bundle exec rails db:seed || exit /b 1
+echo == Checking seed-backed DB data ==
+call bundle exec rails ai_finder:verify_seed_data || exit /b 1
+exit /b 0
 
 :server_responding
 curl.exe -fsS --max-time 2 -o NUL "%URL%" >NUL 2>NUL

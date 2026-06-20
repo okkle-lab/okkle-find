@@ -64,6 +64,29 @@ class ToolsControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "product page separates transcription from meeting workflow scores" do
+    tool = Tool.create!(name: "Split Meeting Tool", status: "live", integration_score: 10)
+    tool.model_variants.create!(
+      name: "Split Model",
+      position: 1,
+      transcription_score: 2,
+      meeting_summary_score: 10,
+      follow_up_score: 10
+    )
+
+    get tool_path(tool)
+
+    assert_response :success
+    assert_select ".cat-bar-name" do |elements|
+      assert_equal ["Transcription", "Meetings"], elements.map { |element| element.text.strip }
+    end
+    scores_by_name = Nokogiri::HTML(response.body).css(".cat-bar-row").to_h do |row|
+      [row.at_css(".cat-bar-name").text.strip, row.at_css(".cat-bar-score").text.strip]
+    end
+    assert_equal "2", scores_by_name.fetch("Transcription")
+    assert_equal "10", scores_by_name.fetch("Meetings")
+  end
+
   test "unscored selected model does not inherit product category scores" do
     tool = Tool.create!(
       name: "Unscored Variant Tool",
@@ -152,14 +175,14 @@ class ToolsControllerTest < ActionDispatch::IntegrationTest
     assert_select ".usage-metrics-list[data-usage-metric-model='#{slow.id}']", false
     assert_select ".usage-bar-row.cat-bar-row", count: 2
     assert_select ".usage-bar-row[data-usage-metric-kind='time'][data-usage-metric-icon='stopwatch'][data-usage-metric-ratio='0.1']"
-    assert_select ".usage-bar-row[data-usage-metric-kind='tokens'][data-usage-metric-icon='currency-dollar'][data-usage-metric-ratio='0.8']"
+    assert_select ".usage-bar-row[data-usage-metric-kind='tokens'][data-usage-metric-icon='currency-dollar'][data-usage-metric-ratio='0.571']"
     assert_select ".usage-bar-fill[data-score-bars-target='fill'][data-score-bars-key='usage-time'][data-score-bars-width='10']"
-    assert_select ".usage-bar-fill[data-score-bars-target='fill'][data-score-bars-key='usage-tokens'][data-score-bars-width='80']"
+    assert_select ".usage-bar-fill[data-score-bars-target='fill'][data-score-bars-key='usage-tokens'][data-score-bars-width='57']"
     assert_select ".usage-bar-ic svg.icon", count: 2
     assert_select ".usage-bar-name", "Avg time (in seconds)"
     assert_select ".usage-bar-name", "Avg tokens"
     assert_select ".usage-bar-row[data-usage-metric-kind='time'] .usage-bar-fill[style*='rgb(153, 149, 159)']"
-    assert_select ".usage-bar-row[data-usage-metric-kind='tokens'] .usage-bar-fill[style*='rgb(212, 137, 151)']"
+    assert_select ".usage-bar-row[data-usage-metric-kind='tokens'] .usage-bar-fill[style*='rgb(193, 141, 154)']"
     assert_select ".usage-bar-value", "2.0"
     assert_select ".usage-bar-value", "400"
     assert_select ".usage-bar-value", { text: "2.0s", count: 0 }

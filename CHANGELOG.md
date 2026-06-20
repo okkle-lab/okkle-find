@@ -57,6 +57,12 @@ breaking changes).
   while `ModelEvalApp/dist/` stays ignored as a local build-artifact folder.
 
 ### Changed
+- Launchers now prepare, seed, and verify CSV-backed database data every time,
+  so model efficiency metrics from committed seeds are applied on other
+  computers before the server opens.
+- Transcription and meetings are now separate rubric categories, so transcription
+  searches rank speech-to-text accuracy while meeting workflows rank summaries,
+  follow-up, and integrations.
 - Model Eval Runner now defaults to prompt-level result reuse instead of
   whole-model score skipping; the older Skip Already Scored mode remains as a
   fallback when reuse is turned off.

@@ -35,6 +35,19 @@ class ParsedNeedTest < ActiveSupport::TestCase
     assert_equal "research", need.priority_dimension
   end
 
+  test "infers transcription intent separately from meeting workflows" do
+    need = ParsedNeed.from_keywords("transcribe meetings")
+
+    assert_includes need.categories, "audio-to-text"
+    assert_equal "transcription", need.priority_dimension
+  end
+
+  test "infers meeting workflow intent separately from transcription" do
+    need = ParsedNeed.from_keywords("summarize meeting action items")
+
+    assert_equal "meetings", need.priority_dimension
+  end
+
   test "infers research intent from researching wording" do
     need = ParsedNeed.from_keywords("best researching models")
 

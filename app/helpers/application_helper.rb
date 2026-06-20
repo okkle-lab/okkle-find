@@ -139,6 +139,7 @@ module ApplicationHelper
     fields = config[:fields].keys
     if model_variant
       return nil unless model_variant.scored?
+      return nil unless tool.variant_scored_for_fields?(model_variant, fields)
 
       model_variant.category_score(fields, extra_scores: tool.rubric_field_values, category: category_name)
     else
@@ -179,7 +180,7 @@ module ApplicationHelper
         label: "Avg tokens",
         icon: "currency-dollar",
         value: usage_metric_number(selected_variant.avg_total_tokens),
-        max: 500.0,
+        max: 700.0,
         formatted_value: format_token_metric(selected_variant.avg_total_tokens)
       )
     ].compact
