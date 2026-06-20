@@ -45,7 +45,7 @@
     0 10px 24px rgba(26, 26, 46, 0.08);
   --search-button-fill: linear-gradient(135deg, #fff7e8, #ffe8ef, #eef5ff);
   --search-button-fill-color: #1d1d1f;
-  --score-cta-fill: linear-gradient(135deg, #eef6ff, #dbeafe, #bcd6ff);
+  --score-cta-fill: var(--score-grad);
   --product-wash-text: #1d1d1f;
   --product-wash-muted: rgba(29, 29, 31, 0.68);
   --product-wash-chip-bg: rgba(255, 255, 255, 0.42);
@@ -883,7 +883,7 @@ textarea.admin-input { resize: vertical; }
 .site-nav-cta:hover,
 .site-nav-cta:focus {
   text-decoration: none;
-  color: #1f4f85;
+  color: #2f6f68;
   border-color: transparent;
   box-shadow: 0 1px 4px rgba(0,0,0,0.05);
 }
@@ -1052,10 +1052,10 @@ textarea.admin-input { resize: vertical; }
 .band-range { font-size: 1.2rem; font-weight: 800; }
 .band-label { font-weight: 700; font-size: 0.9rem; }
 .band-blurb { font-size: 0.8rem; color: var(--muted); line-height: 1.35; }
-.band-0 { background: #fdecec; border-color: #f5c9c9; } .band-0 .band-range { color: #c0392b; }
-.band-1 { background: #fdf3e3; border-color: #f0d9a8; } .band-1 .band-range { color: #b8791a; }
-.band-2 { background: #eef7ee; border-color: #c6e6c6; } .band-2 .band-range { color: #2f8f43; }
-.band-3 { background: #e9f5ee; border-color: #b6dcc5; } .band-3 .band-range { color: #16713a; }
+.band-0 { background: #f5f6f7; border-color: #e2e5e8; } .band-0 .band-range { color: #9197a0; }
+.band-1 { background: #f2f5f5; border-color: #dde6e4; } .band-1 .band-range { color: #7f9290; }
+.band-2 { background: #eef7f5; border-color: var(--score-pill-line); } .band-2 .band-range { color: #67aaa2; }
+.band-3 { background: #e5f3f0; border-color: #c6dfda; } .band-3 .band-range { color: var(--score-ink); }
 @media (max-width: 640px) { .band-scale { grid-template-columns: 1fr 1fr; } }
 
 /* learn page */
@@ -1688,7 +1688,7 @@ textarea.admin-input { resize: vertical; }
       0 10px 24px rgba(0, 0, 0, 0.36);
     --search-button-fill: linear-gradient(135deg, #f5a623, #ec4565, #5f82b8);
     --search-button-fill-color: #fff;
-    --score-cta-fill: linear-gradient(135deg, #2563eb, #3b82f6, #60a5fa);
+    --score-cta-fill: linear-gradient(135deg, #303836, #4a8f87, #3a3a3a);
     --product-wash-text: #fff;
     --product-wash-muted: rgba(255, 255, 255, 0.78);
     --product-wash-chip-bg: rgba(255, 255, 255, 0.13);
@@ -1717,7 +1717,7 @@ textarea.admin-input { resize: vertical; }
   }
   .site-nav-link { color: var(--body); }
   .site-nav-link:hover { background: rgba(255, 255, 255, 0.07); }
-  .site-nav-cta { background: #303030; color: #bcd6ff; border-color: #526b93; }
+  .site-nav-cta { background: #303836; color: var(--score-ink); border-color: var(--score-pill-line); }
   .site-nav-cta:hover,
   .site-nav-cta:focus { color: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35); }
   .header-search-form { box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3); }
@@ -1771,14 +1771,14 @@ textarea.admin-input { resize: vertical; }
   .guide-card-tag { background: rgba(22, 163, 74, 0.16); color: #6ee7a0; border-color: rgba(22, 163, 74, 0.35); }
 
   /* score bands */
-  .band-0 { background: rgba(192, 57, 43, 0.15);  border-color: rgba(192, 57, 43, 0.35); }
-  .band-0 .band-range { color: #f2917f; }
-  .band-1 { background: rgba(184, 121, 26, 0.15); border-color: rgba(184, 121, 26, 0.35); }
-  .band-1 .band-range { color: #e0b46a; }
-  .band-2 { background: rgba(47, 143, 67, 0.15);  border-color: rgba(47, 143, 67, 0.35); }
-  .band-2 .band-range { color: #7fcf8f; }
-  .band-3 { background: rgba(22, 113, 58, 0.15);  border-color: rgba(22, 113, 58, 0.35); }
-  .band-3 .band-range { color: #6ee7a0; }
+  .band-0 { background: rgba(145, 151, 160, 0.14); border-color: rgba(145, 151, 160, 0.28); }
+  .band-0 .band-range { color: #aeb4bb; }
+  .band-1 { background: rgba(127, 146, 144, 0.14); border-color: rgba(127, 146, 144, 0.3); }
+  .band-1 .band-range { color: #a5c5c0; }
+  .band-2 { background: rgba(79, 159, 150, 0.15); border-color: rgba(79, 159, 150, 0.32); }
+  .band-2 .band-range { color: #9fd6cf; }
+  .band-3 { background: rgba(79, 159, 150, 0.22); border-color: rgba(79, 159, 150, 0.42); }
+  .band-3 .band-range { color: #b8e4df; }
 
   /* notes / flash */
   .honesty-note { background: rgba(234, 88, 12, 0.12); border-color: rgba(234, 88, 12, 0.35); color: #fb9a5a; }
