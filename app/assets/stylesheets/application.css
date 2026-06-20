@@ -1111,9 +1111,6 @@ textarea.admin-input { resize: vertical; }
   font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;
   color: var(--score-ink);
 }
-.our-take-score { display: flex; align-items: baseline; gap: 0.1rem; }
-.our-take-num { font-size: 1.6rem; font-weight: 800; }
-.our-take-den { color: var(--muted); font-size: 0.85rem; }
 .our-take-body { margin: 0; font-size: 1.05rem; line-height: 1.6; color: var(--ink); }
 .our-take-body + .our-take-body { margin-top: 0.7rem; }
 .take-highlights {
@@ -1229,6 +1226,12 @@ textarea.admin-input { resize: vertical; }
 .cat-breakdown-head { display: flex; align-items: baseline; justify-content: space-between; gap: 0.75rem; margin-bottom: 1.1rem; }
 .cat-breakdown-head .specs-title { margin: 0; }
 .cat-breakdown-sub { font-size: 0.82rem; color: var(--muted); }
+.score-highlights {
+  margin: 0 0 1.15rem;
+  padding: 0 0 1.15rem;
+  border-top: 0;
+  border-bottom: 1px solid var(--line);
+}
 .cat-bars { display: flex; flex-direction: column; gap: 0.15rem; }
 .cat-bar-row {
   display: grid; grid-template-columns: 26px minmax(8rem, 12rem) 1fr 2.6rem; align-items: center; gap: 0.7rem;
@@ -1326,6 +1329,7 @@ textarea.admin-input { resize: vertical; }
 .band-chip-testing { background: rgba(255, 255, 255, 0.28); font-weight: 800; }
 .detail-band-score { flex-shrink: 0; text-align: center; }
 .dbs-num { display: block; font-size: 2.4rem; font-weight: 800; line-height: 1; }
+.dbs-den { font-size: 1.05rem; font-weight: 800; }
 .dbs-cap { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.85; }
 
 /* pull-quote verdict + glance cards */
