@@ -66,6 +66,7 @@ VARIANT_HEADERS = %w[
   consistency_score reasoning_score truthful_pushback_score image_quality_score prompt_adherence_score
   text_rendering_score image_editing_score transcription_score meeting_summary_score
   follow_up_score translation_accuracy_score translation_speed_score
+  avg_latency_seconds avg_total_tokens
 ].freeze
 
 # Per-variant legacy scores plus rubric sub-scores (all 1-10, nullable).
@@ -82,6 +83,10 @@ VARIANT_SCORES = %w[
   consistency_score reasoning_score truthful_pushback_score image_quality_score prompt_adherence_score
   text_rendering_score image_editing_score transcription_score meeting_summary_score
   follow_up_score translation_accuracy_score translation_speed_score
+].freeze
+
+VARIANT_METRICS = %w[
+  avg_latency_seconds avg_total_tokens
 ].freeze
 
 CATALOGUE_SCORES = %w[
@@ -230,6 +235,9 @@ variants.each.with_index(2) do |row, line|
   check_number(file, label, "position", row["position"], range: 0..Float::INFINITY, integer: true)
   VARIANT_SCORES.each do |field|
     check_number(file, label, field, row[field], range: 1..10, integer: true)
+  end
+  VARIANT_METRICS.each do |field|
+    check_number(file, label, field, row[field], range: 0..Float::INFINITY)
   end
   check_enum(file, label, "free_to_try", row["free_to_try"], BOOLEAN, allow_blank: true)
   check_date(file, label, "last_verified", row["last_verified"])
