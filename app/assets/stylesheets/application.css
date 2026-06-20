@@ -1468,11 +1468,12 @@ textarea.admin-input { resize: vertical; }
   margin-top: 0.4rem;
 }
 .tool-detail .detail-logo {
-  width: clamp(76px, 7.6vw, 96px);
-  height: clamp(76px, 7.6vw, 96px);
+  width: clamp(68px, 7vw, 86px);
+  height: clamp(68px, 7vw, 86px);
   border: 0;
-  border-radius: clamp(19px, 2vw, 24px);
-  font-size: clamp(2rem, 3.2vw, 2.8rem);
+  border-radius: clamp(17px, 1.8vw, 22px);
+  font-size: clamp(1.9rem, 3vw, 2.55rem);
+  box-shadow: 0 8px 20px rgba(29, 29, 31, 0.08);
 }
 .tool-detail .detail-logo .tool-logo-img {
   border-radius: inherit;
