@@ -8,6 +8,22 @@ module ApplicationHelper
   # Cool gradient (pink -> purple -> blue) used for the soft glow and hover
   # shadows, distinct from the warm brand gradient.
   GLOW_GRADIENT = %w[#ec4565 #8d6fd1 #53aaf6].freeze
+  PRODUCT_SUBSCRIPTION_MONTHLY_USD = {
+    "ChatGPT" => 20.0,
+    "Claude" => 20.0,
+    "Google Gemini" => 19.99,
+    "Microsoft Copilot" => 19.99,
+    "Perplexity" => 20.0,
+    "GitHub Copilot" => 10.0,
+    "Cursor" => 20.0,
+    "Mistral Le Chat" => 14.99,
+    "DeepL" => 8.74,
+    "Grammarly" => 30.0,
+    "Jasper" => 69.0,
+    "Otter.ai" => 16.99,
+    "Poe" => 4.17,
+    "xAI Grok" => 30.0
+  }.freeze
 
   def session_gradient_palettes
     SESSION_GRADIENTS
@@ -39,6 +55,10 @@ module ApplicationHelper
 
   def latest_in_ai_enabled?
     FeatureFlags.latest_in_ai?
+  end
+
+  def model_value_metrics_enabled?
+    FeatureFlags.model_value_metrics?
   end
 
   def yes_no_or_unknown(value)
@@ -139,6 +159,73 @@ module ApplicationHelper
     end
   end
 
+  def model_usage_metric_row(tool, selected_model_variant: nil)
+    variants = tool.model_variants.ordered
+    variants_with_metrics = variants.select { |variant| model_usage_metrics_present?(variant) }
+    selected_variant = selected_model_variant || tool.best_model_variant || variants_with_metrics.first
+    return nil unless selected_variant
+
+    metrics = [
+      usage_metric_payload(
+        kind: "time",
+        label: "Avg time (in seconds)",
+        icon: "stopwatch",
+        value: usage_metric_number(selected_variant.avg_latency_seconds),
+        max: 20.0,
+        formatted_value: format_latency_metric(selected_variant.avg_latency_seconds)
+      ),
+      usage_metric_payload(
+        kind: "tokens",
+        label: "Avg tokens",
+        icon: "currency-dollar",
+        value: usage_metric_number(selected_variant.avg_total_tokens),
+        max: 500.0,
+        formatted_value: format_token_metric(selected_variant.avg_total_tokens)
+      )
+    ].compact
+
+    {
+      variant: selected_variant,
+      fallback: selected_model_variant.nil?,
+      unavailable: metrics.empty?,
+      metrics: metrics
+    }
+  end
+
+  def model_value_metric_row(tool, selected_model_variant: nil)
+    variants = tool.model_variants.ordered
+    variants_with_metrics = variants.select { |variant| model_value_metrics_present?(tool, variant) }
+    selected_variant = selected_model_variant || tool.best_model_variant || variants_with_metrics.first
+    return nil unless selected_variant
+
+    api_values = variants.index_with { |variant| api_performance_per_dollar(variant) }.compact
+    plan_values = variants.index_with { |variant| plan_performance_per_dollar(tool, variant) }.compact
+
+    metrics = [
+      value_metric_payload(
+        kind: "api",
+        label: "API performance per $",
+        icon: "currency-dollar",
+        value: api_values[selected_variant],
+        max: api_values.values.max
+      ),
+      value_metric_payload(
+        kind: "plan",
+        label: "Plan performance per $",
+        icon: "credit-card",
+        value: plan_values[selected_variant],
+        max: plan_values.values.max
+      )
+    ].compact
+
+    {
+      variant: selected_variant,
+      fallback: selected_model_variant.nil?,
+      unavailable: metrics.empty?,
+      metrics: metrics
+    }
+  end
+
   def score_category_display_name(name)
     name.to_s.casecmp("Accuracy & trustworthiness").zero? ? "Trustworthiness" : name
   end
@@ -220,6 +307,28 @@ module ApplicationHelper
     "rgb(#{rgb.join(", ")})"
   end
 
+  def usage_metric_color(value, max)
+    ratio = usage_metric_ratio(value, max)
+    return "rgb(145, 151, 160)" if ratio.nil?
+
+    low = [145, 151, 160]
+    high = [229, 134, 149]
+    rgb = low.zip(high).map { |start, finish| (start + (finish - start) * ratio).round }
+
+    "rgb(#{rgb.join(", ")})"
+  end
+
+  def value_metric_color(value, max)
+    ratio = usage_metric_ratio(value, max)
+    return "rgb(145, 151, 160)" if ratio.nil?
+
+    low = [145, 151, 160]
+    high = [82, 166, 156]
+    rgb = low.zip(high).map { |start, finish| (start + (finish - start) * ratio).round }
+
+    "rgb(#{rgb.join(", ")})"
+  end
+
   # Gradient custom properties: the warm brand gradient for the wordmark and
   # buttons, plus the cool glow gradient for the search glow and hover shadows.
   # The page background itself stays plain white.
@@ -235,6 +344,134 @@ module ApplicationHelper
   end
 
   private
+
+  def model_usage_metrics_present?(variant)
+    usage_metric_number(variant.avg_latency_seconds).present? || usage_metric_number(variant.avg_total_tokens).present?
+  end
+
+  def model_value_metrics_present?(tool, variant)
+    api_performance_per_dollar(variant).present? || plan_performance_per_dollar(tool, variant).present?
+  end
+
+  def api_performance_per_dollar(variant)
+    score = usage_metric_number(variant.verdict)
+    avg_tokens = usage_metric_number(variant.avg_total_tokens)
+    blended_price = api_blended_price_per_million(variant)
+    return nil if score.nil? || avg_tokens.nil? || blended_price.nil? || blended_price <= 0
+
+    estimated_call_cost = avg_tokens / 1_000_000.0 * blended_price
+    return nil unless estimated_call_cost.positive?
+
+    score / estimated_call_cost
+  end
+
+  def plan_performance_per_dollar(tool, variant)
+    score = usage_metric_number(variant.verdict)
+    monthly_cost = subscription_monthly_cost(tool)
+    return nil if score.nil? || monthly_cost.nil? || monthly_cost <= 0
+
+    score / monthly_cost
+  end
+
+  def api_blended_price_per_million(variant)
+    prices = [variant.input_usd_per_m, variant.output_usd_per_m].filter_map { |price| usage_metric_number(price) }
+    return nil if prices.empty?
+
+    prices.sum / prices.size
+  end
+
+  def subscription_monthly_cost(tool)
+    configured = PRODUCT_SUBSCRIPTION_MONTHLY_USD[tool.name]
+    return configured if configured.present?
+    return nil unless tool.price_low_usd.present?
+    return nil unless monthly_pricing_unit?(tool.pricing_unit)
+
+    usage_metric_number(tool.price_low_usd)
+  end
+
+  def monthly_pricing_unit?(unit)
+    unit.blank? || unit.to_s.match?(/mo|month/i)
+  end
+
+  def value_metric_payload(kind:, label:, icon:, value:, max:)
+    return nil if value.nil? || max.nil? || max <= 0
+
+    ratio = usage_metric_ratio(value, max) || 0
+    width = ratio.zero? ? 0 : [(ratio * 100).round, 4].max
+
+    {
+      kind: kind,
+      label: label,
+      icon: icon,
+      value: format_value_metric(value),
+      ratio: ratio.round(3),
+      width: width,
+      color: value_metric_color(value, max)
+    }
+  end
+
+  def usage_metric_payload(kind:, label:, icon:, value:, max:, formatted_value:)
+    return nil if value.nil? || formatted_value.nil?
+
+    ratio = usage_metric_ratio(value, max) || 0
+    width = ratio.zero? ? 0 : [(ratio * 100).round, 4].max
+
+    {
+      kind: kind,
+      label: label,
+      icon: icon,
+      value: formatted_value,
+      ratio: ratio.round(3),
+      width: width,
+      color: usage_metric_color(value, max)
+    }
+  end
+
+  def usage_metric_number(value)
+    return nil if value.blank?
+
+    Float(value)
+  rescue ArgumentError, TypeError
+    nil
+  end
+
+  def usage_metric_ratio(value, max)
+    value = usage_metric_number(value)
+    max = usage_metric_number(max)
+    return nil if value.nil? || max.nil? || max <= 0
+
+    (value / max).clamp(0.0, 1.0)
+  end
+
+  def format_latency_metric(value)
+    number = usage_metric_number(value)
+    return nil if number.nil?
+
+    format("%.1f", number)
+  end
+
+  def format_token_metric(value)
+    number = usage_metric_number(value)
+    return nil if number.nil?
+
+    number_with_delimiter(number.round)
+  end
+
+  def format_value_metric(value)
+    number = usage_metric_number(value)
+    return nil if number.nil?
+
+    if number >= 1_000
+      formatted = format("%.1f", number / 1_000.0)
+      "#{formatted.delete_suffix(".0")}k"
+    elsif number >= 100
+      number_with_delimiter(number.round)
+    elsif number >= 10
+      format("%.1f", number)
+    else
+      format("%.2f", number)
+    end
+  end
 
   def gradient_value(gradient = nil, alpha:)
     gradient ||= {}

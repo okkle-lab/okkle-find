@@ -171,6 +171,8 @@ if File.exist?(variants_path)
       best_for:         row["best_for"].presence,
       last_verified:    row["last_verified"].presence,
       position:         row["position"].presence || 0,
+      avg_latency_seconds: row["avg_latency_seconds"].presence,
+      avg_total_tokens:    row["avg_total_tokens"].presence,
       **score_attributes_from(row, Rubric::SCORE_FIELDS, ModelVariant),
       **fact_attributes_from(row, Rubric::FACT_FIELDS, ModelVariant)
     )

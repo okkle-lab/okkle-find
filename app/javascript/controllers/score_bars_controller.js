@@ -5,18 +5,20 @@ const previousUnavailableByScope = new Map()
 
 export default class extends Controller {
   static targets = ["fill"]
+  static values = { scope: String }
 
   connect() {
     this.frame = this.element.closest("turbo-frame")
     this.shell = this.element.closest(".cat-bars-shell")
-    this.scopeKey = this.frame?.id || "default"
+    this.blurElement = this.element.closest(".cat-score-content") || this.element
+    this.scopeKey = this.scopeValue || this.frame?.id || "default"
     this.storeFrameState = this.storeFrameState.bind(this)
     this.frame?.addEventListener("turbo:before-frame-render", this.storeFrameState)
 
     if (this.prefersReducedMotion) return
 
     if (previousUnavailableByScope.get(this.scopeKey) && !this.unavailable) {
-      this.element.classList.add("cat-bars-blur-out")
+      this.blurElement.classList.add("cat-bars-blur-out")
     }
 
     const previousWidths = previousWidthsByScope.get(this.scopeKey)

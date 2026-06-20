@@ -1211,6 +1211,7 @@ textarea.admin-input { resize: vertical; }
 
 /* ---- category breakdown (on detail page) ---- */
 .cat-breakdown { margin: 2rem 0; padding: 1.5rem 1.6rem; border: 1px solid var(--line); border-radius: 18px; background: var(--card-surface); }
+.cat-breakdown-title { margin: 0 0 1rem; color: var(--ink); font-size: 1.15rem; font-weight: 800; letter-spacing: 0; }
 .cat-breakdown-head { display: flex; align-items: baseline; justify-content: space-between; gap: 0.75rem; margin-bottom: 1.1rem; }
 .cat-breakdown-head .specs-title { margin: 0; }
 .cat-breakdown-sub { font-size: 0.82rem; color: var(--muted); }
@@ -1273,14 +1274,33 @@ textarea.admin-input { resize: vertical; }
   background: transparent;
   box-shadow: none;
 }
+.tool-detail .model-score-tab-indicator {
+  background: var(--brand);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--brand) 28%, transparent), inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+}
+.tool-detail .model-score-tab-active,
+.tool-detail .model-score-tab-active:hover {
+  color: #fff;
+  background: var(--brand);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--brand) 28%, transparent), inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+}
+.tool-detail .model-score-tabs-ready .model-score-tab-active,
+.tool-detail .model-score-tabs-ready .model-score-tab-active:hover {
+  background: transparent;
+  box-shadow: none;
+}
+.cat-breakdown-label { display: flex; align-items: baseline; justify-content: space-between; gap: 0.8rem; margin: -0.3rem 0 0.75rem; }
+.cat-breakdown-label-title { color: var(--ink); font-size: 0.86rem; font-weight: 800; }
+.cat-breakdown-label-sub { color: var(--muted); font-size: 0.76rem; font-weight: 650; }
 .tool-detail .cat-bar-ic {
   color: var(--score-ink);
   border-color: var(--score-pill-line);
   background: var(--score-pill-bg);
 }
 .cat-bars-shell { position: relative; }
+.cat-score-content { position: relative; }
 .cat-bars { display: flex; flex-direction: column; gap: 0.15rem; }
-.cat-bars-shell-unavailable .cat-bars {
+.cat-bars-shell-unavailable .cat-score-content {
   filter: blur(9px);
   opacity: 0.58;
   pointer-events: none;
@@ -1350,11 +1370,27 @@ textarea.admin-input { resize: vertical; }
 .cat-bar-track { height: 8px; border-radius: 999px; background: var(--track, #eef1f5); overflow: hidden; }
 .cat-bar-fill { display: block; height: 100%; border-radius: 999px; transition: width 0.6s cubic-bezier(0.22,1,0.36,1), background-color 0.25s ease; will-change: width; }
 .cat-bar-score { font-size: 1rem; font-weight: 800; text-align: right; }
+.usage-metrics { margin: 1.35rem 0 0; padding: 0; }
+.usage-metrics-head { display: flex; align-items: baseline; justify-content: space-between; gap: 0.8rem; margin-bottom: 0.55rem; }
+.usage-metrics-title { color: var(--ink); font-size: 0.86rem; font-weight: 800; }
+.usage-metrics-sub { color: var(--muted); font-size: 0.76rem; font-weight: 650; }
+.usage-metrics-list { display: flex; flex-direction: column; gap: 0.15rem; }
+.usage-metrics-empty { margin: 0; color: var(--muted); font-size: 0.82rem; font-weight: 650; }
+.value-bar-row:hover { background: transparent; }
+.tool-detail .value-bar-ic { color: #54a69c; background: #eefaf8; border: 0; }
+.value-bar-name { color: var(--ink); }
+.value-bar-value { font-size: 0.92rem; white-space: nowrap; }
+.usage-bar-row:hover { background: transparent; }
+.tool-detail .usage-bar-ic { color: #d56f80; background: #fff3f5; border: 0; }
+.usage-bar-name { color: var(--ink); }
+.usage-bar-value { font-size: 0.92rem; white-space: nowrap; }
 .cat-breakdown-foot { margin: 1.1rem 0 0; font-size: 0.88rem; }
 .score-empty { margin: 0; color: var(--muted); font-size: 0.92rem; }
 @media (max-width: 560px) {
   .cat-bar-row { grid-template-columns: 24px 1fr 2.4rem; }
   .cat-bar-track { display: none; }
+  .cat-breakdown-label { flex-direction: column; gap: 0.1rem; }
+  .usage-metrics-head { flex-direction: column; gap: 0.1rem; }
 }
 
 /* ---- eval criteria list (review page cards) ---- */

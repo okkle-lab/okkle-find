@@ -26,4 +26,17 @@ class ApplicationHelperTest < ActionView::TestCase
   ensure
     Rails.configuration.x.features.latest_in_ai = original
   end
+
+  test "model value metrics flag defaults hidden" do
+    refute model_value_metrics_enabled?
+  end
+
+  test "model value metrics flag can be enabled" do
+    original = Rails.configuration.x.features.model_value_metrics
+    Rails.configuration.x.features.model_value_metrics = true
+
+    assert model_value_metrics_enabled?
+  ensure
+    Rails.configuration.x.features.model_value_metrics = original
+  end
 end

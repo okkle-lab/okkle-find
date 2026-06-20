@@ -63,31 +63,22 @@
   </div>
 
   <% breakdown = tool_category_breakdown(@tool, model_variant: @selected_model_variant, sort_by_score: false) %>
+  <% value_metrics_enabled = model_value_metrics_enabled? %>
+  <% usage_metric_row = model_usage_metric_row(@tool, selected_model_variant: @selected_model_variant) %>
+  <% value_metric_row = value_metrics_enabled ? model_value_metric_row(@tool, selected_model_variant: @selected_model_variant) : nil %>
   <% scores_unavailable = @selected_model_variant && breakdown.empty? %>
   <% unavailable_backdrop = tool_category_breakdown(@tool, sort_by_score: false).presence || unavailable_score_category_backdrop if scores_unavailable %>
   <% display_breakdown = scores_unavailable ? unavailable_backdrop : breakdown %>
+  <% display_usage_metric_row = scores_unavailable ? model_usage_metric_row(@tool) : usage_metric_row %>
+  <% display_value_metric_row = value_metrics_enabled ? (scores_unavailable ? model_value_metric_row(@tool) : value_metric_row) : nil %>
   <% if breakdown.any? || @model_variants.any? %>
     <%= turbo_frame_tag "tool_scores", class: "tool-scores-frame" do %>
       <section class="cat-breakdown" id="how-it-scores">
-        <div class="cat-breakdown-head">
-          <h2 class="specs-title">How it scores</h2>
-          <span class="cat-breakdown-sub">
-            <% if scores_unavailable %>
-              Not yet tested
-            <% else %>
-              Across <%= breakdown.size %> tested <%= "category".pluralize(breakdown.size) %>
-            <% end %>
-          </span>
-        </div>
+        <h2 class="cat-breakdown-title">How they perform</h2>
         <% if @model_variants.any? %>
           <% base_score_params = request.query_parameters.except("model_variant") %>
           <nav class="model-score-tabs" aria-label="Score source" data-controller="model-score-tabs" data-model-score-tabs-scope-value="<%= @tool.id %>">
             <span class="model-score-tab-indicator" data-model-score-tabs-target="indicator" aria-hidden="true"></span>
-            <%= link_to "All models",
-                  tool_path(@tool, base_score_params),
-                  class: ["model-score-tab", ("model-score-tab-active" if @selected_model_variant.nil?)].compact.join(" "),
-                  data: { turbo_frame: "tool_scores", model_score_tabs_target: "tab" },
-                  aria: ({ current: "page" } if @selected_model_variant.nil?) %>
             <% @model_variants.each do |variant| %>
               <% active_variant = @selected_model_variant == variant %>
               <%= link_to variant.name,
@@ -100,23 +91,111 @@
         <% end %>
         <% if display_breakdown.any? %>
           <div class="cat-bars-shell<%= " cat-bars-shell-unavailable" if scores_unavailable %>">
-            <div class="cat-bars" data-controller="score-bars" aria-hidden="<%= scores_unavailable %>">
-              <% display_breakdown.each do |cat| %>
-                <%= link_to leaderboard_path(cat[:key]), class: "cat-bar-row", data: { turbo_frame: "_top" } do %>
-                  <span class="cat-bar-ic" style="--icon-tint: var(--brand)"><%= icon(cat[:icon], size: 16) %></span>
-                  <span class="cat-bar-name"><%= cat[:display_name] %></span>
-                  <% score_width = (cat[:score] * 10).round %>
-                  <span class="cat-bar-track">
-                    <span
-                      class="cat-bar-fill"
-                      data-score-bars-target="fill"
-                      data-score-bars-key="<%= cat[:key] %>"
-                      data-score-bars-width="<%= score_width %>"
-                      style="width: <%= score_width %>%; background: <%= score_color(cat[:score]) %>"
-                    ></span>
-                  </span>
-                  <span class="cat-bar-score" style="color: <%= score_color(cat[:score]) %>"><%= score_number(cat[:score]) %></span>
+            <div class="cat-score-content" aria-hidden="<%= scores_unavailable %>">
+              <div class="cat-breakdown-label">
+                <span class="cat-breakdown-label-title">Performance</span>
+                <span class="cat-breakdown-label-sub">Higher is better</span>
+              </div>
+              <div class="cat-bars" data-controller="score-bars">
+                <% display_breakdown.each do |cat| %>
+                  <%= link_to leaderboard_path(cat[:key]), class: "cat-bar-row", data: { turbo_frame: "_top" } do %>
+                    <span class="cat-bar-ic" style="--icon-tint: var(--brand)"><%= icon(cat[:icon], size: 16) %></span>
+                    <span class="cat-bar-name"><%= cat[:display_name] %></span>
+                    <% score_width = (cat[:score] * 10).round %>
+                    <span class="cat-bar-track">
+                      <span
+                        class="cat-bar-fill"
+                        data-score-bars-target="fill"
+                        data-score-bars-key="<%= cat[:key] %>"
+                        data-score-bars-width="<%= score_width %>"
+                        style="width: <%= score_width %>%; background: <%= score_color(cat[:score]) %>"
+                      ></span>
+                    </span>
+                    <span class="cat-bar-score" style="color: <%= score_color(cat[:score]) %>"><%= score_number(cat[:score]) %></span>
+                  <% end %>
                 <% end %>
+              </div>
+              <% if display_value_metric_row %>
+                <% value_variant = display_value_metric_row[:variant] %>
+                <div class="usage-metrics value-metrics" aria-label="Value">
+                  <div class="usage-metrics-head value-metrics-head">
+                    <span class="usage-metrics-title value-metrics-title">Value</span>
+                    <span class="usage-metrics-sub value-metrics-sub">Higher is better</span>
+                  </div>
+                  <% if display_value_metric_row[:unavailable] && !scores_unavailable %>
+                    <p class="usage-metrics-empty value-metrics-empty">Currently unavailable for <%= value_variant.name %></p>
+                  <% elsif display_value_metric_row[:metrics].any? %>
+                    <div
+                      class="usage-metrics-list value-metrics-list"
+                      data-controller="score-bars"
+                      data-score-bars-scope-value="tool-value-<%= @tool.id %>"
+                      data-value-metric-model="<%= value_variant.id %>"
+                    >
+                      <% display_value_metric_row[:metrics].each do |metric| %>
+                        <div
+                          class="cat-bar-row value-bar-row"
+                          data-value-metric-kind="<%= metric[:kind] %>"
+                          data-value-metric-icon="<%= metric[:icon] %>"
+                          data-value-metric-ratio="<%= metric[:ratio] %>"
+                        >
+                          <span class="cat-bar-ic value-bar-ic"><%= icon(metric[:icon], size: 16) %></span>
+                          <span class="cat-bar-name value-bar-name"><%= metric[:label] %></span>
+                          <span class="cat-bar-track">
+                            <span
+                              class="cat-bar-fill value-bar-fill"
+                              data-score-bars-target="fill"
+                              data-score-bars-key="value-<%= metric[:kind] %>"
+                              data-score-bars-width="<%= metric[:width] %>"
+                              style="width: <%= metric[:width] %>%; background: <%= metric[:color] %>"
+                            ></span>
+                          </span>
+                          <span class="cat-bar-score value-bar-value" style="color: <%= metric[:color] %>"><%= metric[:value] %></span>
+                        </div>
+                      <% end %>
+                    </div>
+                  <% end %>
+                </div>
+              <% end %>
+              <% if display_usage_metric_row %>
+                <% usage_variant = display_usage_metric_row[:variant] %>
+                <div class="usage-metrics" aria-label="Efficiency">
+                  <div class="usage-metrics-head">
+                    <span class="usage-metrics-title">Efficiency</span>
+                    <span class="usage-metrics-sub">Lower is better</span>
+                  </div>
+                  <% if display_usage_metric_row[:unavailable] && !scores_unavailable %>
+                    <p class="usage-metrics-empty">Currently unavailable for <%= usage_variant.name %></p>
+                  <% elsif display_usage_metric_row[:metrics].any? %>
+                    <div
+                      class="usage-metrics-list"
+                      data-controller="score-bars"
+                      data-score-bars-scope-value="tool-usage-<%= @tool.id %>"
+                      data-usage-metric-model="<%= usage_variant.id %>"
+                    >
+                      <% display_usage_metric_row[:metrics].each do |metric| %>
+                        <div
+                          class="cat-bar-row usage-bar-row"
+                          data-usage-metric-kind="<%= metric[:kind] %>"
+                          data-usage-metric-icon="<%= metric[:icon] %>"
+                          data-usage-metric-ratio="<%= metric[:ratio] %>"
+                        >
+                          <span class="cat-bar-ic usage-bar-ic"><%= icon(metric[:icon], size: 16) %></span>
+                          <span class="cat-bar-name usage-bar-name"><%= metric[:label] %></span>
+                          <span class="cat-bar-track">
+                            <span
+                              class="cat-bar-fill usage-bar-fill"
+                              data-score-bars-target="fill"
+                              data-score-bars-key="usage-<%= metric[:kind] %>"
+                              data-score-bars-width="<%= metric[:width] %>"
+                              style="width: <%= metric[:width] %>%; background: <%= metric[:color] %>"
+                            ></span>
+                          </span>
+                          <span class="cat-bar-score usage-bar-value" style="color: <%= metric[:color] %>"><%= metric[:value] %></span>
+                        </div>
+                      <% end %>
+                    </div>
+                  <% end %>
+                </div>
               <% end %>
             </div>
             <% if scores_unavailable %>
