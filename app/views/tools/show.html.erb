@@ -1,7 +1,7 @@
 <% content_for :title, "#{@tool.name} — AI Finder" %>
 
-<article class="detail tool-detail">
-  <header class="detail-band" style="--brand: <%= tool_brand_color(@tool) %>" data-controller="logo-color">
+<article class="detail tool-detail" style="--brand: <%= tool_brand_color(@tool) %>" data-controller="logo-color">
+  <header class="detail-band">
     <%= tool_logo(@tool, css_class: "detail-logo") %>
     <div class="detail-band-main">
       <h1 class="detail-name"><%= @tool.name %></h1>
