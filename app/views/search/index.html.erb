@@ -1,10 +1,8 @@
+<% content_for :title, "#{@results_title} — AI Finder" %>
+
 <section class="results-head">
   <div class="results-toolbar">
-    <% if @query.blank? && @need.source == "default" %>
-      <h1 class="results-title">Best AI overall</h1>
-    <% elsif @query.blank? %>
-      <h1 class="results-title">Tools to <%= @need.categories.first&.tr("-", " ") %></h1>
-    <% end %>
+    <h1 class="results-title"><%= @results_title %></h1>
 
     <%= form_with url: search_path, method: :get, class: "sort-form" do |f| %>
       <% if @query.present? %>

@@ -96,20 +96,34 @@ module ApplicationHelper
   # Per-category scores for a tool, best-scored first, for the detail-page
   # breakdown and the review-page eval section. Only categories the tool is
   # actually scored on are returned (no fabricated zeros).
-  def tool_category_breakdown(tool)
+  def tool_category_breakdown(tool, model_variant: nil)
     icons = Category.pluck(:slug, :icon).to_h
     Rubric::CATEGORIES.filter_map do |name, config|
-      score = tool.comparison_category_score(config[:fields].keys)
+      score = tool_category_score(tool, name, config, model_variant:)
       next if score.nil?
 
       {
         name: name,
+        display_name: score_category_display_name(name),
         key: config[:key],
         score: score.round(1),
-        icon: icons[config[:key]].presence || "sparkles",
+        icon: config[:icon].presence || icons[config[:key]].presence || "sparkles",
         fields: config[:fields].keys
       }
     end.sort_by { |c| -c[:score] }
+  end
+
+  def tool_category_score(tool, category_name, config, model_variant: nil)
+    fields = config[:fields].keys
+    if model_variant
+      model_variant.category_score(fields, extra_scores: tool.rubric_field_values, category: category_name)
+    else
+      tool.comparison_category_score(fields)
+    end
+  end
+
+  def score_category_display_name(name)
+    name.to_s.casecmp("Accuracy & trustworthiness").zero? ? "Trustworthiness" : name
   end
 
   # The sub-criteria inside one category: [label, score, what-it-measures].
@@ -173,27 +187,6 @@ module ApplicationHelper
     total_w = pairs.sum(&:last)
     return nil if total_w.zero?
     (pairs.sum { |s, w| s * w } / total_w).round(1)
-  end
-
-  # Bite-size editorial highlights for the "Our take" panel — strongest area,
-  # weakest area, free tier, and model lineup, all from real scored data.
-  def tool_verdict_highlights(tool)
-    return [] unless tool.scored?
-
-    breakdown = tool_category_breakdown(tool)
-    highlights = []
-
-    if (top = breakdown.first)
-      highlights << { icon: "trend-up", label: "Strongest at", value: "#{top[:name]} · #{score_number(top[:score])}" }
-    end
-    if breakdown.size > 1 && (bottom = breakdown.last) && bottom[:score] < 7.5
-      highlights << { icon: "bolt", label: "Weakest at", value: "#{bottom[:name]} · #{score_number(bottom[:score])}" }
-    end
-    highlights << { icon: "currency-dollar", label: "Free tier", value: tool.verdict_free_tier? ? "Yes" : "No" }
-    if (n = tool.verdict_models_available).to_i.positive?
-      highlights << { icon: "sparkles", label: "Models", value: "#{n} available" }
-    end
-    highlights
   end
 
   # Colour scores on a calm grey→pastel-teal scale, calibrated to the real

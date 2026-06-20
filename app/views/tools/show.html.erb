@@ -1,7 +1,7 @@
 <% content_for :title, "#{@tool.name} — AI Finder" %>
 
-<article class="detail tool-detail">
-  <header class="detail-band" style="--brand: <%= tool_brand_color(@tool) %>" data-controller="logo-color">
+<article class="detail tool-detail" style="--brand: <%= tool_brand_color(@tool) %>" data-controller="logo-color">
+  <header class="detail-band">
     <%= tool_logo(@tool, css_class: "detail-logo") %>
     <div class="detail-band-main">
       <h1 class="detail-name"><%= @tool.name %></h1>
@@ -26,16 +26,19 @@
     </div>
     <% if (v = @tool.overall_verdict) %>
       <div class="detail-band-score">
-        <span class="dbs-num"><%= score_number(v) %></span>
+        <span class="dbs-num" style="color: <%= score_color(v) %>"><%= score_number(v) %><span class="dbs-den">/10</span></span>
         <span class="dbs-cap">Overall</span>
       </div>
     <% end %>
   </header>
 
-  <% if @tool.why_this_one.present? %>
-    <p class="detail-quote"><%= @tool.why_this_one %></p>
-  <% end %>
+  <section class="product-verdict">
+    <% tool_verdict_commentary(@tool).each do |para| %>
+      <p class="product-verdict-body"><%= para %></p>
+    <% end %>
+  </section>
 
+  <% models_available = @tool.verdict_models_available.to_i %>
   <div class="glance-grid">
     <div class="glance-card">
       <span class="glance-ic"><%= icon("currency-dollar", size: 18) %></span>
@@ -52,56 +55,56 @@
       <span class="glance-label">Ease</span>
       <span class="glance-val"><%= @tool.display_ease_label %></span>
     </div>
+    <div class="glance-card">
+      <span class="glance-ic"><%= icon("sparkles", size: 18) %></span>
+      <span class="glance-label">Models</span>
+      <span class="glance-val"><%= models_available.positive? ? "#{models_available} available" : "Not listed" %></span>
+    </div>
   </div>
 
-  <section class="our-take">
-    <div class="our-take-head">
-      <span class="our-take-badge"><%= icon("sparkles", size: 15) %> Our take</span>
-      <% if (v = @tool.overall_verdict) %>
-        <span class="our-take-score"><%= colored_score(v, css_class: "our-take-num") %><span class="our-take-den">/10</span></span>
-      <% end %>
-    </div>
-    <% tool_verdict_commentary(@tool).each do |para| %>
-      <p class="our-take-body"><%= para %></p>
-    <% end %>
-
-    <% highlights = tool_verdict_highlights(@tool) %>
-    <% if highlights.any? %>
-      <div class="take-highlights">
-        <% highlights.each do |h| %>
-          <div class="take-hl">
-            <span class="take-hl-ic"><%= icon(h[:icon], size: 15) %></span>
-            <span class="take-hl-text">
-              <span class="take-hl-label"><%= h[:label] %></span>
-              <span class="take-hl-value"><%= h[:value] %></span>
-            </span>
+  <% breakdown = tool_category_breakdown(@tool, model_variant: @selected_model_variant) %>
+  <% if breakdown.any? || @model_variants.any? %>
+    <%= turbo_frame_tag "tool_scores", class: "tool-scores-frame" do %>
+      <section class="cat-breakdown" id="how-it-scores">
+        <div class="cat-breakdown-head">
+          <h2 class="specs-title">How it scores</h2>
+          <span class="cat-breakdown-sub">Across <%= breakdown.size %> tested <%= "category".pluralize(breakdown.size) %></span>
+        </div>
+        <% if @model_variants.any? %>
+          <% base_score_params = request.query_parameters.except("model_variant") %>
+          <nav class="model-score-tabs" aria-label="Score source">
+            <%= link_to "All models",
+                  tool_path(@tool, base_score_params),
+                  class: ["model-score-tab", ("model-score-tab-active" if @selected_model_variant.nil?)].compact.join(" "),
+                  data: { turbo_frame: "tool_scores" },
+                  aria: ({ current: "page" } if @selected_model_variant.nil?) %>
+            <% @model_variants.each do |variant| %>
+              <% active_variant = @selected_model_variant == variant %>
+              <%= link_to variant.name,
+                    tool_path(@tool, base_score_params.merge("model_variant" => variant.id)),
+                    class: ["model-score-tab", ("model-score-tab-active" if active_variant)].compact.join(" "),
+                    data: { turbo_frame: "tool_scores" },
+                    aria: ({ current: "page" } if active_variant) %>
+            <% end %>
+          </nav>
+        <% end %>
+        <% if breakdown.any? %>
+          <div class="cat-bars">
+            <% breakdown.each do |cat| %>
+              <%= link_to leaderboard_path(cat[:key]), class: "cat-bar-row", data: { turbo_frame: "_top" } do %>
+                <span class="cat-bar-ic" style="--icon-tint: var(--brand)"><%= icon(cat[:icon], size: 16) %></span>
+                <span class="cat-bar-name"><%= cat[:display_name] %></span>
+                <span class="cat-bar-track"><span class="cat-bar-fill" style="width: <%= (cat[:score] * 10).round %>%; background: <%= score_color(cat[:score]) %>"></span></span>
+                <span class="cat-bar-score" style="color: <%= score_color(cat[:score]) %>"><%= score_number(cat[:score]) %></span>
+              <% end %>
+            <% end %>
           </div>
+          <p class="cat-breakdown-foot"><%= link_to "See the full criterion-by-criterion review →", review_tool_path(@tool), data: { turbo_frame: "_top" } %></p>
+        <% else %>
+          <p class="score-empty">No category scores yet for this model.</p>
         <% end %>
-      </div>
+      </section>
     <% end %>
-
-    <p class="our-take-byline">— AI Finder editorial · sample commentary</p>
-  </section>
-
-  <% breakdown = tool_category_breakdown(@tool) %>
-  <% if breakdown.any? %>
-    <section class="cat-breakdown">
-      <div class="cat-breakdown-head">
-        <h2 class="specs-title">How it scores</h2>
-        <span class="cat-breakdown-sub">Across <%= breakdown.size %> tested <%= "category".pluralize(breakdown.size) %></span>
-      </div>
-      <div class="cat-bars">
-        <% breakdown.each do |cat| %>
-          <%= link_to leaderboard_path(cat[:key]), class: "cat-bar-row" do %>
-            <span class="cat-bar-ic" style="--icon-tint: <%= tool_monogram_color(cat[:name]) %>"><%= icon(cat[:icon], size: 16) %></span>
-            <span class="cat-bar-name"><%= cat[:name] %></span>
-            <span class="cat-bar-track"><span class="cat-bar-fill" style="width: <%= (cat[:score] * 10).round %>%; background: <%= score_color(cat[:score]) %>"></span></span>
-            <span class="cat-bar-score" style="color: <%= score_color(cat[:score]) %>"><%= score_number(cat[:score]) %></span>
-          <% end %>
-        <% end %>
-      </div>
-      <p class="cat-breakdown-foot"><%= link_to "See the full criterion-by-criterion review →", review_tool_path(@tool) %></p>
-    </section>
   <% end %>
 
   <% if @tool.website_url.present? %>
