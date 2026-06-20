@@ -1223,9 +1223,9 @@ textarea.admin-input { resize: vertical; }
 }
 .tool-detail .score-highlights .take-hl-ic,
 .tool-detail .cat-bar-ic {
-  color: #8f97a3;
-  border-color: #e1e5ea;
-  background: #f5f7f9;
+  color: var(--score-ink);
+  border-color: var(--score-pill-line);
+  background: var(--score-pill-bg);
 }
 .cat-bars { display: flex; flex-direction: column; gap: 0.15rem; }
 .cat-bar-row {
