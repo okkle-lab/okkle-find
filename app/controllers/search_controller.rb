@@ -33,6 +33,8 @@ class SearchController < ApplicationController
   private
 
   def results_title
+    return "Best AI overall" if @need.source == "default"
+
     if @query.present?
       "Tools for “#{@query}”"
     else
