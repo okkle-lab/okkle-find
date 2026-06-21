@@ -57,7 +57,7 @@
         <span class="card-bm-label">Best model</span>
         <% scored_variants.each do |variant, score| %>
           <span class="card-bm-chip">
-            <span class="card-bm-dot" style="background: <%= score_color(score) %>"></span>
+            <span class="card-bm-dot" style="background: <%= score_fill_color(score) %>"></span>
             <%= variant.name %>
             <span class="card-bm-score" style="color: <%= score_color(score) %>"><%= score_number(score) %></span>
           </span>

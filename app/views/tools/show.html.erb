@@ -108,7 +108,7 @@
                         data-score-bars-target="fill"
                         data-score-bars-key="<%= cat[:key] %>"
                         data-score-bars-width="<%= score_width %>"
-                        style="width: <%= score_width %>%; background: <%= score_color(cat[:score]) %>"
+                        style="width: <%= score_width %>%; background: <%= score_fill_color(cat[:score]) %>"
                       ></span>
                     </span>
                     <span class="cat-bar-score" style="color: <%= score_color(cat[:score]) %>"><%= score_number(cat[:score]) %></span>
@@ -146,7 +146,7 @@
                               data-score-bars-target="fill"
                               data-score-bars-key="value-<%= metric[:kind] %>"
                               data-score-bars-width="<%= metric[:width] %>"
-                              style="width: <%= metric[:width] %>%; background: <%= metric[:color] %>"
+                              style="width: <%= metric[:width] %>%; background: <%= metric[:fill_color] %>"
                             ></span>
                           </span>
                           <span class="cat-bar-score value-bar-value" style="color: <%= metric[:color] %>"><%= metric[:value] %></span>
@@ -187,7 +187,7 @@
                               data-score-bars-target="fill"
                               data-score-bars-key="usage-<%= metric[:kind] %>"
                               data-score-bars-width="<%= metric[:width] %>"
-                              style="width: <%= metric[:width] %>%; background: <%= metric[:color] %>"
+                              style="width: <%= metric[:width] %>%; background: <%= metric[:fill_color] %>"
                             ></span>
                           </span>
                           <span class="cat-bar-score usage-bar-value" style="color: <%= metric[:color] %>"><%= metric[:value] %></span>

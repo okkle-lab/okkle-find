@@ -104,7 +104,7 @@ module ApplicationHelper
   def score_bar(label, value)
     pct = value.nil? ? 0 : (value.to_f.clamp(0, 10) * 10).round
     val = value.nil? ? content_tag(:span, "—", class: "score-none") : score_number(value)
-    fill = value.nil? ? "" : tag.span(class: "bar-fill", style: "width: #{pct}%; background: #{score_color(value)}")
+    fill = value.nil? ? "" : tag.span(class: "bar-fill", style: "width: #{pct}%; background: #{score_fill_color(value)}")
 
     content_tag(:div, class: "bar-row") do
       content_tag(:div, class: "bar-top") do
@@ -294,62 +294,79 @@ module ApplicationHelper
     (pairs.sum { |s, w| s * w } / total_w).round(1)
   end
 
-  # Colour scores on a calm pastel diverging scale so quality bands separate at
-  # a glance: weak scores read pink, 5 sits neutral grey, and strong scores
-  # deepen into teal. Pink always means "worse", teal "better" — the same
-  # convention the efficiency/value metrics use.
-  SCORE_PINK = [229, 134, 149].freeze
-  SCORE_GREY = [145, 151, 160].freeze
-  SCORE_TEAL = [33, 76, 69].freeze
+  # Scores fall into three pastel bands so quality reads at a glance: weak
+  # (< 5) red, medium (5–7.5) amber, strong (7.5+) teal-green. Each band pairs a
+  # soft fill (for bars/dots) with a darker shade (for numbers, legible on white)
+  # — red/amber/green mean worse/middling/better everywhere, including the
+  # efficiency and value metrics.
+  SCORE_BANDS = {
+    weak: { fill: [232, 154, 147], text: [163, 61, 45] },
+    medium: { fill: [237, 192, 102], text: [133, 91, 11] },
+    strong: { fill: [98, 179, 148], text: [31, 110, 86] }
+  }.freeze
 
+  def score_band(value)
+    n = value.to_f
+    return :weak if n < 5.0
+    return :medium if n < 7.5
+
+    :strong
+  end
+
+  # Maps a 0..1 goodness ratio (higher = better) onto the same bands, so metrics
+  # share the score thresholds: 7.5/10 and 5/10.
+  def goodness_band(ratio)
+    return :strong if ratio >= 0.75
+    return :medium if ratio >= 0.5
+
+    :weak
+  end
+
+  # Darker shade — for score numbers and other text on white.
   def score_color(value)
     return nil if value.nil?
 
-    n = value.to_f.clamp(1.0, 10.0)
-    rgb =
-      if n < 5.0
-        lerp_rgb(SCORE_PINK, SCORE_GREY, (n - 1.0) / 4.0)
-      else
-        lerp_rgb(SCORE_GREY, SCORE_TEAL, (n - 5.0) / 5.0)
-      end
-
-    "rgb(#{rgb.join(", ")})"
+    "rgb(#{SCORE_BANDS[score_band(value)][:text].join(", ")})"
   end
 
-  def lerp_rgb(low, high, ratio)
-    ratio = ratio.clamp(0.0, 1.0)
-    low.zip(high).map { |start, finish| (start + (finish - start) * ratio).round }
+  # Soft pastel — for bar fills and dots.
+  def score_fill_color(value)
+    return nil if value.nil?
+
+    "rgb(#{SCORE_BANDS[score_band(value)][:fill].join(", ")})"
   end
 
-  # Efficiency is lower-is-better, so flip the scale to keep colour meaning
-  # consistent: a low value (fast/cheap) reads teal, a high value (slow/costly)
-  # reads pink, neutral in the middle.
+  # Efficiency is lower-is-better, so invert the ratio: a low value (fast/cheap)
+  # lands in the strong band.
   def usage_metric_color(value, max)
-    ratio = usage_metric_ratio(value, max)
-    return "rgb(#{SCORE_GREY.join(", ")})" if ratio.nil?
-
-    rgb = diverging_rgb(1.0 - ratio)
-    "rgb(#{rgb.join(", ")})"
+    band = usage_metric_band(value, max)
+    band && "rgb(#{SCORE_BANDS[band][:text].join(", ")})"
   end
 
-  # Value is higher-is-better, so a high ratio reads teal and a low one pink —
-  # the same convention as scores.
+  def usage_metric_fill_color(value, max)
+    band = usage_metric_band(value, max)
+    band && "rgb(#{SCORE_BANDS[band][:fill].join(", ")})"
+  end
+
+  # Value is higher-is-better, so the raw ratio maps straight onto the bands.
   def value_metric_color(value, max)
-    ratio = usage_metric_ratio(value, max)
-    return "rgb(#{SCORE_GREY.join(", ")})" if ratio.nil?
-
-    rgb = diverging_rgb(ratio)
-    "rgb(#{rgb.join(", ")})"
+    band = value_metric_band(value, max)
+    band && "rgb(#{SCORE_BANDS[band][:text].join(", ")})"
   end
 
-  # Maps a 0..1 goodness ratio onto the pink→grey→teal diverging ramp.
-  def diverging_rgb(ratio)
-    ratio = ratio.clamp(0.0, 1.0)
-    if ratio < 0.5
-      lerp_rgb(SCORE_PINK, SCORE_GREY, ratio / 0.5)
-    else
-      lerp_rgb(SCORE_GREY, SCORE_TEAL, (ratio - 0.5) / 0.5)
-    end
+  def value_metric_fill_color(value, max)
+    band = value_metric_band(value, max)
+    band && "rgb(#{SCORE_BANDS[band][:fill].join(", ")})"
+  end
+
+  def usage_metric_band(value, max)
+    ratio = usage_metric_ratio(value, max)
+    ratio && goodness_band(1.0 - ratio)
+  end
+
+  def value_metric_band(value, max)
+    ratio = usage_metric_ratio(value, max)
+    ratio && goodness_band(ratio)
   end
 
   # Gradient custom properties: the warm brand gradient for the wordmark and
@@ -429,7 +446,8 @@ module ApplicationHelper
       value: format_value_metric(value),
       ratio: ratio.round(3),
       width: width,
-      color: value_metric_color(value, max)
+      color: value_metric_color(value, max),
+      fill_color: value_metric_fill_color(value, max)
     }
   end
 
@@ -446,7 +464,8 @@ module ApplicationHelper
       value: formatted_value,
       ratio: ratio.round(3),
       width: width,
-      color: usage_metric_color(value, max)
+      color: usage_metric_color(value, max),
+      fill_color: usage_metric_fill_color(value, max)
     }
   end
 
