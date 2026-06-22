@@ -11,6 +11,9 @@ This runner reads a prompt spreadsheet, reads a model spreadsheet, runs eligible
 The CSV and workbook `Run Results` sheet include per-call `prompt_tokens`,
 `completion_tokens`, hidden `reasoning_tokens`, and `total_tokens` columns when
 the provider reports usage.
+When a text response reaches the configured token cap and is blank or likely
+truncated, the runner prints a `TOKEN WARNING` line. The SwiftUI app surfaces
+those warnings in a banner above the run log.
 
 By default it skips image-generation rows, evidence-review/privacy/security/enterprise rows, and manual reviewer rows. Use `--include-image` when you want to run image-generation tests too.
 
@@ -76,6 +79,11 @@ values whose prompt/input content is new or changed compared with previous
 model-test workbooks. Turn that off when you intentionally want to backfill old
 missing or errored pairs. The older Skip Already Scored mode is still available
 as a fallback when result reuse is off.
+Use the Only Test IDs field to run a specific comma-separated set of prompt
+questions. The Failed preset fills the token-cap rerun question set and passes
+it through to the runner as `--only-tests`.
+If selected models keep hitting the 4000-token app cap, set Reasoning Effort to
+`None` or `Minimal`; the app passes that to OpenRouter as `--reasoning-effort`.
 
 Cloud model providers still require an API key. With the default model spreadsheet path, the app expects one OpenRouter key for text models. Image models usually need an OpenAI key unless your model spreadsheet points them somewhere else. GitHub Models rows need a GitHub token with `models:read` in `GITHUB_MODELS_TOKEN`.
 Image generation is supported but off by default in the SwiftUI app to avoid

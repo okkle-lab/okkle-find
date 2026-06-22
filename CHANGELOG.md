@@ -11,6 +11,13 @@ breaking changes).
 - Added a double-clickable Windows launcher (`Launch AI Finder.bat`) that mirrors
   the macOS launcher by checking gems, preparing the database, starting Rails,
   and opening the local app in a browser.
+- Model Eval Runner 1.1.4 adds an OpenRouter reasoning-effort override so
+  token-cap reruns can use none/minimal reasoning when 4000 max tokens is still
+  not enough.
+- Model Eval Runner 1.1.3 warns when a text response hits the token cap and is
+  blank or likely truncated, including an in-app warning banner during runs.
+- Model Eval Runner 1.1.2 adds an Only Test IDs filter plus a Failed preset for
+  rerunning token-cap-affected prompt questions without rerunning the full suite.
 - Model Eval Runner 1.1.1 remembers pasted API keys locally in macOS Keychain
   and reloads them on launch, while still letting environment variables
   override saved values.
@@ -57,6 +64,14 @@ breaking changes).
   while `ModelEvalApp/dist/` stays ignored as a local build-artifact folder.
 
 ### Changed
+- Product efficiency metrics now use refreshed evaluator averages and scale
+  against rounded observed DB maxima, avoiding stale token caps that hid
+  high-usage models.
+- Whisper now uses the OpenAI logo domain instead of the GitHub repository
+  favicon while keeping its GitHub project URL.
+- Top rated overall rankings now use a stricter broad-performance score so
+  single-category specialists do not outrank generalist models, and the list
+  shows which model variant earned each product's score.
 - Launchers now prepare, seed, and verify CSV-backed database data every time,
   so model efficiency metrics from committed seeds are applied on other
   computers before the server opens.

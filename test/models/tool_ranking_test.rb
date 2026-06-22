@@ -97,6 +97,124 @@ class ToolRankingTest < ActiveSupport::TestCase
     assert_in_delta 6.6, tool.overall_verdict, 0.05
   end
 
+  test "broad overall score requires every core generalist category" do
+    specialist = Tool.new(name: "Audio Specialist")
+    specialist.model_variants.build(name: "v1", transcription_score: 10)
+
+    assert_nil specialist.broad_overall_score
+  end
+
+  test "broad overall score rejects weak core category floors" do
+    tool = Tool.new(name: "Patchy Generalist",
+      prompt_effort_score: 8,
+      interface_score: 8,
+      learning_curve_score: 8)
+    tool.model_variants.build(name: "v1",
+      write_edit_score: 8,
+      summarisation_score: 8,
+      research_fact_checking_score: 5,
+      source_quality_score: 5,
+      hallucination_resistance_score: 8,
+      deep_research_score: 5,
+      coding_speed_score: 8,
+      coding_accuracy_score: 8,
+      debugging_score: 8,
+      agentic_coding_score: 8,
+      consistency_score: 8,
+      reasoning_score: 8,
+      truthful_pushback_score: 8,
+      image_quality_score: 8,
+      prompt_adherence_score: 8,
+      text_rendering_score: 8,
+      image_editing_score: 8,
+      translation_accuracy_score: 8,
+      translation_speed_score: 8)
+
+    assert_operator tool.overall_verdict, :>, 7
+    assert_nil tool.broad_overall_score
+  end
+
+  test "broad overall score averages core generalist categories" do
+    tool = Tool.new(name: "Broad Generalist",
+      prompt_effort_score: 8,
+      interface_score: 8,
+      learning_curve_score: 8)
+    tool.model_variants.build(name: "v1",
+      write_edit_score: 8,
+      summarisation_score: 8,
+      research_fact_checking_score: 8,
+      source_quality_score: 8,
+      hallucination_resistance_score: 8,
+      deep_research_score: 8,
+      coding_speed_score: 8,
+      coding_accuracy_score: 8,
+      debugging_score: 8,
+      agentic_coding_score: 8,
+      consistency_score: 8,
+      reasoning_score: 8,
+      truthful_pushback_score: 8,
+      image_quality_score: 8,
+      prompt_adherence_score: 8,
+      text_rendering_score: 8,
+      image_editing_score: 8,
+      translation_accuracy_score: 8,
+      translation_speed_score: 8)
+
+    assert_equal 8.0, tool.broad_overall_score
+  end
+
+  test "broad overall result returns the model variant that earned the score" do
+    tool = Tool.new(name: "Broad Model Picker",
+      prompt_effort_score: 8,
+      interface_score: 8,
+      learning_curve_score: 8)
+    tool.model_variants.build(name: "Lower Broad Model",
+      write_edit_score: 7,
+      summarisation_score: 7,
+      research_fact_checking_score: 7,
+      source_quality_score: 7,
+      hallucination_resistance_score: 7,
+      deep_research_score: 7,
+      coding_speed_score: 7,
+      coding_accuracy_score: 7,
+      debugging_score: 7,
+      agentic_coding_score: 7,
+      consistency_score: 7,
+      reasoning_score: 7,
+      truthful_pushback_score: 7,
+      image_quality_score: 7,
+      prompt_adherence_score: 7,
+      text_rendering_score: 7,
+      image_editing_score: 7,
+      translation_accuracy_score: 7,
+      translation_speed_score: 7)
+    winner = tool.model_variants.build(name: "Higher Broad Model",
+      write_edit_score: 9,
+      summarisation_score: 9,
+      research_fact_checking_score: 9,
+      source_quality_score: 9,
+      hallucination_resistance_score: 9,
+      deep_research_score: 9,
+      coding_speed_score: 9,
+      coding_accuracy_score: 9,
+      debugging_score: 9,
+      agentic_coding_score: 9,
+      consistency_score: 9,
+      reasoning_score: 9,
+      truthful_pushback_score: 9,
+      image_quality_score: 9,
+      prompt_adherence_score: 9,
+      text_rendering_score: 9,
+      image_editing_score: 9,
+      translation_accuracy_score: 9,
+      translation_speed_score: 9)
+
+    result = tool.broad_overall_result
+
+    assert_equal winner, result.model_variant
+    assert_equal 8.8, result.score
+  end
+
   test "best_score reads tool-only rubric columns" do
     tool = Tool.new(name: "Easy", prompt_effort_score: 7)
     assert_equal 7, tool.best_score(:prompt_effort_score)

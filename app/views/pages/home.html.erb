@@ -64,15 +64,18 @@
       <%= link_to "Browse all leaderboards →", leaderboards_path, class: "section-all" %>
     </div>
     <ol class="top-list">
-      <% @top_rated.each_with_index do |(tool, score), i| %>
+      <% @top_rated.each_with_index do |(tool, result), i| %>
         <%= link_to tool_path(tool), class: "top-row" do %>
           <span class="top-rank"><%= i + 1 %></span>
           <%= tool_logo(tool, css_class: "top-logo") %>
           <span class="top-main">
-            <span class="top-name"><%= tool.name %></span>
+            <span class="top-name">
+              <%= tool.name %>
+              <% if result.model_variant.present? %><span class="top-model"><%= result.model_variant.name %></span><% end %>
+            </span>
             <% if tool.provider.present? %><span class="top-prov">by <%= tool.provider %></span><% end %>
           </span>
-          <span class="top-score" style="color: <%= score_color(score) %>"><%= score_number(score) %></span>
+          <span class="top-score" style="color: <%= score_color(result.score) %>"><%= score_number(result.score) %></span>
         <% end %>
       <% end %>
     </ol>

@@ -70,6 +70,10 @@ Inputs:
   the API for prompt `Test ID` values whose prompt/input content is new or
   changed compared with previous model-test workbooks, so it does not backfill
   old missing or errored pairs unless you turn this off.
+- Only Test IDs: optional comma-separated prompt IDs to run. Use the Failed
+  preset to fill the token-cap rerun question set.
+- Reasoning Effort: optional OpenRouter override. Use `None` or `Minimal` when
+  the 4000-token app cap still produces token-budget warnings.
 - Skip Already Scored: fallback mode for when result reuse is off. It uses
   `model_variants.csv` to skip model keys that already have website scores.
 
@@ -113,6 +117,9 @@ Output:
 `responses.csv`, `responses.xlsx`, and the final workbook's `Run Results` sheet
 show per-call prompt, completion, hidden reasoning-token, and total token counts
 when the provider returns usage.
+If a text response reaches the configured token cap and is blank or likely
+truncated, the runner prints a `TOKEN WARNING` line and the app shows a warning
+banner above the run log.
 
 When run from Swift Package Manager, the app creates a timestamped output folder
 under `AI-Finder/outputs/model_tests/` unless another folder is selected. When

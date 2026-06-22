@@ -1,5 +1,6 @@
 class Tool < ApplicationRecord
   include Scoreable
+  BroadOverallResult = Struct.new(:tool, :model_variant, :score, keyword_init: true)
 
   # String-backed enums. Use prefixes so values like `none`/`yes` don't
   # clobber ActiveRecord methods (e.g. the built-in `Tool.none` scope).
@@ -26,6 +27,16 @@ class Tool < ApplicationRecord
 
   # Neutral baseline so un-scored tools don't sink in ranking.
   RANK_BASELINE = 5.0
+  BROAD_OVERALL_CATEGORIES = [
+    "Writing",
+    "Research",
+    "Coding",
+    "Accuracy & trustworthiness",
+    "Ease of use",
+    "Image generation",
+    "Translation"
+  ].freeze
+  BROAD_OVERALL_MIN_CATEGORY_SCORE = 6.0
 
   # Intent dimension (chosen by the parser from the user's request) => the
   # score column it ranks on. Kept for callers, derived from the rubric map so
@@ -72,6 +83,29 @@ class Tool < ApplicationRecord
     return verdicts.max.round(1) if verdicts.any?
 
     self_verdict&.round(1)
+  end
+
+  def broad_overall_score
+    broad_overall_result&.score
+  end
+
+  def broad_overall_result
+    candidates = model_variants.filter_map do |variant|
+      score = broad_overall_score_for(variant.category_scores(extra_scores: rubric_field_values))
+      BroadOverallResult.new(tool: self, model_variant: variant, score:) if score
+    end
+    best = candidates.max_by(&:score)
+    return best if best
+
+    score = broad_overall_score_for(category_scores)
+    BroadOverallResult.new(tool: self, model_variant: nil, score:) if score
+  end
+
+  def broad_overall_score_for(category_scores)
+    scores = category_scores.slice(*BROAD_OVERALL_CATEGORIES)
+    return nil unless scores.size == BROAD_OVERALL_CATEGORIES.size
+    return nil if scores.values.any? { |score| score.to_f < BROAD_OVERALL_MIN_CATEGORY_SCORE }
+    (scores.values.sum.to_f / scores.size).round(1)
   end
 
   def scored?

@@ -1529,13 +1529,18 @@ def call_openai_compatible(
         raise ValueError(f"Provider {provider_key!r} is missing base_url.")
 
     options = merge_request_options(config, provider, model)
+    max_tokens_key = max_tokens_parameter(provider, model)
+    requested_max_tokens = options.get("max_tokens", DEFAULT_MAX_TOKENS)
     payload: dict[str, Any] = {
         "model": model.get("model"),
         "messages": messages,
-        max_tokens_parameter(provider, model): options.get("max_tokens", DEFAULT_MAX_TOKENS),
+        max_tokens_key: requested_max_tokens,
     }
     if supports_custom_temperature(provider, model):
         payload["temperature"] = options.get("temperature", 0.2)
+    reasoning_effort = clean_text(options.get("reasoning_effort")).lower()
+    if reasoning_effort and openrouter_provider(provider):
+        payload["reasoning"] = {"effort": reasoning_effort}
     payload.update(provider.get("extra_body", {}))
     payload.update(model.get("extra_body", {}))
 
@@ -1546,7 +1551,16 @@ def call_openai_compatible(
     parsed = post_json(provider, model, path, payload, timeout, retries)
     choice = parsed.get("choices", [{}])[0]
     message = choice.get("message", {})
-    return normalize_content(message.get("content")), parsed.get("usage", {})
+    usage = parsed.get("usage", {})
+    if not isinstance(usage, dict):
+        usage = {}
+    else:
+        usage = dict(usage)
+    finish_reason = clean_text(choice.get("finish_reason"))
+    if finish_reason:
+        usage["_finish_reason"] = finish_reason
+    usage["_requested_max_tokens"] = requested_max_tokens
+    return normalize_content(message.get("content")), usage
 
 
 def safe_filename(value: str) -> str:
@@ -1885,6 +1899,76 @@ def reasoning_token_count(usage: dict[str, Any]) -> int | str:
         "completion_tokens_details",
         "reasoning_tokens",
     )
+
+
+def row_int_value(row: dict[str, Any], key: str) -> int | None:
+    value = token_count_value(row.get(key))
+    return value if isinstance(value, int) else None
+
+
+def row_usage(row: dict[str, Any]) -> dict[str, Any]:
+    usage = row.get("usage")
+    if isinstance(usage, dict):
+        return usage
+    if isinstance(usage, str) and usage.strip():
+        try:
+            parsed = json.loads(usage)
+        except json.JSONDecodeError:
+            return {}
+        return parsed if isinstance(parsed, dict) else {}
+    return {}
+
+
+def finish_reason_hit_token_limit(finish_reason: str) -> bool:
+    normalized_reason = normalized(finish_reason).replace("_", " ")
+    return normalized_reason in {
+        "length",
+        "max tokens",
+        "max completion tokens",
+        "token limit",
+        "tokens",
+    }
+
+
+def token_budget_warning(row: dict[str, Any]) -> str:
+    if clean_text(row.get("output_type")) == "image" or clean_text(row.get("error")):
+        return ""
+
+    usage = row_usage(row)
+    requested_max_tokens_value = token_count_value(usage.get("_requested_max_tokens"))
+    requested_max_tokens = (
+        requested_max_tokens_value if isinstance(requested_max_tokens_value, int) else None
+    )
+    completion_tokens = row_int_value(row, "completion_tokens")
+    reasoning_tokens = row_int_value(row, "reasoning_tokens")
+    finish_reason = clean_text(usage.get("_finish_reason"))
+    hit_finish_limit = finish_reason_hit_token_limit(finish_reason)
+    hit_token_cap = (
+        requested_max_tokens is not None
+        and completion_tokens is not None
+        and completion_tokens >= requested_max_tokens
+    )
+    if not hit_finish_limit and not hit_token_cap:
+        return ""
+
+    has_visible_output = bool(
+        clean_text(row.get("response"))
+        or clean_text(row.get("output_files"))
+        or clean_text(row.get("output_urls"))
+    )
+    details = []
+    if completion_tokens is not None:
+        details.append(f"completion_tokens={completion_tokens}")
+    if reasoning_tokens is not None:
+        details.append(f"reasoning_tokens={reasoning_tokens}")
+    if requested_max_tokens is not None:
+        details.append(f"max_tokens={requested_max_tokens}")
+    if finish_reason:
+        details.append(f"finish_reason={finish_reason}")
+    detail_text = "; ".join(details)
+    if has_visible_output:
+        return f"response likely truncated after hitting the token cap ({detail_text})"
+    return f"blank response likely exhausted the token cap before visible output ({detail_text})"
 
 
 def write_results_csv(path: Path, rows: list[dict[str, Any]]) -> None:
@@ -2273,6 +2357,14 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         help="Override max output tokens per text response. Lower this if provider credit limits reject requests.",
     )
     parser.add_argument(
+        "--reasoning-effort",
+        choices=["none", "minimal", "low", "medium", "high", "xhigh"],
+        help=(
+            "OpenRouter reasoning effort override for models that support thinking tokens. "
+            "Use none or minimal when token-cap failures leave blank/truncated visible output."
+        ),
+    )
+    parser.add_argument(
         "--excel-every",
         type=int,
         default=1,
@@ -2384,6 +2476,8 @@ def main(argv: list[str]) -> int:
         if args.max_tokens < 1:
             raise ValueError("--max-tokens must be greater than 0.")
         config.setdefault("request", {})["max_tokens"] = args.max_tokens
+    if args.reasoning_effort:
+        config.setdefault("request", {})["reasoning_effort"] = args.reasoning_effort
     if args.excel_every < 0:
         raise ValueError("--excel-every must be 0 or greater.")
     if args.rate_limit_skip_after < 0:
@@ -2602,6 +2696,8 @@ def main(argv: list[str]) -> int:
     done_count = len(completed)
     progress_lock = threading.Lock()
     output_lock = threading.Lock()
+    token_warning_lock = threading.Lock()
+    token_budget_warning_lines: list[str] = []
 
     def next_progress() -> int:
         nonlocal done_count
@@ -2615,6 +2711,19 @@ def main(argv: list[str]) -> int:
             all_rows.append(row)
             if args.excel_every and len(all_rows) % args.excel_every == 0:
                 write_live_results_workbook(live_xlsx_path, ordered_rows(), skipped)
+
+    def record_token_budget_warning(row: dict[str, Any]) -> None:
+        warning = token_budget_warning(row)
+        if not warning:
+            return
+        line = (
+            "TOKEN WARNING: "
+            f"{clean_text(row.get('model_key'))} / {clean_text(row.get('test_id'))}: "
+            f"{warning}"
+        )
+        with token_warning_lock:
+            token_budget_warning_lines.append(line)
+        print(f"  {line}", flush=True)
 
     def run_pair(model: dict[str, Any], test: PromptTest) -> dict[str, Any]:
         provider = model.get("provider", "")
@@ -2707,6 +2816,7 @@ def main(argv: list[str]) -> int:
                     )
 
             persist_row(row)
+            record_token_budget_warning(row)
             if sleep_seconds:
                 time.sleep(sleep_seconds)
 
@@ -2739,6 +2849,11 @@ def main(argv: list[str]) -> int:
         rows=final_rows,
         skipped=skipped,
     )
+
+    if token_budget_warning_lines:
+        print("Token budget warnings:", flush=True)
+        for line in token_budget_warning_lines:
+            print(f"  {line}", flush=True)
 
     print(f"Wrote {output_dir / 'responses.jsonl'}")
     print(f"Wrote {live_xlsx_path}")

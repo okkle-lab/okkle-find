@@ -296,6 +296,7 @@ body:has(.tool-detail) .site-header {
 .top-main { display: flex; flex-direction: column; min-width: 0; }
 .top-name { font-weight: 700; font-size: 0.98rem; }
 .top-prov { color: var(--muted); font-size: 0.78rem; }
+.top-model { color: var(--muted); font-size: 0.78rem; font-weight: 600; margin-left: 0.35rem; }
 .top-score { margin-left: auto; font-size: 1.2rem; font-weight: 800; }
 
 /* news grid — magazine style: one lead card + smaller cards */

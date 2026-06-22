@@ -147,10 +147,17 @@ class ToolMatcher
   # Tools we've actually scored on the priority dimension come first (so a tool
   # with no score on it never outranks one that does), then by that dimension's
   # score. Ties break randomly so equally scored tools still rotate between
-  # searches. With no priority dimension every tool is "unscored" and this is
-  # simply an overall-verdict ranking.
+  # searches. With no priority dimension, prefer broad overall performers before
+  # falling back to the looser overall verdict used on product pages.
   def ranked_by_relevance(tools)
     dimension = @need.priority_dimension
+    if dimension.nil?
+      return tools.sort_by { |t|
+        broad_score = t.broad_overall_score
+        [broad_score ? 0 : 1, -(broad_score || t.rank_score(nil)), rand]
+      }
+    end
+
     tools.sort_by { |t| [t.scored_on?(dimension) ? 0 : 1, -t.rank_score(dimension), rand] }
   end
 

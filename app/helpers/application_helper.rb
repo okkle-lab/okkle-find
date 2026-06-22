@@ -165,6 +165,8 @@ module ApplicationHelper
     variants_with_metrics = variants.select { |variant| model_usage_metrics_present?(variant) }
     selected_variant = selected_model_variant || tool.best_model_variant || variants_with_metrics.first
     return nil unless selected_variant
+    latency_max = usage_metric_scale_max(:avg_latency_seconds, :time)
+    token_max = usage_metric_scale_max(:avg_total_tokens, :tokens)
 
     metrics = [
       usage_metric_payload(
@@ -172,7 +174,7 @@ module ApplicationHelper
         label: "Avg time (in seconds)",
         icon: "stopwatch",
         value: usage_metric_number(selected_variant.avg_latency_seconds),
-        max: 20.0,
+        max: latency_max,
         formatted_value: format_latency_metric(selected_variant.avg_latency_seconds)
       ),
       usage_metric_payload(
@@ -180,7 +182,7 @@ module ApplicationHelper
         label: "Avg tokens",
         icon: "currency-dollar",
         value: usage_metric_number(selected_variant.avg_total_tokens),
-        max: 700.0,
+        max: token_max,
         formatted_value: format_token_metric(selected_variant.avg_total_tokens)
       )
     ].compact
@@ -303,6 +305,14 @@ module ApplicationHelper
     weak: { fill: [232, 154, 147], text: [163, 61, 45] },
     medium: { fill: [237, 192, 102], text: [133, 91, 11] },
     strong: { fill: [98, 179, 148], text: [31, 110, 86] }
+  }.freeze
+  USAGE_METRIC_SCALE_STEPS = {
+    time: 10.0,
+    tokens: 500.0
+  }.freeze
+  USAGE_METRIC_SCALE_FALLBACKS = {
+    time: 60.0,
+    tokens: 3_500.0
   }.freeze
 
   def score_band(value)
@@ -483,6 +493,20 @@ module ApplicationHelper
     return nil if value.nil? || max.nil? || max <= 0
 
     (value / max).clamp(0.0, 1.0)
+  end
+
+  def usage_metric_scale_max(column, kind)
+    @usage_metric_scale_max ||= {}
+    @usage_metric_scale_max[[column, kind]] ||= begin
+      observed_max = usage_metric_number(ModelVariant.maximum(column))
+      fallback = USAGE_METRIC_SCALE_FALLBACKS.fetch(kind)
+      if observed_max.nil? || observed_max <= 0
+        fallback
+      else
+        step = USAGE_METRIC_SCALE_STEPS.fetch(kind)
+        (observed_max / step).ceil * step
+      end
+    end
   end
 
   def format_latency_metric(value)

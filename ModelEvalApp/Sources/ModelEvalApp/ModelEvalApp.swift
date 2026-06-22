@@ -235,6 +235,8 @@ final class RunnerViewModel: ObservableObject {
     @Published var reuseMatchingResults = true
     @Published var onlyChangedTests = true
     @Published var skipScoredModels = false
+    @Published var onlyTestIDs = ""
+    @Published var reasoningEffort = "Provider Default"
     @Published var maxTokens = 1000
     @Published var openRouterAPIKey: String {
         didSet { APIKeyStore.save(openRouterAPIKey, account: Self.openRouterAPIKeyEnvironmentName) }
@@ -248,8 +250,33 @@ final class RunnerViewModel: ObservableObject {
     @Published var isRunning = false
     @Published var logText = ""
     @Published var lastOutputURL: URL?
+    @Published var tokenBudgetWarningCount = 0
 
     private var process: Process?
+    static let reasoningEffortDefault = "Provider Default"
+    static let reasoningEffortOptions = [
+        reasoningEffortDefault,
+        "None",
+        "Minimal",
+        "Low",
+        "Medium",
+        "High",
+        "XHigh"
+    ]
+    private static let tokenCapFailedTestIDs = [
+        "W3",
+        "R2",
+        "R5",
+        "R7",
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "A&3",
+        "T2",
+        "S2",
+        "S3"
+    ]
 
     init() {
         openRouterAPIKey = Self.initialSecret(environmentKey: Self.openRouterAPIKeyEnvironmentName)
@@ -271,6 +298,7 @@ final class RunnerViewModel: ObservableObject {
         let runFolder = outputBaseURL.appendingPathComponent("swiftui-\(Self.timestamp())")
         lastOutputURL = runFolder
         logText = ""
+        tokenBudgetWarningCount = 0
         isRunning = true
 
         do {
@@ -299,6 +327,10 @@ final class RunnerViewModel: ObservableObject {
         NSWorkspace.shared.activateFileViewerSelecting([lastOutputURL])
     }
 
+    func useTokenCapFailedTests() {
+        onlyTestIDs = Self.tokenCapFailedTestIDs.joined(separator: ",")
+    }
+
     private static func initialSecret(environmentKey: String) -> String {
         if let value = ProcessInfo.processInfo.environment[environmentKey],
            !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -322,6 +354,14 @@ final class RunnerViewModel: ObservableObject {
             "--output-dir", outputURL.path,
             "--max-tokens", "\(maxTokens)"
         ]
+        let selectedTestIDs = normalizedOnlyTestIDs()
+        if !selectedTestIDs.isEmpty {
+            arguments.append(contentsOf: ["--only-tests", selectedTestIDs])
+        }
+        let selectedReasoningEffort = normalizedReasoningEffort()
+        if !selectedReasoningEffort.isEmpty {
+            arguments.append(contentsOf: ["--reasoning-effort", selectedReasoningEffort])
+        }
         if let rubricWorkbookURL {
             arguments.append(contentsOf: ["--rubric-workbook", rubricWorkbookURL.path])
         }
@@ -409,6 +449,23 @@ final class RunnerViewModel: ObservableObject {
 
     private func appendLog(_ text: String) {
         logText.append(text)
+        tokenBudgetWarningCount += text.components(separatedBy: "TOKEN WARNING:").count - 1
+    }
+
+    private func normalizedOnlyTestIDs() -> String {
+        onlyTestIDs
+            .components(separatedBy: CharacterSet(charactersIn: ",; \n\t"))
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .joined(separator: ",")
+    }
+
+    private func normalizedReasoningEffort() -> String {
+        let value = reasoningEffort.trimmingCharacters(in: .whitespacesAndNewlines)
+        if value.isEmpty || value == Self.reasoningEffortDefault {
+            return ""
+        }
+        return value.lowercased()
     }
 
     private static func timestamp() -> String {
@@ -552,6 +609,28 @@ struct ContentView: View {
                 Label("Skip Already Scored", systemImage: "forward.end")
             }
             .disabled(viewModel.reuseMatchingResults)
+            VStack(alignment: .leading, spacing: 6) {
+                HStack {
+                    Label("Only Test IDs", systemImage: "line.3.horizontal.decrease.circle")
+                    Spacer()
+                    Button {
+                        viewModel.useTokenCapFailedTests()
+                    } label: {
+                        Label("Failed", systemImage: "exclamationmark.triangle")
+                    }
+                    .help("Use the token-cap failed-question preset")
+                    Button {
+                        viewModel.onlyTestIDs = ""
+                    } label: {
+                        Image(systemName: "xmark.circle")
+                    }
+                    .help("Clear test filter")
+                }
+                TextField("All tests", text: $viewModel.onlyTestIDs)
+                    .textFieldStyle(.roundedBorder)
+                    .font(.system(.body, design: .monospaced))
+                    .help("Comma-separated Test IDs")
+            }
             HStack {
                 Label("Max Tokens", systemImage: "text.word.spacing")
                 Spacer()
@@ -560,6 +639,18 @@ struct ContentView: View {
                         .font(.system(.body, design: .monospaced))
                         .frame(width: 56, alignment: .trailing)
                 }
+            }
+            HStack {
+                Label("Reasoning Effort", systemImage: "brain")
+                Spacer()
+                Picker("Reasoning Effort", selection: $viewModel.reasoningEffort) {
+                    ForEach(RunnerViewModel.reasoningEffortOptions, id: \.self) { option in
+                        Text(option).tag(option)
+                    }
+                }
+                .labelsHidden()
+                .frame(width: 150)
+                .help("OpenRouter reasoning effort. Use None or Minimal when token-cap warnings appear.")
             }
             VStack(alignment: .leading, spacing: 6) {
                 Text("API Keys")
@@ -601,6 +692,17 @@ struct ContentView: View {
                     ProgressView()
                         .controlSize(.small)
                 }
+            }
+            if viewModel.tokenBudgetWarningCount > 0 {
+                Label(
+                    "\(viewModel.tokenBudgetWarningCount) token-budget warning\(viewModel.tokenBudgetWarningCount == 1 ? "" : "s"). Check the log for blank or truncated responses.",
+                    systemImage: "exclamationmark.triangle.fill"
+                )
+                .foregroundStyle(.orange)
+                .padding(10)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.orange.opacity(0.12))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
             }
             ScrollViewReader { proxy in
                 ScrollView {

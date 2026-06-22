@@ -9,8 +9,8 @@ class PagesController < ApplicationController
     }
 
     @top_rated = Tool.visible.includes(:model_variants).to_a
-      .filter_map { |t| [t, t.overall_verdict] if t.overall_verdict }
-      .sort_by { |_t, v| -v }
+      .filter_map { |t| (result = t.broad_overall_result) && [t, result] }
+      .sort_by { |_t, result| -result.score }
       .first(5)
 
     @recent_posts =
