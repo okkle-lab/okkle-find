@@ -39,4 +39,25 @@ class ApplicationHelperTest < ActionView::TestCase
   ensure
     Rails.configuration.x.features.model_value_metrics = original
   end
+
+  test "experimental score categories flag defaults hidden" do
+    refute FeatureFlags.experimental_score_categories?
+    refute_includes Rubric.categories.keys, "Ease of use"
+    refute_includes Rubric.categories.keys, "Image generation"
+    refute_includes Rubric.categories.keys, "Privacy & data safety"
+    refute_includes Rubric.categories.keys, "Enterprise"
+  end
+
+  test "experimental score categories flag can be enabled" do
+    original = Rails.configuration.x.features.experimental_score_categories
+    Rails.configuration.x.features.experimental_score_categories = true
+
+    assert FeatureFlags.experimental_score_categories?
+    assert_includes Rubric.categories.keys, "Ease of use"
+    assert_includes Rubric.categories.keys, "Image generation"
+    assert_includes Rubric.categories.keys, "Privacy & data safety"
+    assert_includes Rubric.categories.keys, "Enterprise"
+  ensure
+    Rails.configuration.x.features.experimental_score_categories = original
+  end
 end

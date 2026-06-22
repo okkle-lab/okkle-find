@@ -55,10 +55,11 @@ class ParsedNeedTest < ActiveSupport::TestCase
     assert_equal "research", need.priority_dimension
   end
 
-  test "infers privacy intent from data safety queries" do
+  test "keeps privacy as a hard filter without using hidden score category" do
     need = ParsedNeed.from_keywords("I need something private that does not keep my data")
 
-    assert_equal "privacy", need.priority_dimension
+    assert need.must_be_private
+    assert_nil need.priority_dimension
   end
 
   test "keeps unknown intent nil so ranking falls back to overall score" do

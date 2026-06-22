@@ -131,6 +131,12 @@ class Rubric
       }
     }
   }.freeze
+  EXPERIMENTAL_SCORE_CATEGORIES = [
+    "Ease of use",
+    "Image generation",
+    "Privacy & data safety",
+    "Enterprise"
+  ].freeze
 
   DIMENSIONS = {
     "write_edit" => {
@@ -411,9 +417,78 @@ class Rubric
     "audio-to-text" => "transcription",
     "translate" => "translation"
   }.freeze
+  TEST_ID_SCORE_FIELDS = {
+    "W1" => :write_edit_score,
+    "W2" => :summarisation_score,
+    "R1" => :research_fact_checking_score,
+    "R2" => :source_quality_score,
+    "R3" => :source_quality_score,
+    "R4" => :hallucination_resistance_score,
+    "R5" => :deep_research_score,
+    "R6" => :source_quality_score,
+    "R7" => :research_fact_checking_score,
+    "R8" => :source_quality_score,
+    "R9" => :research_fact_checking_score,
+    "C1" => :coding_speed_score,
+    "C2" => :coding_accuracy_score,
+    "C3" => :debugging_score,
+    "C4" => :agentic_coding_score,
+    "A&1" => :hallucination_resistance_score,
+    "A&2" => :source_quality_score,
+    "A&3" => :consistency_score,
+    "A&4" => :reasoning_score,
+    "AGR1" => :truthful_pushback_score,
+    "AGR2" => :truthful_pushback_score,
+    "AGR3" => :truthful_pushback_score,
+    "AGR4" => :truthful_pushback_score,
+    "AGR5" => :truthful_pushback_score,
+    "IG1" => :image_quality_score,
+    "IG2" => :prompt_adherence_score,
+    "IG3" => :text_rendering_score,
+    "IG4" => :image_editing_score,
+    "M1" => :transcription_score,
+    "M2" => :meeting_summary_score,
+    "M3" => :follow_up_score,
+    "T1" => :translation_accuracy_score,
+    "T2" => :translation_speed_score
+  }.freeze
+
+  def self.categories
+    return CATEGORIES if FeatureFlags.experimental_score_categories?
+
+    CATEGORIES.except(*EXPERIMENTAL_SCORE_CATEGORIES)
+  end
+
+  def self.overall_categories
+    categories.transform_values { |config| config.fetch(:fields).keys }
+  end
+
+  def self.dimensions
+    return DIMENSIONS if FeatureFlags.experimental_score_categories?
+
+    DIMENSIONS.reject do |_dimension, config|
+      EXPERIMENTAL_SCORE_CATEGORIES.include?(config[:category])
+    end
+  end
+
+  def self.priority_dimensions
+    dimensions.to_h { |dimension, config| [dimension, config[:fields]] }
+  end
+
+  def self.output_fields
+    dimensions.values.filter_map { |config| config[:fields] if config[:group] == :output }.flatten.uniq
+  end
+
+  def self.product_fields
+    dimensions.values.filter_map { |config| config[:fields] if config[:group] == :product }.flatten.uniq
+  end
+
+  def self.score_fields
+    dimensions.values.flat_map { |config| config[:fields] }.uniq
+  end
 
   def self.fields_for(dimension)
-    Array(PRIORITY_DIMENSIONS[dimension])
+    Array(priority_dimensions[dimension])
   end
 
   def self.dimension_for_browse_category(slug)
@@ -421,7 +496,15 @@ class Rubric
   end
 
   def self.category_for(dimension)
-    DIMENSIONS.dig(dimension, :category)
+    dimensions.dig(dimension, :category)
+  end
+
+  def self.category_for_field(field)
+    CATEGORIES.find { |_category, config| config[:fields].key?(field.to_sym) }&.first
+  end
+
+  def self.score_field_for_test_id(test_id)
+    TEST_ID_SCORE_FIELDS[test_id.to_s.strip.upcase]
   end
 
   def self.weight_for(category, field)
@@ -433,6 +516,6 @@ class Rubric
   end
 
   def self.label_for(dimension)
-    DIMENSIONS.dig(dimension, :label) || dimension.to_s.tr("_", " ")
+    dimensions.dig(dimension, :label) || dimension.to_s.tr("_", " ")
   end
 end

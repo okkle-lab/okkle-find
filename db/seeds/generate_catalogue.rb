@@ -25,7 +25,7 @@ ROWS = [
     context: 128000, api_free: "no", free_app: "yes", retention: "optional", local: "no",
     privacy: "you can turn off chat history & training", price: "free tier; Plus is ~$20/mo",
     ease: "just open it and type", quality: 9, easy: 10, value: 8,
-    why: "The default for most people. Strong all-rounder for writing chatting and quick answers with a generous free tier.",
+    why: "The default all-rounder for everyday AI work: strong writing, coding, summarisation, file handling, and a generous free tier, with model choices from fast/cheap to flagship.",
     cats: "chat-assistant,write-things,summarize,code"
   },
   {

@@ -118,7 +118,7 @@ class NeedParser
   end
 
   def priority_dimension_prompt
-    Rubric::DIMENSIONS.map do |dimension, config|
+    Rubric.dimensions.map do |dimension, config|
       examples = Array(config[:intent_phrases]).first(3).join(" / ")
       "  - #{config[:label]} (#{examples}) -> #{dimension}"
     end.join("\n")
@@ -150,7 +150,7 @@ class NeedParser
           priority_dimension: {
             type: "string",
             description: "The single most important quality to rank results by. Omit if none clearly dominates.",
-            enum: Tool::PRIORITY_DIMENSIONS.keys
+            enum: Rubric.priority_dimensions.keys
           }
         },
         required: %w[must_be_free must_be_private must_run_locally categories]

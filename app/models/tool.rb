@@ -32,8 +32,6 @@ class Tool < ApplicationRecord
     "Research",
     "Coding",
     "Accuracy & trustworthiness",
-    "Ease of use",
-    "Image generation",
     "Translation"
   ].freeze
   BROAD_OVERALL_MIN_CATEGORY_SCORE = 6.0
@@ -165,7 +163,7 @@ class Tool < ApplicationRecord
   end
 
   def comparison_category_score(fields)
-    category = Rubric::OVERALL_CATEGORIES.key(fields) if Rubric::OVERALL_CATEGORIES.respond_to?(:key)
+    category = Rubric.overall_categories.key(fields)
     model_fields = model_variant_fields(fields)
 
     if model_fields.any?
@@ -186,11 +184,11 @@ class Tool < ApplicationRecord
   end
 
   def product_overall_scores
-    Rubric::PRODUCT_FIELDS.filter_map { |field| public_send(field) if respond_to?(field) }
+    Rubric.product_fields.filter_map { |field| public_send(field) if respond_to?(field) }
   end
 
   def rubric_field_values
-    Rubric::SCORE_FIELDS.each_with_object({}) do |field, values|
+    Rubric.score_fields.each_with_object({}) do |field, values|
       values[field] = public_send(field) if respond_to?(field) && public_send(field).present?
     end
   end

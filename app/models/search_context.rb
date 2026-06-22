@@ -67,6 +67,6 @@ class SearchContext
 
   def valid_priority_dimension(value)
     dimension = value.to_s.presence
-    Tool::PRIORITY_DIMENSIONS.key?(dimension) ? dimension : nil
+    Rubric.priority_dimensions.key?(dimension) ? dimension : nil
   end
 end

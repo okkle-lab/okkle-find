@@ -11,7 +11,7 @@ class ToolsController < ApplicationController
   end
 
   def show
-    @tool = Tool.includes(:model_variants).find(params[:id])
+    @tool = Tool.includes(model_variants: :evaluation_notes).find(params[:id])
     Event.record(event_type: "specs_expand", clicked_tool_id: @tool.id)
 
     @search_context = SearchContext.from_params(params)

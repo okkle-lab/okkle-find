@@ -33,10 +33,24 @@ class ToolsControllerTest < ActionDispatch::IntegrationTest
     assert_select ".cat-breakdown-label-title", "Performance"
     assert_select ".cat-breakdown-label-sub", "Higher is better"
     assert_select ".take-hl-label", false
-    assert_select ".cat-bars[data-controller='score-bars']"
+    assert_select ".cat-bars[data-controller~='score-bars'][data-controller~='score-category-accordion']"
+    assert_select ".cat-score-category"
+    assert_select ".cat-score-category[open]", count: 0
+    assert_select ".cat-score-category[data-score-category-accordion-target='item'][data-action='toggle->score-category-accordion#toggle']"
+    assert_select "a.cat-bar-row[href='#{leaderboard_path("coding")}']", count: 0
     assert_select ".cat-bar-fill[data-score-bars-target='fill'][data-score-bars-key='coding'][data-score-bars-width='90']"
     assert_select ".cat-bar-name", "Coding"
     assert_select ".cat-bar-score", "9"
+    assert_select ".cat-subcriterion[data-score-field='coding_speed_score'] .eval-crit-label", "Coding speed"
+    assert_select ".cat-subcriterion[data-score-field='coding_accuracy_score'] .eval-crit-label", "Coding accuracy"
+    assert_select ".cat-subcriterion[data-score-field='coding_speed_score'] .cat-subbar-fill[data-score-bars-key='coding-coding_speed_score'][data-score-bars-width='90']"
+    assert_select ".cat-subcriterion[data-score-field='coding_accuracy_score'] .cat-subbar-fill[data-score-bars-key='coding-coding_accuracy_score'][data-score-bars-width='90']"
+    assert_select ".cat-subcriterion .cat-subcriterion-notes", count: 0
+    refute_includes response.body, "Producing correct, working code quickly for straightforward tasks."
+    assert_select ".cat-bar-name", { text: "Ease of use", count: 0 }
+    assert_select ".cat-bar-name", { text: "Image generation", count: 0 }
+    assert_select ".cat-bar-name", { text: "Privacy", count: 0 }
+    assert_select ".cat-bar-name", { text: "Enterprise", count: 0 }
 
     get tool_path(tool, model_variant: low.id)
 
@@ -44,6 +58,57 @@ class ToolsControllerTest < ActionDispatch::IntegrationTest
     assert_select ".model-score-tab-active", "Low Model"
     assert_select ".cat-bar-name", "Coding"
     assert_select ".cat-bar-score", "5.2"
+  end
+
+  test "product page summarizes imported prompt grader notes for selected model category" do
+    tool = Tool.create!(name: "Prompt Notes Tool", status: "live")
+    selected = tool.model_variants.create!(
+      name: "Selected Notes Model",
+      position: 1,
+      coding_speed_score: 8,
+      coding_accuracy_score: 6
+    )
+    other = tool.model_variants.create!(
+      name: "Other Notes Model",
+      position: 2,
+      coding_speed_score: 10,
+      coding_accuracy_score: 10
+    )
+    selected.evaluation_notes.create!(
+      test_id: "C1",
+      category: "Coding",
+      criterion: "Coding speed",
+      score_field: "coding_speed_score",
+      grader_model_key: "gpt-judge",
+      grader_model_name: "GPT Judge",
+      strengths: "Fast implementation with clear structure.",
+      issues: "Missed one edge case."
+    )
+    selected.evaluation_notes.create!(
+      test_id: "C2",
+      category: "Coding",
+      criterion: "Coding accuracy",
+      score_field: "coding_accuracy_score",
+      grader_model_key: "opus-judge",
+      grader_model_name: "Claude Opus Judge",
+      strengths: "Readable fix.",
+      issues: "Needs stronger test coverage."
+    )
+
+    get tool_path(tool, model_variant: selected.id)
+
+    assert_response :success
+    assert_select ".cat-score-notes .eval-label", "Why it scored this way"
+    assert_select ".cat-score-summary-copy", /We saw/
+    assert_select ".cat-score-summary-copy", /strong coding speed/
+    assert_select ".cat-score-summary-copy", /coding accuracy pulled the score down/
+    assert_select ".cat-score-summary-copy", /edge-case reliability/
+    assert_select ".cat-score-summary-copy", { text: /GPT and Opus notes/, count: 0 }
+    assert_select ".cat-score-summary-copy", { text: /Other Notes Model/, count: 0 }
+    assert_select ".cat-subcriterion .cat-subcriterion-notes", count: 0
+    refute_includes response.body, "Fast implementation with clear structure"
+    refute_includes response.body, "Needs stronger test coverage"
+    refute_includes response.body, "Producing correct, working code quickly for straightforward tasks."
   end
 
   test "product score categories keep rubric order instead of score rank" do
@@ -85,6 +150,64 @@ class ToolsControllerTest < ActionDispatch::IntegrationTest
     end
     assert_equal "2", scores_by_name.fetch("Transcription")
     assert_equal "10", scores_by_name.fetch("Meetings")
+  end
+
+  test "product page category summary follows visible mixed sub scores" do
+    tool = Tool.create!(name: "Mixed Meeting Summary Tool", status: "live", integration_score: 4)
+    variant = tool.model_variants.create!(
+      name: "Mixed Meeting Model",
+      position: 1,
+      meeting_summary_score: 9,
+      follow_up_score: 3
+    )
+    variant.evaluation_notes.create!(
+      test_id: "M2",
+      category: "Meetings",
+      criterion: "Meeting summaries",
+      score_field: "meeting_summary_score",
+      grader_model_key: "meeting-judge",
+      strengths: "Accurate and complete summary."
+    )
+    variant.evaluation_notes.create!(
+      test_id: "M3",
+      category: "Meetings",
+      criterion: "Follow-up automation",
+      score_field: "follow_up_score",
+      grader_model_key: "meeting-judge",
+      strengths: "Clear structure."
+    )
+
+    get tool_path(tool, model_variant: variant.id)
+
+    assert_response :success
+    assert_select ".cat-score-category" do |categories|
+      meetings = categories.find { |node| node.at_css(".cat-bar-name")&.text&.strip == "Meetings" }
+      assert meetings
+      assert_includes meetings.at_css(".cat-score-summary-copy").text, "strong meeting summaries"
+      assert_includes meetings.at_css(".cat-score-summary-copy").text, "follow-up automation and calendar & workspace integration pulled the score down"
+      refute_includes meetings.at_css(".cat-score-summary-copy").text, "accurate, complete outputs"
+    end
+  end
+
+  test "product page shows transcription as unable to test instead of a low placeholder score" do
+    tool = Tool.create!(name: "Untested Transcription Tool", status: "live", integration_score: 10)
+    tool.model_variants.create!(
+      name: "Meeting Only Model",
+      position: 1,
+      transcription_score: nil,
+      meeting_summary_score: 9,
+      follow_up_score: 8
+    )
+
+    get tool_path(tool)
+
+    assert_response :success
+    assert_select ".cat-score-category-unavailable .cat-bar-name", "Transcription"
+    assert_select ".cat-score-category-unavailable .cat-bar-score", "—"
+    assert_select ".cat-score-category-unavailable .cat-score-summary-copy", "We were unable to test this functionality."
+    assert_select ".cat-score-category-unavailable .cat-subcriterion[data-score-field='transcription_score'] .eval-crit-score", "—"
+    assert_select ".cat-bar-name", "Meetings"
+    assert_select ".cat-bar-score", { text: "1", count: 0 }
   end
 
   test "unscored selected model does not inherit product category scores" do
@@ -134,7 +257,7 @@ class ToolsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select ".cat-bars-shell.cat-bars-shell-unavailable"
     assert_select ".cat-bars-overlay", "Scores currently unavailable"
-    assert_select ".cat-bar-name", count: Rubric::CATEGORIES.size
+    assert_select ".cat-bar-name", count: Rubric.categories.size
     assert_select ".score-empty", false
   end
 

@@ -5,7 +5,7 @@ module Scoreable
 
   # Average of whichever output sub-scores are filled (nil if none yet).
   def output_quality
-    score_average(Rubric::OUTPUT_FIELDS)
+    score_average(Rubric.output_fields)
   end
 
   def score_average(fields)
@@ -44,7 +44,7 @@ module Scoreable
   end
 
   def category_scores(extra_scores: {})
-    Rubric::OVERALL_CATEGORIES.filter_map do |label, fields|
+    Rubric.overall_categories.filter_map do |label, fields|
       score = category_score(fields, extra_scores:, category: label)
       [label, score] if score
     end.to_h

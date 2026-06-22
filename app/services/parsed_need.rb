@@ -43,7 +43,7 @@ class ParsedNeed
     @budget_ceiling_usd_month = budget_ceiling_usd_month
     @categories               = Array(categories).compact_blank.uniq
     @keywords                 = Array(keywords).compact_blank.uniq
-    @priority_dimension       = Tool::PRIORITY_DIMENSIONS.key?(priority_dimension.to_s) ? priority_dimension.to_s : nil
+    @priority_dimension       = Rubric.priority_dimensions.key?(priority_dimension.to_s) ? priority_dimension.to_s : nil
     @source                   = source
   end
 
@@ -86,7 +86,7 @@ class ParsedNeed
     words ||= q.scan(/[a-z][a-z'-]*/)
     scores = Hash.new(0)
 
-    Rubric::DIMENSIONS.each do |dimension, config|
+    Rubric.dimensions.each do |dimension, config|
       Array(config[:intent_phrases]).each do |phrase|
         scores[dimension] += 3 if q.include?(phrase)
       end

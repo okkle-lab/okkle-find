@@ -5,7 +5,7 @@ class PagesController < ApplicationController
     @stats = {
       tools: Tool.visible.count,
       models: ModelVariant.count,
-      categories: Rubric::CATEGORIES.size
+      categories: Rubric.categories.size
     }
 
     @top_rated = Tool.visible.includes(:model_variants).to_a
@@ -22,7 +22,7 @@ class PagesController < ApplicationController
   end
 
   def methodology
-    @categories = Rubric::CATEGORIES
+    @categories = Rubric.categories
   end
 
   def learn

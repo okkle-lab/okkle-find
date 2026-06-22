@@ -17,30 +17,70 @@
 
 <% if @ranked.empty? %>
   <div class="empty">
-    <p class="empty-head">No scores yet for this category.</p>
-    <p>Testing is in progress — check back soon.</p>
+    <% if @leaderboard_kind == :efficiency %>
+      <p class="empty-head">No efficiency metrics yet.</p>
+      <p>Latency and token measurements are in progress — check back soon.</p>
+    <% else %>
+      <p class="empty-head">No scores yet for this category.</p>
+      <p>Testing is in progress — check back soon.</p>
+    <% end %>
   </div>
 <% else %>
   <ol class="lb-board">
-    <% @ranked.each_with_index do |(tool, score), i| %>
-      <li class="lb-row<%= ' lb-row-podium' if i < 3 %>">
-        <span class="lb-rank <%= "lb-rank-top" if i < 3 %>"><%= i + 1 %></span>
-        <div class="lb-row-main">
-          <%= link_to tool.name, tool_path(tool), class: "lb-row-name" %>
-          <% if tool.provider.present? %>
-            <span class="lb-row-prov">by <%= tool.provider %></span>
-          <% end %>
-        </div>
-        <div class="lb-row-score">
-          <%= colored_score(score, css_class: "lb-row-num") %>
-          <span class="lb-row-cap">/ 10</span>
-        </div>
-      </li>
+    <% if @leaderboard_kind == :efficiency %>
+      <% @ranked.each_with_index do |row, i| %>
+        <li class="lb-row lb-row-efficiency<%= ' lb-row-podium' if i < 3 %>">
+          <span class="lb-rank <%= "lb-rank-top" if i < 3 %>"><%= i + 1 %></span>
+          <div class="lb-row-main lb-row-main-stack">
+            <span class="lb-row-title-line">
+              <%= link_to row.tool.name, tool_path(row.tool), class: "lb-row-name" %>
+              <% if row.tool.provider.present? %>
+                <span class="lb-row-prov">by <%= row.tool.provider %></span>
+              <% end %>
+            </span>
+            <span class="lb-row-model"><%= row.model_variant.name %></span>
+          </div>
+          <div class="lb-eff-metrics" aria-label="Efficiency metrics">
+            <span class="lb-eff-metric">
+              <%= icon("stopwatch", size: 16) %>
+              <%= format_efficiency_latency(row.latency_seconds) %>
+            </span>
+            <span class="lb-eff-metric">
+              <%= icon("currency-dollar", size: 16) %>
+              <%= format_efficiency_tokens(row.total_tokens) %>
+            </span>
+          </div>
+          <div class="lb-row-score">
+            <%= colored_score(row.score, css_class: "lb-row-num") %>
+            <span class="lb-row-cap">eff.</span>
+          </div>
+        </li>
+      <% end %>
+    <% else %>
+      <% @ranked.each_with_index do |(tool, score), i| %>
+        <li class="lb-row<%= ' lb-row-podium' if i < 3 %>">
+          <span class="lb-rank <%= "lb-rank-top" if i < 3 %>"><%= i + 1 %></span>
+          <div class="lb-row-main">
+            <%= link_to tool.name, tool_path(tool), class: "lb-row-name" %>
+            <% if tool.provider.present? %>
+              <span class="lb-row-prov">by <%= tool.provider %></span>
+            <% end %>
+          </div>
+          <div class="lb-row-score">
+            <%= colored_score(score, css_class: "lb-row-num") %>
+            <span class="lb-row-cap">/ 10</span>
+          </div>
+        </li>
+      <% end %>
     <% end %>
   </ol>
 <% end %>
 
 <p class="page-foot">
-  Scores are the weighted average of this category's criteria, judged by cross-company flagship models.
-  <%= link_to "How we score →", methodology_path %>
+  <% if @leaderboard_kind == :efficiency %>
+    Efficiency ranks model variants with both average latency and token usage. Lower time and token counts are better; the efficiency score blends both metrics.
+  <% else %>
+    Scores are the weighted average of this category's criteria, judged by cross-company flagship models.
+    <%= link_to "How we score →", methodology_path %>
+  <% end %>
 </p>

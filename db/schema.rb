@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_06_20_143000) do
+ActiveRecord::Schema[7.1].define(version: 2026_06_22_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -36,6 +36,25 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_20_143000) do
     t.index ["clicked_tool_id"], name: "index_events_on_clicked_tool_id"
     t.index ["created_at"], name: "index_events_on_created_at"
     t.index ["event_type"], name: "index_events_on_event_type"
+  end
+
+  create_table "model_evaluation_notes", force: :cascade do |t|
+    t.bigint "model_variant_id", null: false
+    t.string "test_id"
+    t.string "category"
+    t.string "criterion"
+    t.string "score_field"
+    t.string "grader_model_key"
+    t.string "grader_model_name"
+    t.decimal "score", precision: 4, scale: 2
+    t.text "reasoning"
+    t.text "strengths"
+    t.text "issues"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["model_variant_id", "score_field"], name: "index_model_eval_notes_on_variant_score_field"
+    t.index ["model_variant_id", "test_id", "grader_model_key"], name: "index_model_eval_notes_on_variant_test_grader", unique: true
+    t.index ["model_variant_id"], name: "index_model_evaluation_notes_on_model_variant_id"
   end
 
   create_table "model_variants", force: :cascade do |t|
@@ -240,6 +259,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_20_143000) do
   end
 
   add_foreign_key "events", "tools", column: "clicked_tool_id"
+  add_foreign_key "model_evaluation_notes", "model_variants"
   add_foreign_key "model_variants", "tools"
   add_foreign_key "reviews", "tools"
   add_foreign_key "tool_categories", "categories"

@@ -29,6 +29,7 @@ module AiFinder
     config.x.features = ActiveSupport::OrderedOptions.new
     config.x.features.latest_in_ai = false
     config.x.features.model_value_metrics = false
+    config.x.features.experimental_score_categories = false
 
     config.x.search = ActiveSupport::OrderedOptions.new
     config.x.search.show_card_score = false

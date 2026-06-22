@@ -1,24 +1,24 @@
 tool_name,name,model_id_string,input_usd_per_m,output_usd_per_m,pricing_unit,context_window,best_for,last_verified,position,score_text_generation,score_email_writing,score_logic,score_coding,score_image_generation,score_accuracy,score_write_edit,score_summarization,score_research_fact_check,score_source_quality,score_hallucination_resistance,score_meetings_transcription,score_coding_speed,score_coding_efficiency,score_translation_speed,score_translation_accuracy,score_consistency,free_to_try,write_edit_score,summarisation_score,research_fact_checking_score,source_quality_score,hallucination_resistance_score,deep_research_score,coding_speed_score,coding_accuracy_score,debugging_score,agentic_coding_score,consistency_score,reasoning_score,truthful_pushback_score,image_quality_score,prompt_adherence_score,text_rendering_score,image_editing_score,transcription_score,meeting_summary_score,follow_up_score,translation_accuracy_score,translation_speed_score,avg_latency_seconds,avg_total_tokens
-ChatGPT,GPT-5.5,gpt-5.5,5,30,per 1M tokens,,flagship; most capable,2026-06-09,1,9,8,6,8,8,9,8,9,9,3,8,1,9,4,1,9,9,true,8,9,9,3,8,9,9,10,10,3,9,6,,5,5,5,6,1,8,2,9,1,31.212,1542.5
-ChatGPT,GPT-5.4,gpt-5.4,2.5,15,per 1M tokens,,strong all-rounder at a lower price,2026-06-09,2,8,8,7,9,7,7,8,9,9,8,6,1,10,10,10,9,6,false,8,9,9,8,6,8,10,10,9,9,6,7,,5,9,4,10,1,9,3,9,10,9.289,979.5
-ChatGPT,GPT-5.4 Nano,gpt-5.4-nano,0.2,1.25,per 1M tokens,,fastest and cheapest,2026-06-09,3,7,6,8,9,6,7,6,9,9,7,6,1,10,9,3,9,6,true,6,9,9,7,6,9,10,10,10,9,6,8,,6,9,6,7,1,9,5,9,3,4.894,971.9
+ChatGPT,GPT-5.5,gpt-5.5,5,30,per 1M tokens,,flagship; most capable,2026-06-09,1,9,8,6,8,8,9,8,9,9,3,8,1,9,4,1,9,9,true,8,9,9,3,8,9,9,10,10,3,9,6,,,,,,,8,2,9,1,31.212,1542.5
+ChatGPT,GPT-5.4,gpt-5.4,2.5,15,per 1M tokens,,strong all-rounder at a lower price,2026-06-09,2,8,8,7,9,7,7,8,9,9,8,6,1,10,10,10,9,6,false,8,9,9,8,6,8,10,10,9,9,6,7,,,,,,,9,3,9,10,9.289,979.5
+ChatGPT,GPT-5.4 Nano,gpt-5.4-nano,0.2,1.25,per 1M tokens,,fastest and cheapest,2026-06-09,3,7,6,8,9,6,7,6,9,9,7,6,1,10,9,3,9,6,true,6,9,9,7,6,9,10,10,10,9,6,8,,,,,,,9,5,9,3,4.894,971.9
 Claude,Claude Fable 5,claude-fable-5,10,50,per 1M tokens,1000000,most capable; premium price,2026-05-26,1,,,,,,,,,,,,,,,,,,true,,,,,,,,,,,,,,,,,,,,,,,,
-Claude,Claude Opus 4.8,claude-opus-4-8,5,25,per 1M tokens,1000000,"top tier for long, complex work",2026-05-26,2,9,8,10,9,,8,8,10,8,7,8,1,9,10,1,10,7,true,8,10,8,7,8,8,9,9,10,8,7,10,,9,9,7,7,1,9,4,10,1,13.060,1253.2
-Claude,Claude Sonnet 4.6,claude-sonnet-4-6,3,15,per 1M tokens,1000000,best speed / cost balance,2026-05-26,3,6,5,10,9,,8,5,9,9,7,8,1,10,5,3,9,9,false,5,9,9,7,8,8,10,10,9,8,9,10,,6,5,4,10,1,9,5,9,3,15.993,1034.3
-Claude,Claude Haiku 4.5,claude-haiku-4-5,1,5,per 1M tokens,200000,fastest and cheapest,2026-05-26,4,8,8,10,9,,7,8,9,5,6,8,1,9,4,6,9,6,false,8,9,5,6,8,6,9,9,8,8,6,10,,4,7,10,5,1,9,5,9,6,5.589,830.9
-DeepSeek,DeepSeek V4 Pro,deepseek-v4-pro,1.74,3.48,per 1M tokens,1000000,strongest reasoning,2026-06-09,1,9,8,10,8,,7,8,9,6,9,7,1,10,9,1,9,7,false,8,9,6,9,7,7,10,10,8,3,7,10,,6,9,7,5,1,9,4,9,1,27.201,1618.1
-DeepSeek,DeepSeek V4 Flash,deepseek-v4-flash,0.14,0.28,per 1M tokens,1000000,everyday tasks at minimal cost,2026-06-09,2,8,8,10,9,,8,8,9,9,8,7,1,9,4,9,9,7,false,8,9,9,8,7,6,9,10,9,9,7,10,,8,5,8,9,1,8,5,9,9,13.621,1093.4
-Google Gemini,Gemini 3.1 Pro (preview),gemini-3.1-pro-preview,2,12,per 1M tokens,,most capable; still in preview,2026-06-09,1,9,8,7,2,,5,8,9,5,9,6,1,5,8,4,10,5,true,8,9,5,9,6,8,5,1,2,2,5,7,,7,4,5,7,1,9,5,10,4,16.684,2076.0
-Google Gemini,Gemini 3.5 Flash,gemini-3.5-flash,1.5,9,per 1M tokens,,fast default for most tasks,2026-06-09,2,9,8,7,1,,6,8,8,5,8,8,1,1,6,6,9,1,false,8,8,5,8,8,8,1,1,2,1,1,7,,6,5,9,4,1,9,3,9,6,11.338,2127.6
-Google Gemini,Gemini 3.1 Flash-Lite,gemini-3.1-flash-lite,0.25,1.5,per 1M tokens,,cheapest for high volume,2026-06-09,3,8,7,7,9,,7,7,9,3,7,5,1,9,9,9,9,9,false,7,9,3,7,5,7,9,10,8,8,9,7,,7,8,9,5,1,8,5,9,9,3.302,818.8
-Llama,Llama 4 Maverick,llama-4-maverick,,,,1000000,most capable open model,2026-06-09,1,7,6,9,8,,6,6,9,5,6,6,1,9,10,2,8,6,false,6,9,5,6,6,7,9,10,7,8,6,9,,9,6,4,7,1,8,5,8,2,17.429,842.3
-Llama,Llama 4 Scout,llama-4-scout,,,,10000000,fits one GPU; huge context,2026-06-09,2,7,7,7,8,,6,7,8,5,5,6,1,9,6,5,8,9,false,7,8,5,5,6,6,9,9,9,7,9,7,,6,6,4,7,1,5,2,8,5,7.378,745.6
-Mistral Le Chat,Mistral Large 3,mistral-large-3-25-12,0.5,1.5,per 1M tokens,,most capable,2026-06-09,1,8,8,7,7,,7,8,9,6,7,8,1,8,4,7,9,7,false,8,9,6,7,8,7,8,7,8,8,7,7,,4,9,4,8,1,8,5,9,7,11.553,907.8
-Mistral Le Chat,Mistral Medium 3.5,mistral-medium-3.5,,,,,fast everyday workhorse,2026-06-09,2,8,7,7,6,,7,7,9,6,7,7,1,7,8,7,9,8,true,7,9,6,7,7,7,7,3,8,9,8,7,,4,7,8,6,1,8,2,9,7,6.323,859.2
-Whisper,Whisper large-v3,large-v3,,,,,most accurate,2026-06-09,1,"","","","","","","","","","","",4,"","","","","",true,"","","","","","","","","","","","","","","","","",9,"","","","",,
-Whisper,Whisper large-v3-turbo,large-v3-turbo,,,,,"near-large accuracy, much faster",2026-06-09,2,"","","","","","","","","","","",7,"","","","","",false,"","","","","","","","","","","","","","","","","",4,"","","","",,
-Whisper,Whisper small,small,,,,,light and quick on modest hardware,2026-06-09,3,"","","","","","","","","","","",5,"","","","","",true,"","","","","","","","","","","","","","","","","",8,"","","","",,
-Whisper,Whisper tiny,tiny,,,,,fastest; lowest accuracy,2026-06-09,4,"","","","","","","","","","","",9,"","","","","",true,"","","","","","","","","","","","","","","","","",5,"","","","",,
+Claude,Claude Opus 4.8,claude-opus-4-8,5,25,per 1M tokens,1000000,"top tier for long, complex work",2026-05-26,2,9,8,10,9,,8,8,10,8,7,8,1,9,10,1,10,7,true,8,10,8,7,8,8,9,9,10,8,7,10,,,,,,,9,4,10,1,13.060,1253.2
+Claude,Claude Sonnet 4.6,claude-sonnet-4-6,3,15,per 1M tokens,1000000,best speed / cost balance,2026-05-26,3,6,5,10,9,,8,5,9,9,7,8,1,10,5,3,9,9,false,5,9,9,7,8,8,10,10,9,8,9,10,,,,,,,9,5,9,3,15.993,1034.3
+Claude,Claude Haiku 4.5,claude-haiku-4-5,1,5,per 1M tokens,200000,fastest and cheapest,2026-05-26,4,8,8,10,9,,7,8,9,5,6,8,1,9,4,6,9,6,false,8,9,5,6,8,6,9,9,8,8,6,10,,,,,,,9,5,9,6,5.589,830.9
+DeepSeek,DeepSeek V4 Pro,deepseek-v4-pro,1.74,3.48,per 1M tokens,1000000,strongest reasoning,2026-06-09,1,9,8,10,8,,7,8,9,6,9,7,1,10,9,1,9,7,false,8,9,6,9,7,7,10,10,8,3,7,10,,,,,,,9,4,9,1,27.201,1618.1
+DeepSeek,DeepSeek V4 Flash,deepseek-v4-flash,0.14,0.28,per 1M tokens,1000000,everyday tasks at minimal cost,2026-06-09,2,8,8,10,9,,8,8,9,9,8,7,1,9,4,9,9,7,false,8,9,9,8,7,6,9,10,9,9,7,10,,,,,,,8,5,9,9,13.621,1093.4
+Google Gemini,Gemini 3.1 Pro (preview),gemini-3.1-pro-preview,2,12,per 1M tokens,,most capable; still in preview,2026-06-09,1,9,8,7,2,,5,8,9,5,9,6,1,5,8,4,10,5,true,8,9,5,9,6,8,5,1,2,2,5,7,,,,,,,9,5,10,4,16.684,2076.0
+Google Gemini,Gemini 3.5 Flash,gemini-3.5-flash,1.5,9,per 1M tokens,,fast default for most tasks,2026-06-09,2,9,8,7,1,,6,8,8,5,8,8,1,1,6,6,9,1,false,8,8,5,8,8,8,1,1,2,1,1,7,,,,,,,9,3,9,6,11.338,2127.6
+Google Gemini,Gemini 3.1 Flash-Lite,gemini-3.1-flash-lite,0.25,1.5,per 1M tokens,,cheapest for high volume,2026-06-09,3,8,7,7,9,,7,7,9,3,7,5,1,9,9,9,9,9,false,7,9,3,7,5,7,9,10,8,8,9,7,,,,,,,8,5,9,9,3.302,818.8
+Llama,Llama 4 Maverick,llama-4-maverick,,,,1000000,most capable open model,2026-06-09,1,7,6,9,8,,6,6,9,5,6,6,1,9,10,2,8,6,false,6,9,5,6,6,7,9,10,7,8,6,9,,,,,,,8,5,8,2,17.429,842.3
+Llama,Llama 4 Scout,llama-4-scout,,,,10000000,fits one GPU; huge context,2026-06-09,2,7,7,7,8,,6,7,8,5,5,6,1,9,6,5,8,9,false,7,8,5,5,6,6,9,9,9,7,9,7,,,,,,,5,2,8,5,7.378,745.6
+Mistral Le Chat,Mistral Large 3,mistral-large-3-25-12,0.5,1.5,per 1M tokens,,most capable,2026-06-09,1,8,8,7,7,,7,8,9,6,7,8,1,8,4,7,9,7,false,8,9,6,7,8,7,8,7,8,8,7,7,,,,,,,8,5,9,7,11.553,907.8
+Mistral Le Chat,Mistral Medium 3.5,mistral-medium-3.5,,,,,fast everyday workhorse,2026-06-09,2,8,7,7,6,,7,7,9,6,7,7,1,7,8,7,9,8,true,7,9,6,7,7,7,7,3,8,9,8,7,,,,,,,8,2,9,7,6.323,859.2
+Whisper,Whisper large-v3,large-v3,,,,,most accurate,2026-06-09,1,"","","","","","","","","","","",4,"","","","","",true,"","","","","","","","","","","","","",,,,,9,"","","","",,
+Whisper,Whisper large-v3-turbo,large-v3-turbo,,,,,"near-large accuracy, much faster",2026-06-09,2,"","","","","","","","","","","",7,"","","","","",false,"","","","","","","","","","","","","",,,,,4,"","","","",,
+Whisper,Whisper small,small,,,,,light and quick on modest hardware,2026-06-09,3,"","","","","","","","","","","",5,"","","","","",true,"","","","","","","","","","","","","",,,,,8,"","","","",,
+Whisper,Whisper tiny,tiny,,,,,fastest; lowest accuracy,2026-06-09,4,"","","","","","","","","","","",9,"","","","","",true,"","","","","","","","","","","","","",,,,,5,"","","","",,
 Microsoft Copilot,Microsoft Copilot,microsoft-copilot,,,,,not yet tested,,1,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 GitHub Copilot,GitHub Copilot,github-copilot,,,,,not yet tested,,1,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 Cursor,Cursor,cursor,,,,,not yet tested,,1,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
@@ -32,15 +32,15 @@ Grammarly,Grammarly,grammarly,,,,,not yet tested,,1,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 Poe,Poe,poe,,,,,not yet tested,,1,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 DeepGram,DeepGram,deepgram,,,,,not yet tested,,1,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 Jasper,Jasper,jasper,,,,,not yet tested,,1,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
-Perplexity,Sonar Pro,sonar-pro,3,15,per 1M tokens,200000,fast web-grounded answers,2026-06-19,1,7,7,9,9,,7,7,10,8,4,9,1,9,,3,9,4,true,7,10,8,4,9,8,9,10,9,8,4,9,,,,,,1,9,4,9,3,11.817,1089.7
+Perplexity,Sonar Pro,sonar-pro,3,15,per 1M tokens,200000,fast web-grounded answers,2026-06-19,1,7,7,9,9,,7,7,10,8,4,9,1,9,,3,9,4,true,7,10,8,4,9,8,9,10,9,8,4,9,,,,,,,9,4,9,3,11.817,1089.7
 Perplexity,Sonar Deep Research,sonar-deep-research,2,8,per 1M tokens,128000,deep research and synthesis,2026-06-19,2,3,4,9,1,,7,4,2,,3,9,,1,,,2,,false,4,2,,3,9,,1,,,,,9,,,,,,,4,,2,,45.224,1133.2
-Cohere Command,Command A,command-a,2.5,10,per 1M tokens,256000,business text and retrieval workflows,2026-06-19,1,7,7,9,8,,7,7,9,6,6,8,1,9,,6,7,7,false,7,9,6,6,8,6,9,9,7,6,7,9,,,,,,1,9,5,7,6,9.222,875.6
-xAI Grok,Grok 4.3,grok-4.3,1.25,2.5,per 1M tokens,1000000,general chat and reasoning,2026-06-19,1,8,7,6,9,,7,7,9,9,7,7,1,10,,9,9,5,false,7,9,9,7,7,8,10,10,9,7,5,6,,,,,,1,9,2,9,9,7.284,1206.8
-Qwen,Qwen3.7 Max,qwen3.7-max,1.25,3.75,per 1M tokens,1000000,flagship general reasoning,2026-06-19,1,8,8,7,9,,7,8,9,6,7,7,1,10,,3,10,4,false,8,9,6,7,7,9,10,9,10,9,4,7,,,,,,1,9,5,10,3,56.038,3215.6
-Qwen,Qwen3 Coder Plus,qwen3-coder-plus,0.65,3.25,per 1M tokens,1000000,coding tasks,2026-06-19,2,8,8,9,9,,7,8,9,6,7,6,1,10,,5,9,5,false,8,9,6,7,6,5,10,10,8,8,5,9,,,,,,1,8,3,9,5,9.140,657.1
-Amazon Nova,Nova Premier,nova-premier-v1,2.5,12.5,per 1M tokens,1000000,premium enterprise tasks,2026-06-19,1,7,7,9,8,,7,7,8,5,6,7,1,9,,2,9,7,false,7,8,5,6,7,7,9,10,8,7,7,9,,,,,,1,9,4,9,2,14.638,681.1
-Amazon Nova,Nova Pro,nova-pro-v1,0.8,3.2,per 1M tokens,300000,balanced enterprise tasks,2026-06-19,2,6,4,10,8,,8,4,8,5,7,7,1,9,,1,9,7,false,4,8,5,7,7,6,9,10,6,8,7,10,,,,,,1,8,4,9,1,3.227,690.7
-Moonshot Kimi,Kimi K2.7 Code,kimi-k2.7-code,0.74,3.5,per 1M tokens,262144,coding and long-context work,2026-06-19,1,7,8,7,6,,8,8,9,9,9,7,1,,,3,9,7,false,8,9,9,9,7,8,,6,,,7,7,,,,,,1,8,4,9,3,27.147,1757.8
-Z.ai GLM,GLM 5.2,glm-5.2,1.2,4.1,per 1M tokens,1048576,high-context general tasks,2026-06-19,1,7,8,7,4,,7,8,9,6,4,7,1,,,3,9,,false,8,9,6,4,7,8,,1,,9,,7,,,,,,1,8,5,9,3,31.951,1676.7
-MiniMax,MiniMax M3,minimax-m3,0.3,1.2,per 1M tokens,1048576,low-cost long-context tasks,2026-06-19,1,4,1,10,,,7,1,9,6,4,8,1,,,3,9,3,false,1,9,6,4,8,8,,,,,3,10,,,,,,1,9,5,9,3,30.393,1707.8
-AI21 Jamba,Jamba Large 1.7,jamba-large-1.7,2,8,per 1M tokens,256000,enterprise long-context text,2026-06-19,1,7,7,9,4,,8,7,9,6,6,7,1,5,,3,8,9,false,7,9,6,6,7,6,5,2,6,3,9,9,,,,,,1,9,5,8,3,8.769,803.0
+Cohere Command,Command A,command-a,2.5,10,per 1M tokens,256000,business text and retrieval workflows,2026-06-19,1,7,7,9,8,,7,7,9,6,6,8,1,9,,6,7,7,false,7,9,6,6,8,6,9,9,7,6,7,9,,,,,,,9,5,7,6,9.222,875.6
+xAI Grok,Grok 4.3,grok-4.3,1.25,2.5,per 1M tokens,1000000,general chat and reasoning,2026-06-19,1,8,7,6,9,,7,7,9,9,7,7,1,10,,9,9,5,false,7,9,9,7,7,8,10,10,9,7,5,6,,,,,,,9,2,9,9,7.284,1206.8
+Qwen,Qwen3.7 Max,qwen3.7-max,1.25,3.75,per 1M tokens,1000000,flagship general reasoning,2026-06-19,1,8,8,7,9,,7,8,9,6,7,7,1,10,,3,10,4,false,8,9,6,7,7,9,10,9,10,9,4,7,,,,,,,9,5,10,3,56.038,3215.6
+Qwen,Qwen3 Coder Plus,qwen3-coder-plus,0.65,3.25,per 1M tokens,1000000,coding tasks,2026-06-19,2,8,8,9,9,,7,8,9,6,7,6,1,10,,5,9,5,false,8,9,6,7,6,5,10,10,8,8,5,9,,,,,,,8,3,9,5,9.140,657.1
+Amazon Nova,Nova Premier,nova-premier-v1,2.5,12.5,per 1M tokens,1000000,premium enterprise tasks,2026-06-19,1,7,7,9,8,,7,7,8,5,6,7,1,9,,2,9,7,false,7,8,5,6,7,7,9,10,8,7,7,9,,,,,,,9,4,9,2,14.638,681.1
+Amazon Nova,Nova Pro,nova-pro-v1,0.8,3.2,per 1M tokens,300000,balanced enterprise tasks,2026-06-19,2,6,4,10,8,,8,4,8,5,7,7,1,9,,1,9,7,false,4,8,5,7,7,6,9,10,6,8,7,10,,,,,,,8,4,9,1,3.227,690.7
+Moonshot Kimi,Kimi K2.7 Code,kimi-k2.7-code,0.74,3.5,per 1M tokens,262144,coding and long-context work,2026-06-19,1,7,8,7,6,,8,8,9,9,9,7,1,,,3,9,7,false,8,9,9,9,7,8,,6,,,7,7,,,,,,,8,4,9,3,27.147,1757.8
+Z.ai GLM,GLM 5.2,glm-5.2,1.2,4.1,per 1M tokens,1048576,high-context general tasks,2026-06-19,1,7,8,7,4,,7,8,9,6,4,7,1,,,3,9,,false,8,9,6,4,7,8,,1,,9,,7,,,,,,,8,5,9,3,31.951,1676.7
+MiniMax,MiniMax M3,minimax-m3,0.3,1.2,per 1M tokens,1048576,low-cost long-context tasks,2026-06-19,1,4,1,10,,,7,1,9,6,4,8,1,,,3,9,3,false,1,9,6,4,8,8,,,,,3,10,,,,,,,9,5,9,3,30.393,1707.8
+AI21 Jamba,Jamba Large 1.7,jamba-large-1.7,2,8,per 1M tokens,256000,enterprise long-context text,2026-06-19,1,7,7,9,4,,8,7,9,6,6,7,1,5,,3,8,9,false,7,9,6,6,7,6,5,2,6,3,9,9,,,,,,,9,5,8,3,8.769,803.0

@@ -18,8 +18,6 @@ class ToolMatcher
     ParsedNeed::FREE_PHRASES.flat_map { |phrase| phrase.scan(/[a-z0-9][a-z0-9'-]+/) } +
     ParsedNeed::PRIVATE_PHRASES.flat_map { |phrase| phrase.scan(/[a-z0-9][a-z0-9'-]+/) } +
     ParsedNeed::LOCAL_PHRASES.flat_map { |phrase| phrase.scan(/[a-z0-9][a-z0-9'-]+/) } +
-    Rubric::DIMENSIONS.values.flat_map { |config| Array(config[:intent_words]) } +
-    Rubric::DIMENSIONS.values.flat_map { |config| Array(config[:intent_phrases]).flat_map { |phrase| phrase.scan(/[a-z0-9][a-z0-9'-]+/) } } +
     %w[model models product products]
   ).uniq.freeze
 
@@ -129,7 +127,15 @@ class ToolMatcher
   end
 
   def name_search_terms
-    @need.keywords - GENERIC_NAME_SEARCH_TERMS
+    @need.keywords - generic_name_search_terms
+  end
+
+  def generic_name_search_terms
+    (
+      GENERIC_NAME_SEARCH_TERMS +
+      Rubric.dimensions.values.flat_map { |config| Array(config[:intent_words]) } +
+      Rubric.dimensions.values.flat_map { |config| Array(config[:intent_phrases]).flat_map { |phrase| phrase.scan(/[a-z0-9][a-z0-9'-]+/) } }
+    ).uniq
   end
 
   # Reorder an already relevance-selected result set.

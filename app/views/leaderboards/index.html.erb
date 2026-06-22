@@ -2,8 +2,8 @@
 
 <section class="page-head">
   <p class="hero-eyebrow">Leaderboards</p>
-  <h1 class="page-title">Best AI tool, by task</h1>
-  <p class="page-sub">Ten categories, each scored across our judged tests. Click any to see the full ranking.</p>
+  <h1 class="page-title">Best AI tools and models, by task</h1>
+  <p class="page-sub">Browse our judged categories, plus efficiency rankings for the models that answer fastest with the fewest tokens.</p>
 </section>
 
 <div class="lb-grid">
@@ -21,8 +21,15 @@
       <div class="lb-card-foot">
         <% if cat[:leader] %>
           <span class="lb-rank-badge">#1</span>
-          <span class="lb-card-leader-name"><%= cat[:leader][0].name %></span>
-          <%= colored_score(cat[:leader][1], css_class: "lb-card-score") %>
+          <% if cat[:kind] == :efficiency %>
+            <span class="lb-card-leader-name"><%= cat[:leader].tool.name %> · <%= cat[:leader].model_variant.name %></span>
+            <span class="lb-card-score lb-card-metric">
+              <%= format_efficiency_latency(cat[:leader].latency_seconds) %> / <%= format_efficiency_tokens(cat[:leader].total_tokens, unit: false) %>
+            </span>
+          <% else %>
+            <span class="lb-card-leader-name"><%= cat[:leader][0].name %></span>
+            <%= colored_score(cat[:leader][1], css_class: "lb-card-score") %>
+          <% end %>
         <% else %>
           <span class="lb-card-empty">Scores rolling out</span>
         <% end %>

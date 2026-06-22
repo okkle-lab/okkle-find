@@ -89,7 +89,7 @@ module ApplicationHelper
   # the matched dimension's score when we have one, else the overall verdict.
   # Returns [value_or_nil, short_caption].
   def headline_score(tool, dimension)
-    config = Rubric::DIMENSIONS[dimension]
+    config = Rubric.dimensions[dimension]
     if config
       # Lead with the matched dimension; caption reflects the task even before
       # it's scored, so the pill reads "— / Coding" not "— / Overall".
@@ -118,21 +118,23 @@ module ApplicationHelper
   # Only categories the tool is actually scored on are returned.
   def tool_category_breakdown(tool, model_variant: nil, sort_by_score: true)
     icons = Category.pluck(:slug, :icon).to_h
-    breakdown = Rubric::CATEGORIES.filter_map do |name, config|
+    breakdown = Rubric.categories.filter_map do |name, config|
       score = tool_category_score(tool, name, config, model_variant:)
-      next if score.nil?
+      unavailable_message = category_unavailable_message(tool, name, model_variant:, score:)
+      next if score.nil? && unavailable_message.nil?
 
       {
         name: name,
         display_name: score_category_display_name(name),
         key: config[:key],
-        score: score.round(1),
+        score: score&.round(1),
         icon: config[:icon].presence || icons[config[:key]].presence || "sparkles",
-        fields: config[:fields].keys
+        fields: config[:fields].keys,
+        unavailable_message: unavailable_message
       }
     end
 
-    sort_by_score ? breakdown.sort_by { |c| -c[:score] } : breakdown
+    sort_by_score ? breakdown.sort_by { |c| [c[:score].nil? ? 1 : 0, -(c[:score] || 0)] } : breakdown
   end
 
   def tool_category_score(tool, category_name, config, model_variant: nil)
@@ -148,7 +150,7 @@ module ApplicationHelper
   end
 
   def unavailable_score_category_backdrop
-    Rubric::CATEGORIES.map do |name, config|
+    Rubric.categories.map do |name, config|
       {
         name: name,
         display_name: score_category_display_name(name),
@@ -233,13 +235,191 @@ module ApplicationHelper
     name.to_s.casecmp("Accuracy & trustworthiness").zero? ? "Trustworthiness" : name
   end
 
-  # The sub-criteria inside one category: [label, score, what-it-measures].
-  def category_criteria(tool, fields)
+  def category_unavailable_message(tool, name, model_variant:, score:)
+    return nil unless score.nil?
+    return nil unless name.to_s == "Transcription"
+    return nil unless model_variant&.scored?
+    return nil if model_variant.transcription_score.present?
+
+    has_related_meeting_signal =
+      model_variant.meeting_summary_score.present? ||
+      model_variant.follow_up_score.present? ||
+      tool.has_transcription?
+    return nil unless has_related_meeting_signal
+
+    "We were unable to test this functionality."
+  end
+
+  def format_efficiency_latency(value)
+    formatted = format_latency_metric(value)
+    formatted ? "#{formatted}s" : "—"
+  end
+
+  def format_efficiency_tokens(value, unit: true)
+    formatted = format_token_metric(value)
+    return "—" unless formatted
+
+    unit ? "#{formatted} tokens" : formatted
+  end
+
+  # The sub-criteria inside one category: [label, score, what-it-measures, score-field].
+  def category_criteria(tool, fields, model_variant: nil, category: nil)
     fields.map do |field|
       label = Rubric::SUBCATEGORY_FIELDS.key(field) || field.to_s.humanize
-      score = tool.comparison_category_score([field])
-      [label, score&.round(1), Rubric::CRITERION_MEASURES[field]]
+      score = category_criterion_score(tool, field, model_variant:, category:)
+      [label, score&.round(1), Rubric::CRITERION_MEASURES[field], field]
     end
+  end
+
+  def category_reasoning_summary(tool, cat, model_variant: nil)
+    notes = category_evaluation_notes(cat, model_variant)
+    if notes.any?
+      criteria = category_criteria(tool, cat[:fields], model_variant:, category: cat[:name])
+      return prompt_grade_note_summary(notes, criteria:)
+    end
+
+    nil
+  end
+
+  def category_evaluation_notes(cat, model_variant)
+    return [] unless model_variant
+
+    fields = Array(cat[:fields]).map(&:to_s)
+    category_names = [cat[:name], cat[:display_name]].map(&:to_s).map(&:downcase)
+    model_variant.evaluation_notes.to_a.select do |note|
+      fields.include?(note.score_field.to_s) || category_names.include?(note.category.to_s.downcase)
+    end
+  end
+
+  PROMPT_GRADE_STRENGTH_THEMES = [
+    ["fast, efficient execution", /\b(?:fast|quick|speed|efficient|concise|direct|rapid|responsive)\b/i],
+    ["clear, readable structure", /\b(?:clear|structured|structure|readable|organized|coherent|well[- ]?organized)\b/i],
+    ["accurate, complete outputs", /\b(?:correct|accurate|complete|thorough|comprehensive|valid|matches|covers)\b/i],
+    ["useful reasoning", /\b(?:reasoning|explain|explanation|justification|analysis|rationale)\b/i],
+    ["practical polish", /\b(?:useful|usable|helpful|actionable|practical|polished|refined)\b/i]
+  ].freeze
+
+  PROMPT_GRADE_ISSUE_THEMES = [
+    ["edge-case reliability", /\b(?:edge case|edge-case|edgecase|error|bug|missed|missing|fails?|failure)\b/i],
+    ["validation gaps", /\b(?:test|tests|testing|coverage|validate|validation|verified|verification)\b/i],
+    ["completeness gaps", /\b(?:incomplete|missing|omits?|lacks?|gap|underdeveloped|not enough)\b/i],
+    ["clarity issues", /\b(?:unclear|confusing|disorganized|hard to follow|readability|structure)\b/i],
+    ["accuracy risks", /\b(?:incorrect|inaccurate|wrong|hallucinat|unsupported|misleading)\b/i],
+    ["consistency issues", /\b(?:inconsistent|inconsistency|uneven|variable|varies)\b/i],
+    ["format issues", /\b(?:format|instruction|constraint|requirement)\b/i]
+  ].freeze
+
+  def prompt_grade_note_summary(notes, criteria: [])
+    strengths = prompt_grade_themes(
+      notes.flat_map { |note| [note.strengths, note.reasoning] },
+      PROMPT_GRADE_STRENGTH_THEMES,
+      limit: 2
+    )
+    issues = prompt_grade_themes(
+      notes.map(&:issues),
+      PROMPT_GRADE_ISSUE_THEMES,
+      limit: 2
+    )
+    scored = Array(criteria).select { |_label, score, _measure, _field| score.present? }
+    strong = scored
+      .select { |_label, score, _measure, _field| score.to_f >= 7.5 }
+      .sort_by { |_label, score, _measure, _field| -score.to_f }
+      .first(2)
+    weak = scored
+      .select { |_label, score, _measure, _field| score.to_f < 6.5 }
+      .sort_by { |_label, score, _measure, _field| score.to_f }
+      .first(2)
+
+    if strong.any? && weak.any?
+      return [
+        "We saw strong #{criterion_summary_labels(strong).to_sentence}, but #{criterion_summary_labels(weak).to_sentence} pulled the score down.",
+        prompt_grade_watch_sentence(issues)
+      ].compact.join(" ")
+    elsif weak.any?
+      return [
+        "The score is held back by #{criterion_summary_labels(weak).to_sentence}.",
+        prompt_grade_watch_sentence(issues)
+      ].compact.join(" ")
+    elsif strong.any?
+      return [
+        "We saw strong #{criterion_summary_labels(strong).to_sentence}.",
+        strengths.any? ? "The notes point to #{strengths.to_sentence}." : nil,
+        prompt_grade_watch_sentence(issues)
+      ].compact.first(2).join(" ")
+    elsif scored.any?
+      return [
+        "The sub-scores are fairly even, so the result reflects steady category-level performance.",
+        prompt_grade_watch_sentence(issues)
+      ].compact.join(" ")
+    end
+
+    if strengths.any? && issues.any?
+      "We saw #{strengths.to_sentence}. We'd watch for #{issues.to_sentence}."
+    elsif strengths.any?
+      "We saw #{strengths.to_sentence}."
+    elsif issues.any?
+      "We'd watch for #{issues.to_sentence}."
+    else
+      "We imported notes for this category, but they did not include written reasoning."
+    end
+  end
+
+  def criterion_summary_labels(criteria)
+    criteria.map { |label, _score, _measure, _field| label.to_s.downcase }
+  end
+
+  def prompt_grade_watch_sentence(issues)
+    "We'd watch for #{issues.to_sentence}." if issues.any?
+  end
+
+  def score_based_category_summary(tool, cat, model_variant: nil)
+    criteria = category_criteria(tool, cat[:fields], model_variant:, category: cat[:name])
+    scored = criteria.select { |_label, score, _measure, _field| score.present? }
+    subject = model_variant&.name || tool.name
+    return "We have a category score for #{subject}, but no subcategory notes have been imported yet." if scored.empty?
+
+    strongest = scored.select { |_label, score, _measure, _field| score.to_f >= 7.5 }.sort_by { |_label, score, _measure, _field| -score.to_f }.first(2)
+    weakest = scored.select { |_label, score, _measure, _field| score.to_f < 6.5 }.sort_by { |_label, score, _measure, _field| score.to_f }.first(2)
+
+    parts = []
+    if strongest.any?
+      parts << "#{subject} is strongest on #{strongest.map(&:first).to_sentence}"
+    end
+    if weakest.any?
+      parts << "it loses ground on #{weakest.map(&:first).to_sentence}"
+    elsif strongest.size < scored.size
+      steady = (scored.map(&:first) - strongest.map(&:first)).first(2)
+      parts << "the remaining criteria are steadier rather than standout" if steady.any?
+    end
+    parts << "the score reflects the available rubric signals" if parts.empty?
+
+    summary = parts.join("; ")
+    summary.sub(/\A\w/) { |char| char.upcase } + "."
+  end
+
+  def category_criterion_score(tool, field, model_variant: nil, category: nil)
+    if model_variant
+      return nil unless model_variant.scored?
+
+      model_variant.category_score([field], extra_scores: tool.rubric_field_values, category:)
+    else
+      tool.comparison_category_score([field])
+    end
+  end
+
+  def prompt_grade_themes(values, theme_map, limit:)
+    text = Array(values).flatten.compact.map(&:to_s).reject(&:blank?).join("\n")
+    return [] if text.blank?
+
+    themes = theme_map.filter_map do |label, pattern|
+      count = text.scan(pattern).size
+      [label, count] if count.positive?
+    end
+
+    themes
+      .sort_by { |_label, count| -count }
+      .map(&:first)
+      .first(limit)
   end
 
   # A drafted editorial "Our take" — a richer multi-paragraph commentary
@@ -284,7 +464,7 @@ module ApplicationHelper
   # Weighted category score for a single ModelVariant (mirrors Tool#comparison_category_score
   # but operates directly on the variant's own score columns).
   def variant_category_score(variant, fields)
-    all_weights = Rubric::CATEGORIES.values.flat_map { |c| c[:fields].to_a }.to_h
+    all_weights = Rubric.categories.values.flat_map { |c| c[:fields].to_a }.to_h
     pairs = fields.filter_map do |field|
       raw = variant.send(field) rescue nil
       next if raw.blank?

@@ -37,10 +37,8 @@ def score_attributes_from(row, fields, model_class)
     attrs[field] =
       if row.headers.include?(key) && row[key].present?
         row[key]
-      elsif row.headers.include?(key)
-        nil
       else
-        placeholder_score(row, key)
+        nil
       end
   end
 end
@@ -58,10 +56,6 @@ def fact_attributes_from(row, fields, model_class)
         placeholder_fact(row, key, config)
       end
   end
-end
-
-def placeholder_score(row, field)
-  4 + stable_number(row, field, 7) # 4..10 while we wait for real scoring
 end
 
 def placeholder_fact(row, field, config)

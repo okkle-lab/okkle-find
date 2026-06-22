@@ -96,23 +96,69 @@
                 <span class="cat-breakdown-label-title">Performance</span>
                 <span class="cat-breakdown-label-sub">Higher is better</span>
               </div>
-              <div class="cat-bars" data-controller="score-bars">
+              <div class="cat-bars cat-score-sheet" data-controller="score-bars score-category-accordion">
                 <% display_breakdown.each do |cat| %>
-                  <%= link_to leaderboard_path(cat[:key]), class: "cat-bar-row", data: { turbo_frame: "_top" } do %>
+                  <% cat_score = cat[:score] %>
+                  <% score_width = cat_score ? (cat_score * 10).round : 0 %>
+                  <% score_fill = score_fill_color(cat_score) || "transparent" %>
+                  <details
+                    class="cat-score-category<%= " cat-score-category-unavailable" if cat[:unavailable_message].present? %>"
+                    data-score-category-accordion-target="item"
+                    data-action="toggle->score-category-accordion#toggle"
+                  >
+                    <summary class="cat-bar-row cat-score-summary">
                     <span class="cat-bar-ic" style="--icon-tint: var(--brand)"><%= icon(cat[:icon], size: 16) %></span>
                     <span class="cat-bar-name"><%= cat[:display_name] %></span>
-                    <% score_width = (cat[:score] * 10).round %>
                     <span class="cat-bar-track">
                       <span
                         class="cat-bar-fill"
                         data-score-bars-target="fill"
                         data-score-bars-key="<%= cat[:key] %>"
                         data-score-bars-width="<%= score_width %>"
-                        style="width: <%= score_width %>%; background: <%= score_fill_color(cat[:score]) %>"
+                        style="width: <%= score_width %>%; background: <%= score_fill %>"
                       ></span>
                     </span>
-                    <span class="cat-bar-score" style="color: <%= score_color(cat[:score]) %>"><%= score_number(cat[:score]) %></span>
-                  <% end %>
+                    <span class="cat-bar-score" style="color: <%= score_color(cat_score) %>"><%= score_or_dash(cat_score) %></span>
+                    </summary>
+                    <% unless scores_unavailable %>
+                      <div class="cat-subpanel">
+                        <ul class="eval-criteria cat-subcriteria">
+                          <% category_criteria(@tool, cat[:fields], model_variant: @selected_model_variant, category: cat[:name]).each do |label, score, _measure, field| %>
+                            <% sub_score_width = score ? (score * 10).round : 0 %>
+                            <% sub_score_fill = score_fill_color(score) || "transparent" %>
+                            <li class="eval-crit cat-subcriterion" data-score-field="<%= field %>">
+                              <div class="eval-crit-top">
+                                <span class="cat-subcriterion-spacer" aria-hidden="true"></span>
+                                <span class="eval-crit-label"><%= label %></span>
+                                <span class="cat-subbar-track" aria-hidden="true">
+                                  <span
+                                    class="cat-subbar-fill"
+                                    data-score-bars-target="fill"
+                                    data-score-bars-key="<%= "#{cat[:key]}-#{field}" %>"
+                                    data-score-bars-width="<%= sub_score_width %>"
+                                    style="width: <%= sub_score_width %>%; background: <%= sub_score_fill %>"
+                                  ></span>
+                                </span>
+                                <span class="eval-crit-score"><%= colored_score(score) %></span>
+                              </div>
+                            </li>
+                          <% end %>
+                        </ul>
+                        <% if cat[:unavailable_message].present? %>
+                          <div class="cat-score-notes">
+                            <p class="eval-label">Testing note</p>
+                            <p class="cat-score-summary-copy"><%= cat[:unavailable_message] %></p>
+                          </div>
+                        <% end %>
+                        <% if cat[:unavailable_message].blank? && (category_summary = category_reasoning_summary(@tool, cat, model_variant: @selected_model_variant)) %>
+                          <div class="cat-score-notes">
+                            <p class="eval-label">Why it scored this way</p>
+                            <p class="cat-score-summary-copy"><%= category_summary %></p>
+                          </div>
+                        <% end %>
+                      </div>
+                    <% end %>
+                  </details>
                 <% end %>
               </div>
               <% if display_value_metric_row %>

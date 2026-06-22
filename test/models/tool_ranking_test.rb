@@ -75,7 +75,7 @@ class ToolRankingTest < ActiveSupport::TestCase
     tool = Tool.new(name: "Product Scores", prompt_effort_score: 7, interface_score: 8,
       security_certifications_score: 9)
 
-    assert_equal [7, 8, 9], tool.product_overall_scores
+    assert_empty tool.product_overall_scores
   end
 
   test "overall verdict averages category scores rather than all raw scores" do
@@ -94,7 +94,7 @@ class ToolRankingTest < ActiveSupport::TestCase
       translation_speed_score: 9,
       translation_accuracy_score: 7)
 
-    assert_in_delta 6.6, tool.overall_verdict, 0.05
+    assert_in_delta 6.9, tool.overall_verdict, 0.05
   end
 
   test "broad overall score requires every core generalist category" do
@@ -212,7 +212,7 @@ class ToolRankingTest < ActiveSupport::TestCase
     result = tool.broad_overall_result
 
     assert_equal winner, result.model_variant
-    assert_equal 8.8, result.score
+    assert_equal 9.0, result.score
   end
 
   test "best_score reads tool-only rubric columns" do

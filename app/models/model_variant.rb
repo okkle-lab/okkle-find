@@ -6,6 +6,10 @@ class ModelVariant < ApplicationRecord
   include Scoreable
 
   belongs_to :tool, inverse_of: :model_variants
+  has_many :evaluation_notes,
+    class_name: "ModelEvaluationNote",
+    dependent: :destroy,
+    inverse_of: :model_variant
 
   validates :name, presence: true, uniqueness: { scope: :tool_id }
 

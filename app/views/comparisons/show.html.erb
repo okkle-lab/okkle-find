@@ -19,7 +19,7 @@
   score_rows = [
     ["Overall score", ->(t) { tag.strong(colored_score(t.overall_verdict)) }]
   ]
-  Rubric::OVERALL_CATEGORIES.each do |label, fields|
+  Rubric.overall_categories.each do |label, fields|
     score_rows << [label, ->(t) { colored_score(t.comparison_category_score(fields)) }]
   end
 
