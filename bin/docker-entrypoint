@@ -1,8 +1,6 @@
 #!/bin/bash -e
 
-# If running the rails server then create or migrate existing database
-if [ "${1}" == "./bin/rails" ] && [ "${2}" == "server" ]; then
-  ./bin/rails db:prepare
-fi
+# Clear stale Rails server state from an unclean shutdown before booting.
+rm -f tmp/pids/server.pid
 
 exec "${@}"

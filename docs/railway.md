@@ -14,12 +14,20 @@ db:prepare` before deploys, and health-check `/up`.
 RAILS_ENV=production
 DATABASE_URL=${{Postgres.DATABASE_URL}}
 SECRET_KEY_BASE=<output from bin/rails secret>
+WEB_CONCURRENCY=1
+RAILS_MAX_THREADS=5
 ANTHROPIC_API_KEY=<optional, enables LLM search parsing and news filtering>
 ADMIN_PASSWORD=<optional, overrides the default admin password>
 ```
 
 `RAILS_MASTER_KEY` is not required unless production credentials are added and
 `config.require_master_key` is enabled later.
+
+`WEB_CONCURRENCY` controls the number of Puma worker processes, and
+`RAILS_MAX_THREADS` controls the number of request threads and Active Record
+connections per worker. The maximum database connection budget is
+`WEB_CONCURRENCY * RAILS_MAX_THREADS`, so the default Railway setup above uses
+up to 5 application database connections.
 
 ## First deploy
 
