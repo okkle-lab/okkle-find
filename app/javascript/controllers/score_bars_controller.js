@@ -17,12 +17,19 @@ export default class extends Controller {
 
     if (this.prefersReducedMotion) return
 
-    if (previousUnavailableByScope.get(this.scopeKey) && !this.unavailable) {
+    const becomingAvailable = previousUnavailableByScope.get(this.scopeKey) && !this.unavailable
+    if (becomingAvailable) {
       this.blurElement.classList.add("cat-bars-blur-out")
     }
 
     const previousWidths = previousWidthsByScope.get(this.scopeKey)
     if (!previousWidths) return
+
+    // Settle the score numbers in as the bars tween, so a tab switch reads as a
+    // transition rather than a hard snap. Skipped when the blur-out is playing.
+    if (!becomingAvailable) {
+      this.blurElement.classList.add("cat-scores-settle")
+    }
 
     this.fillTargets.forEach((fill) => {
       const targetWidth = this.targetWidth(fill)

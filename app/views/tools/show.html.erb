@@ -104,9 +104,8 @@
                   <details
                     class="cat-score-category<%= " cat-score-category-unavailable" if cat[:unavailable_message].present? %>"
                     data-score-category-accordion-target="item"
-                    data-action="toggle->score-category-accordion#toggle"
                   >
-                    <summary class="cat-bar-row cat-score-summary">
+                    <summary class="cat-bar-row cat-score-summary" data-action="click->score-category-accordion#toggle">
                     <span class="cat-bar-ic" style="--icon-tint: var(--brand)"><%= icon(cat[:icon], size: 16) %></span>
                     <span class="cat-bar-name"><%= cat[:display_name] %></span>
                     <span class="cat-bar-track">
@@ -122,39 +121,21 @@
                     </summary>
                     <% unless scores_unavailable %>
                       <div class="cat-subpanel">
-                        <ul class="eval-criteria cat-subcriteria">
-                          <% category_criteria(@tool, cat[:fields], model_variant: @selected_model_variant, category: cat[:name]).each do |label, score, _measure, field| %>
-                            <% sub_score_width = score ? (score * 10).round : 0 %>
-                            <% sub_score_fill = score_fill_color(score) || "transparent" %>
-                            <li class="eval-crit cat-subcriterion" data-score-field="<%= field %>">
-                              <div class="eval-crit-top">
-                                <span class="cat-subcriterion-spacer" aria-hidden="true"></span>
-                                <span class="eval-crit-label"><%= label %></span>
-                                <span class="cat-subbar-track" aria-hidden="true">
-                                  <span
-                                    class="cat-subbar-fill"
-                                    data-score-bars-target="fill"
-                                    data-score-bars-key="<%= "#{cat[:key]}-#{field}" %>"
-                                    data-score-bars-width="<%= sub_score_width %>"
-                                    style="width: <%= sub_score_width %>%; background: <%= sub_score_fill %>"
-                                  ></span>
-                                </span>
-                                <span class="eval-crit-score"><%= colored_score(score) %></span>
-                              </div>
-                            </li>
-                          <% end %>
-                        </ul>
-                        <% if cat[:unavailable_message].present? %>
-                          <div class="cat-score-notes">
-                            <p class="eval-label">Testing note</p>
-                            <p class="cat-score-summary-copy"><%= cat[:unavailable_message] %></p>
-                          </div>
+                        <% criteria = category_criteria(@tool, cat[:fields], model_variant: @selected_model_variant, category: cat[:name]) %>
+                        <% scored_criteria, untested_criteria = criteria.partition { |_label, score, _measure, _field| score.present? } %>
+                        <% if scored_criteria.any? %>
+                          <ul class="cat-subcriteria">
+                            <% scored_criteria.each do |label, score, _measure, field| %>
+                              <li class="cat-subcriterion" data-score-field="<%= field %>">
+                                <span class="cat-subcriterion-label"><%= label %></span>
+                                <span class="cat-subcriterion-leader" aria-hidden="true"></span>
+                                <span class="cat-subcriterion-score"><%= colored_score(score) %></span>
+                              </li>
+                            <% end %>
+                          </ul>
                         <% end %>
-                        <% if cat[:unavailable_message].blank? && (category_summary = category_reasoning_summary(@tool, cat, model_variant: @selected_model_variant)) %>
-                          <div class="cat-score-notes">
-                            <p class="eval-label">Why it scored this way</p>
-                            <p class="cat-score-summary-copy"><%= category_summary %></p>
-                          </div>
+                        <% if untested_criteria.any? %>
+                          <p class="cat-subcriteria-untested">Not tested: <%= untested_criteria.map(&:first).to_sentence %></p>
                         <% end %>
                       </div>
                     <% end %>
