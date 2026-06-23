@@ -2039,6 +2039,14 @@ textarea.admin-input { resize: vertical; }
     color: #d7f3ef;
     background: rgba(20, 24, 23, 0.62);
   }
+  /* score breakdown: the borders/leaders are hardcoded light greys that read as
+     bright lines on dark — route them through the dark palette. */
+  .cat-score-category { border-bottom-color: var(--line); }
+  .cat-subcriteria { border-left-color: var(--line); }
+  .cat-subcriterion-leader { border-bottom-color: #4d4d4d; }
+  .cat-subcriterion-label { color: var(--muted); }
+  .cat-bar-row:hover,
+  .cat-score-category[open]:hover { background: rgba(255, 255, 255, 0.04); }
   .site-nav-link { color: var(--body); }
   .site-nav-link:hover { background: rgba(255, 255, 255, 0.07); }
   .site-nav-cta { background: #303836; color: var(--score-ink); border-color: var(--score-pill-line); }
