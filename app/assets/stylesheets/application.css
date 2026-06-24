@@ -1500,10 +1500,25 @@ textarea.admin-input { resize: vertical; }
 .tool-detail .value-bar-ic { color: #54a69c; background: #eefaf8; border: 0; }
 .value-bar-name { color: var(--ink); }
 .value-bar-value { font-size: 0.92rem; white-space: nowrap; }
-.usage-bar-row:hover { background: transparent; }
-.tool-detail .usage-bar-ic { color: #d56f80; background: #fff3f5; border: 0; }
-.usage-bar-name { color: var(--ink); }
-.usage-bar-value { font-size: 0.92rem; white-space: nowrap; }
+/* Efficiency reads as plain stats, not bars: a number + a one-word band chip.
+   Bars implied a meaningful max (and a "more = better" direction) that time and
+   tokens don't have. The chip carries the colour; the number stays high-contrast. */
+.usage-metrics-list.usage-stats { gap: 0.3rem; }
+.usage-stat { display: flex; align-items: center; gap: 0.7rem; padding: 0.5rem; border-radius: 10px; }
+.tool-detail .usage-stat-ic {
+  width: 26px; height: 26px; border-radius: 7px; flex: 0 0 auto;
+  display: flex; align-items: center; justify-content: center;
+  color: #d56f80; background: #fff3f5;
+}
+.usage-stat-name { flex: 1 1 auto; color: var(--ink); font-size: 0.92rem; font-weight: 600; }
+.usage-stat-value { color: var(--ink); font-size: 1.05rem; font-weight: 800; white-space: nowrap; }
+.usage-stat-chip {
+  min-width: 4.25rem; text-align: center; white-space: nowrap;
+  font-size: 0.72rem; font-weight: 700; padding: 0.2rem 0.6rem; border-radius: 999px;
+}
+.usage-stat-chip-strong { color: rgb(31, 110, 86); background: #e4f3ec; }
+.usage-stat-chip-medium { color: rgb(133, 91, 11); background: #fbf0d6; }
+.usage-stat-chip-weak { color: rgb(163, 61, 45); background: #fae8e5; }
 .cat-breakdown-foot { margin: 1.1rem 0 0; font-size: 0.88rem; }
 .score-empty { margin: 0; color: var(--muted); font-size: 0.92rem; }
 @media (max-width: 560px) {
@@ -1793,12 +1808,10 @@ textarea.admin-input { resize: vertical; }
   box-shadow: none;
 }
 .tool-detail .cat-breakdown { margin-top: 4.25rem; }
-/* All scorecard bars share one house fill (grey → brand). The quality signal
-   lives in the band-coloured number, not the bar colour, so performance,
-   value and efficiency read as one consistent system. */
+/* Performance and value bars share one house fill (grey → brand); the quality
+   signal lives in the band-coloured number, not the bar colour. */
 .tool-detail .performance-bar-fill,
-.tool-detail .value-bar-fill,
-.tool-detail .usage-bar-fill {
+.tool-detail .value-bar-fill {
   background: linear-gradient(
     90deg,
     #e5e7eb 0%,

@@ -474,6 +474,13 @@ module ApplicationHelper
     time: 60.0,
     tokens: 3_500.0
   }.freeze
+  # One-word verdicts per efficiency metric, keyed by goodness band. The chip
+  # carries the colour signal so the raw number stays high-contrast in both
+  # themes — a bar length would imply a meaningful max these metrics don't have.
+  USAGE_METRIC_QUALIFIERS = {
+    time: { strong: "Fast", medium: "Average", weak: "Slow" },
+    tokens: { strong: "Lean", medium: "Average", weak: "Heavy" }
+  }.freeze
 
   def score_band(value)
     n = value.to_f
@@ -506,16 +513,12 @@ module ApplicationHelper
     "rgb(#{SCORE_BANDS[score_band(value)][:fill].join(", ")})"
   end
 
-  # Efficiency is lower-is-better, so invert the ratio: a low value (fast/cheap)
-  # lands in the strong band.
-  def usage_metric_color(value, max)
-    band = usage_metric_band(value, max)
-    band && "rgb(#{SCORE_BANDS[band][:text].join(", ")})"
-  end
+  # The one-word verdict for an efficiency metric ("Fast"/"Lean"/…), or nil when
+  # the metric has no band (missing value).
+  def usage_metric_qualifier(kind, band)
+    return nil unless band
 
-  def usage_metric_fill_color(value, max)
-    band = usage_metric_band(value, max)
-    band && "rgb(#{SCORE_BANDS[band][:fill].join(", ")})"
+    USAGE_METRIC_QUALIFIERS.dig(kind.to_sym, band)
   end
 
   # Value is higher-is-better, so the raw ratio maps straight onto the bands.
@@ -529,6 +532,8 @@ module ApplicationHelper
     band && "rgb(#{SCORE_BANDS[band][:fill].join(", ")})"
   end
 
+  # Efficiency is lower-is-better, so invert the ratio: a low value (fast/cheap)
+  # lands in the strong band.
   def usage_metric_band(value, max)
     ratio = usage_metric_ratio(value, max)
     ratio && goodness_band(1.0 - ratio)
@@ -586,18 +591,14 @@ module ApplicationHelper
   def usage_metric_payload(kind:, label:, icon:, value:, max:, formatted_value:)
     return nil if value.nil? || formatted_value.nil?
 
-    ratio = usage_metric_ratio(value, max) || 0
-    width = ratio.zero? ? 0 : [(ratio * 100).round, 4].max
-
+    band = usage_metric_band(value, max)
     {
       kind: kind,
       label: label,
       icon: icon,
       value: formatted_value,
-      ratio: ratio.round(3),
-      width: width,
-      color: usage_metric_color(value, max),
-      fill_color: usage_metric_fill_color(value, max)
+      band: band,
+      qualifier: usage_metric_qualifier(kind, band)
     }
   end
 

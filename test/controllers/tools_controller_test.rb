@@ -243,7 +243,7 @@ class ToolsControllerTest < ActionDispatch::IntegrationTest
     assert_select ".cat-bars-overlay", "Scores currently unavailable"
     assert_select ".value-metrics", false
     assert_select ".usage-metrics-empty", false
-    assert_select ".usage-metrics-list[data-controller='score-bars']"
+    assert_select ".usage-metrics-list.usage-stats"
     assert_select ".cat-bar-name"
     assert_select ".score-empty", false
   end
@@ -294,24 +294,22 @@ class ToolsControllerTest < ActionDispatch::IntegrationTest
     assert_select ".usage-metrics[aria-label='Efficiency']"
     assert_select ".usage-metrics-title", "Efficiency"
     assert_select ".usage-metrics-sub", "Lower is better"
-    assert_select ".usage-metrics-list[data-controller='score-bars'][data-score-bars-scope-value='tool-usage-#{tool.id}'][data-usage-metric-model='#{fast.id}']"
+    assert_select ".usage-metrics-list.usage-stats[data-usage-metric-model='#{fast.id}']"
     assert_select ".usage-metrics-list[data-usage-metric-model='#{slow.id}']", false
-    assert_select ".usage-bar-row.cat-bar-row", count: 2
-    assert_select ".usage-bar-row[data-usage-metric-kind='time'][data-usage-metric-icon='stopwatch'][data-usage-metric-ratio='0.2']"
-    assert_select ".usage-bar-row[data-usage-metric-kind='tokens'][data-usage-metric-icon='currency-dollar'][data-usage-metric-ratio='0.4']"
-    assert_select ".usage-bar-fill[data-score-bars-target='fill'][data-score-bars-key='usage-time'][data-score-bars-width='20']"
-    assert_select ".usage-bar-fill[data-score-bars-target='fill'][data-score-bars-key='usage-tokens'][data-score-bars-width='40']"
-    assert_select ".usage-bar-ic svg.icon", count: 2
-    assert_select ".usage-bar-name", "Avg time (in seconds)"
-    assert_select ".usage-bar-name", "Avg tokens"
-    assert_select ".usage-bar-row[data-usage-metric-kind='time'] .usage-bar-fill[style*='rgb(98, 179, 148)']"
-    assert_select ".usage-bar-row[data-usage-metric-kind='tokens'] .usage-bar-fill[style*='rgb(237, 192, 102)']"
-    assert_select ".usage-bar-value", "2.0"
-    assert_select ".usage-bar-value", "400"
-    assert_select ".usage-bar-value", { text: "2.0s", count: 0 }
-    assert_select ".usage-bar-value", { text: "400 tokens", count: 0 }
-    assert_select ".usage-bar-value", { text: "8.0s", count: 0 }
-    assert_select ".usage-bar-value", { text: "800 tokens", count: 0 }
+    assert_select ".usage-stat", count: 2
+    assert_select ".usage-stat[data-usage-metric-kind='time'][data-usage-metric-icon='stopwatch']"
+    assert_select ".usage-stat[data-usage-metric-kind='tokens'][data-usage-metric-icon='currency-dollar']"
+    assert_select ".usage-stat-ic svg.icon", count: 2
+    assert_select ".usage-stat-name", "Avg time (in seconds)"
+    assert_select ".usage-stat-name", "Avg tokens"
+    assert_select ".usage-stat[data-usage-metric-kind='time'] .usage-stat-chip.usage-stat-chip-strong", "Fast"
+    assert_select ".usage-stat[data-usage-metric-kind='tokens'] .usage-stat-chip.usage-stat-chip-medium", "Average"
+    assert_select ".usage-stat-value", "2.0"
+    assert_select ".usage-stat-value", "400"
+    assert_select ".usage-stat-value", { text: "2.0s", count: 0 }
+    assert_select ".usage-stat-value", { text: "400 tokens", count: 0 }
+    assert_select ".usage-stat-value", { text: "8.0s", count: 0 }
+    assert_select ".usage-stat-value", { text: "800 tokens", count: 0 }
   end
 
   test "product page shows value metrics when value flag is enabled" do

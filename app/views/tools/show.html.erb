@@ -193,30 +193,21 @@
                     <p class="usage-metrics-empty">Currently unavailable for <%= usage_variant.name %></p>
                   <% elsif display_usage_metric_row[:metrics].any? %>
                     <div
-                      class="usage-metrics-list"
-                      data-controller="score-bars"
-                      data-score-bars-scope-value="tool-usage-<%= @tool.id %>"
+                      class="usage-metrics-list usage-stats"
                       data-usage-metric-model="<%= usage_variant.id %>"
                     >
                       <% display_usage_metric_row[:metrics].each do |metric| %>
                         <div
-                          class="cat-bar-row usage-bar-row"
+                          class="usage-stat"
                           data-usage-metric-kind="<%= metric[:kind] %>"
                           data-usage-metric-icon="<%= metric[:icon] %>"
-                          data-usage-metric-ratio="<%= metric[:ratio] %>"
                         >
-                          <span class="cat-bar-ic usage-bar-ic"><%= icon(metric[:icon], size: 16) %></span>
-                          <span class="cat-bar-name usage-bar-name"><%= metric[:label] %></span>
-                          <span class="cat-bar-track">
-                            <span
-                              class="cat-bar-fill usage-bar-fill"
-                              data-score-bars-target="fill"
-                              data-score-bars-key="usage-<%= metric[:kind] %>"
-                              data-score-bars-width="<%= metric[:width] %>"
-                              style="width: <%= metric[:width] %>%; background: <%= metric[:fill_color] %>"
-                            ></span>
-                          </span>
-                          <span class="cat-bar-score usage-bar-value" style="color: <%= metric[:color] %>"><%= metric[:value] %></span>
+                          <span class="usage-stat-ic"><%= icon(metric[:icon], size: 16) %></span>
+                          <span class="usage-stat-name"><%= metric[:label] %></span>
+                          <span class="usage-stat-value"><%= metric[:value] %></span>
+                          <% if metric[:qualifier] %>
+                            <span class="usage-stat-chip usage-stat-chip-<%= metric[:band] %>"><%= metric[:qualifier] %></span>
+                          <% end %>
                         </div>
                       <% end %>
                     </div>
