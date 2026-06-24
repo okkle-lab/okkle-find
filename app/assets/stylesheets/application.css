@@ -1500,25 +1500,36 @@ textarea.admin-input { resize: vertical; }
 .tool-detail .value-bar-ic { color: #54a69c; background: #eefaf8; border: 0; }
 .value-bar-name { color: var(--ink); }
 .value-bar-value { font-size: 0.92rem; white-space: nowrap; }
-/* Efficiency reads as plain stats, not bars: a number + a one-word band chip.
-   Bars implied a meaningful max (and a "more = better" direction) that time and
-   tokens don't have. The chip carries the colour; the number stays high-contrast. */
-.usage-metrics-list.usage-stats { gap: 0.3rem; }
-.usage-stat { display: flex; align-items: center; gap: 0.7rem; padding: 0.5rem; border-radius: 10px; }
-.tool-detail .usage-stat-ic {
+/* Efficiency & pricing render as indented (recessed) tiles, not bars or
+   floating cards: the inset fill signals "read-only stat", not a clickable
+   link. Each tile is a number + one-word band chip (efficiency) or a plain
+   price (pricing) — bars implied a meaningful max these metrics don't have. */
+.metric-tiles {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 0.6rem; margin-top: 0.1rem;
+}
+.metric-tile {
+  display: flex; flex-direction: column; gap: 0.55rem;
+  padding: 0.8rem 0.9rem; border-radius: 12px;
+  background: var(--surface-grey);
+  box-shadow: inset 0 0 0 1px rgba(26, 26, 46, 0.05);
+}
+.metric-tile-head { display: flex; align-items: center; gap: 0.55rem; }
+.tool-detail .metric-tile-ic {
   width: 26px; height: 26px; border-radius: 7px; flex: 0 0 auto;
   display: flex; align-items: center; justify-content: center;
   color: var(--brand); background: color-mix(in srgb, var(--brand) 12%, #fff);
 }
-.usage-stat-name { flex: 1 1 auto; color: var(--ink); font-size: 0.92rem; font-weight: 600; }
-.usage-stat-value { color: var(--ink); font-size: 1.05rem; font-weight: 800; white-space: nowrap; }
-.usage-stat-chip {
-  min-width: 4.25rem; text-align: center; white-space: nowrap;
+.metric-tile-name { color: var(--muted); font-size: 0.82rem; font-weight: 650; }
+.metric-tile-body { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.metric-tile-value { color: var(--ink); font-size: 1.35rem; font-weight: 800; white-space: nowrap; }
+.metric-tile-chip {
+  flex: 0 0 auto; white-space: nowrap;
   font-size: 0.72rem; font-weight: 700; padding: 0.2rem 0.6rem; border-radius: 999px;
 }
-.usage-stat-chip-strong { color: rgb(31, 110, 86); background: #e4f3ec; }
-.usage-stat-chip-medium { color: rgb(133, 91, 11); background: #fbf0d6; }
-.usage-stat-chip-weak { color: rgb(163, 61, 45); background: #fae8e5; }
+.metric-tile-chip-strong { color: rgb(31, 110, 86); background: #e4f3ec; }
+.metric-tile-chip-medium { color: rgb(133, 91, 11); background: #fbf0d6; }
+.metric-tile-chip-weak { color: rgb(163, 61, 45); background: #fae8e5; }
 .cat-breakdown-foot { margin: 1.1rem 0 0; font-size: 0.88rem; }
 .score-empty { margin: 0; color: var(--muted); font-size: 0.92rem; }
 @media (max-width: 560px) {
@@ -2106,10 +2117,11 @@ textarea.admin-input { resize: vertical; }
   .cat-bar-row:hover,
   .cat-score-category[open]:hover { background: rgba(255, 255, 255, 0.04); }
   .tool-detail .cat-bar-ic,
-  .tool-detail .usage-stat-ic {
+  .tool-detail .metric-tile-ic {
     color: color-mix(in srgb, var(--brand) 62%, #fff);
     background: color-mix(in srgb, var(--brand) 26%, #1f1f1f);
   }
+  .metric-tile { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06); }
   .site-nav-link { color: var(--body); }
   .site-nav-link:hover { background: rgba(255, 255, 255, 0.07); }
   .site-nav-cta { background: #303836; color: var(--score-ink); border-color: var(--score-pill-line); }

@@ -223,6 +223,30 @@ module ApplicationHelper
     }
   end
 
+  # Per-selected-variant API pricing, in the same tile shape as the usage row.
+  # Prices are shown as plain numbers (no band chip): a higher price usually
+  # means a premium model, not a worse one, so a red/green verdict would mislead.
+  def model_pricing_metric_row(tool, selected_model_variant: nil)
+    variants = tool.model_variants.ordered
+    variants_with_pricing = variants.select { |variant| model_pricing_present?(variant) }
+    selected_variant = selected_model_variant || tool.best_model_variant || variants_with_pricing.first
+    return nil unless selected_variant
+
+    unit = selected_variant.pricing_unit.presence || "per 1M tokens"
+    metrics = [
+      pricing_metric_payload(kind: "input", label: "Input", icon: "currency-dollar", value: selected_variant.input_usd_per_m),
+      pricing_metric_payload(kind: "output", label: "Output", icon: "credit-card", value: selected_variant.output_usd_per_m)
+    ].compact
+
+    {
+      variant: selected_variant,
+      unit: unit,
+      fallback: selected_model_variant.nil?,
+      unavailable: metrics.empty?,
+      metrics: metrics
+    }
+  end
+
   def score_category_display_name(name)
     name.to_s.casecmp("Accuracy & trustworthiness").zero? ? "Trustworthiness" : name
   end
@@ -568,6 +592,24 @@ module ApplicationHelper
     variant.value_overall_score.present? ||
       variant.performance_per_1k_tokens.present? ||
       variant.api_performance_per_dollar.present?
+  end
+
+  def model_pricing_present?(variant)
+    usage_metric_number(variant.input_usd_per_m).present? ||
+      usage_metric_number(variant.output_usd_per_m).present?
+  end
+
+  def pricing_metric_payload(kind:, label:, icon:, value:)
+    number = usage_metric_number(value)
+    return nil if number.nil?
+
+    formatted = (number % 1).zero? ? number.to_i.to_s : number.to_s
+    {
+      kind: kind,
+      label: label,
+      icon: icon,
+      value: "$#{formatted}"
+    }
   end
 
   def value_metric_payload(kind:, label:, icon:, value:, max:, score: false)

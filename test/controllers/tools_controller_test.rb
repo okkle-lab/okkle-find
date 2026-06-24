@@ -243,7 +243,7 @@ class ToolsControllerTest < ActionDispatch::IntegrationTest
     assert_select ".cat-bars-overlay", "Scores currently unavailable"
     assert_select ".value-metrics", false
     assert_select ".usage-metrics-empty", false
-    assert_select ".usage-metrics-list.usage-stats"
+    assert_select ".usage-metrics[aria-label='Efficiency'] .metric-tiles"
     assert_select ".cat-bar-name"
     assert_select ".score-empty", false
   end
@@ -294,24 +294,33 @@ class ToolsControllerTest < ActionDispatch::IntegrationTest
     assert_select ".usage-metrics[aria-label='Efficiency']"
     assert_select ".usage-metrics-title", "Efficiency"
     assert_select ".usage-metrics-sub", "Lower is better"
-    assert_select ".usage-metrics-list.usage-stats[data-usage-metric-model='#{fast.id}']"
-    assert_select ".usage-metrics-list[data-usage-metric-model='#{slow.id}']", false
-    assert_select ".usage-stat", count: 2
-    assert_select ".usage-stat[data-usage-metric-kind='time'][data-usage-metric-icon='stopwatch']"
-    assert_select ".usage-stat[data-usage-metric-kind='tokens'][data-usage-metric-icon='currency-dollar']"
-    assert_select ".usage-stat-ic svg.icon", count: 2
-    assert_select ".usage-stat-name", "Avg time (in seconds)"
-    assert_select ".usage-stat-name", "Avg tokens"
-    assert_select ".usage-stat[data-usage-metric-kind='time'] .usage-stat-chip.usage-stat-chip-strong", "Fast"
-    assert_select ".usage-stat[data-usage-metric-kind='tokens'] .usage-stat-chip.usage-stat-chip-medium", "Average"
-    assert_select ".usage-stat-value", "2.0"
-    assert_select ".usage-stat-value", "400"
-    assert_select ".usage-stat[data-usage-metric-kind='time'] .usage-stat-value[style*='rgb(31, 110, 86)']"
-    assert_select ".usage-stat[data-usage-metric-kind='tokens'] .usage-stat-value[style*='rgb(133, 91, 11)']"
-    assert_select ".usage-stat-value", { text: "2.0s", count: 0 }
-    assert_select ".usage-stat-value", { text: "400 tokens", count: 0 }
-    assert_select ".usage-stat-value", { text: "8.0s", count: 0 }
-    assert_select ".usage-stat-value", { text: "800 tokens", count: 0 }
+    assert_select ".metric-tiles[data-usage-metric-model='#{fast.id}']"
+    assert_select ".metric-tiles[data-usage-metric-model='#{slow.id}']", false
+    assert_select ".usage-metrics[aria-label='Efficiency'] .metric-tile", count: 2
+    assert_select ".metric-tile[data-usage-metric-kind='time'][data-usage-metric-icon='stopwatch']"
+    assert_select ".metric-tile[data-usage-metric-kind='tokens'][data-usage-metric-icon='currency-dollar']"
+    assert_select ".usage-metrics[aria-label='Efficiency'] .metric-tile-ic svg.icon", count: 2
+    assert_select ".metric-tile-name", "Avg time (in seconds)"
+    assert_select ".metric-tile-name", "Avg tokens"
+    assert_select ".metric-tile[data-usage-metric-kind='time'] .metric-tile-chip.metric-tile-chip-strong", "Fast"
+    assert_select ".metric-tile[data-usage-metric-kind='tokens'] .metric-tile-chip.metric-tile-chip-medium", "Average"
+    assert_select ".metric-tile-value", "2.0"
+    assert_select ".metric-tile-value", "400"
+    assert_select ".metric-tile[data-usage-metric-kind='time'] .metric-tile-value[style*='rgb(31, 110, 86)']"
+    assert_select ".metric-tile[data-usage-metric-kind='tokens'] .metric-tile-value[style*='rgb(133, 91, 11)']"
+    assert_select ".metric-tile-value", { text: "2.0s", count: 0 }
+    assert_select ".metric-tile-value", { text: "400 tokens", count: 0 }
+    assert_select ".metric-tile-value", { text: "8.0s", count: 0 }
+    assert_select ".metric-tile-value", { text: "800 tokens", count: 0 }
+    assert_operator response.body.index('aria-label="Efficiency"'), :<, response.body.index('aria-label="Pricing"')
+    assert_select ".usage-metrics[aria-label='Pricing'] .usage-metrics-title", "Pricing"
+    assert_select ".usage-metrics[aria-label='Pricing'] .usage-metrics-sub", "per 1M tokens"
+    assert_select ".metric-tiles[data-pricing-metric-model='#{fast.id}']"
+    assert_select ".usage-metrics[aria-label='Pricing'] .metric-tile", count: 2
+    assert_select ".metric-tile[data-pricing-metric-kind='input'] .metric-tile-value", "$1"
+    assert_select ".metric-tile[data-pricing-metric-kind='output'] .metric-tile-value", "$3"
+    assert_select ".metric-tile[data-pricing-metric-kind='input'] .metric-tile-name", "Input"
+    assert_select ".metric-tile[data-pricing-metric-kind='output'] .metric-tile-name", "Output"
   end
 
   test "product page shows value metrics when value flag is enabled" do
@@ -353,8 +362,7 @@ class ToolsControllerTest < ActionDispatch::IntegrationTest
     assert_operator response.body.index("Availability &amp; data"), :<, response.body.index("The full specs")
     assert_select ".performance-bar-fill.cat-bar-fill[data-score-bars-target='fill'][data-score-bars-key='coding'][data-score-bars-width='80']"
     assert_select ".performance-bar-fill[style*='background']", false
-    assert_select ".performance-bar-score[style]", false
-    assert_select ".performance-bar-score", "8"
+    assert_select ".performance-bar-score[style*='color: rgb(31, 110, 86)']", "8"
     assert_select ".models-block .specs-title", "Models & pricing"
     assert_select ".models-block .models-name", "Fast Model"
     assert_select ".models-block td", "$1 in / $3 out"
